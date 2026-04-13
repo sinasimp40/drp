@@ -3,15 +3,18 @@ import os
 import json
 import subprocess
 import datetime
+import shutil
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QTextEdit, QMessageBox, QGroupBox, QGridLayout
+    QLabel, QPushButton, QTextEdit, QMessageBox, QGroupBox, QGridLayout,
+    QSplashScreen, QProgressBar, QFileDialog
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPainter, QPixmap, QIcon
+from PyQt5.QtCore import Qt, QTimer, QSize, QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient
 
-APP_NAME = "Denfi Roblox"
+APP_NAME = "DENFI ROBLOX"
+APP_DISPLAY = "Denfi Roblox"
 APP_VERSION = "1.0.0"
 
 def get_app_dir():
@@ -25,144 +28,251 @@ CACHE_DIR = os.path.join(APP_DIR, "Cache")
 LOGS_DIR = os.path.join(APP_DIR, "Logs")
 CONFIG_FILE = os.path.join(APP_DIR, "denfi_config.json")
 
-DARK_BG = "#1a1a2e"
-CARD_BG = "#16213e"
-CARD_BORDER = "#0f3460"
-ACCENT = "#e94560"
-ACCENT_HOVER = "#ff6b81"
-TEXT = "#eaeaea"
-TEXT_DIM = "#8892b0"
-SUCCESS = "#00d672"
-WARNING = "#ffa502"
-ERROR = "#ff4757"
+BG = "#0a0a0a"
+CARD_BG = "#141414"
+CARD_BORDER = "#2a2a2a"
+ORANGE = "#ff6a00"
+ORANGE_LIGHT = "#ff8c33"
+ORANGE_DARK = "#cc5500"
+ORANGE_GLOW = "#ff6a0040"
+TEXT_WHITE = "#f0f0f0"
+TEXT_GRAY = "#888888"
+TEXT_DIM = "#555555"
+GREEN = "#00cc66"
+RED = "#ff3333"
+YELLOW = "#ffaa00"
 
 STYLESHEET = f"""
 QMainWindow {{
-    background-color: {DARK_BG};
+    background-color: {BG};
 }}
 QWidget {{
-    background-color: {DARK_BG};
-    color: {TEXT};
+    background-color: {BG};
+    color: {TEXT_WHITE};
     font-family: 'Segoe UI', 'Arial', sans-serif;
 }}
 QGroupBox {{
     background-color: {CARD_BG};
     border: 1px solid {CARD_BORDER};
-    border-radius: 8px;
-    margin-top: 8px;
-    padding: 16px;
-    padding-top: 32px;
-    font-size: 14px;
+    border-radius: 10px;
+    margin-top: 6px;
+    padding: 18px;
+    padding-top: 36px;
+    font-size: 13px;
     font-weight: bold;
-    color: {TEXT};
+    color: {ORANGE};
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
-    left: 16px;
-    padding: 0 8px;
-    color: {TEXT};
+    left: 18px;
+    padding: 0 10px;
+    color: {ORANGE};
+    font-size: 13px;
 }}
 QPushButton {{
     background-color: {CARD_BORDER};
-    color: {TEXT};
-    border: none;
+    color: {TEXT_WHITE};
+    border: 1px solid #3a3a3a;
     border-radius: 6px;
-    padding: 10px 20px;
+    padding: 10px 22px;
     font-size: 12px;
     font-weight: bold;
 }}
 QPushButton:hover {{
-    background-color: {ACCENT};
+    background-color: #3a3a3a;
+    border-color: {ORANGE};
+    color: {ORANGE};
 }}
 QPushButton:pressed {{
-    background-color: {ACCENT_HOVER};
+    background-color: {ORANGE_DARK};
+    color: white;
 }}
 QPushButton#launchBtn {{
-    background-color: {ACCENT};
-    color: white;
+    background-color: {ORANGE};
+    color: #0a0a0a;
     font-size: 18px;
-    padding: 18px 50px;
+    font-weight: bold;
+    padding: 16px 60px;
     border-radius: 10px;
+    border: 2px solid {ORANGE_LIGHT};
 }}
 QPushButton#launchBtn:hover {{
-    background-color: {ACCENT_HOVER};
+    background-color: {ORANGE_LIGHT};
+    border-color: {ORANGE_LIGHT};
+    color: #0a0a0a;
+}}
+QPushButton#launchBtn:pressed {{
+    background-color: {ORANGE_DARK};
 }}
 QPushButton#launchBtn:disabled {{
-    background-color: #3a3a5e;
-    color: #6a6a8e;
+    background-color: #2a2a2a;
+    color: #555555;
+    border-color: #333333;
+}}
+QPushButton#updateBtn {{
+    background-color: transparent;
+    color: {ORANGE};
+    border: 1px solid {ORANGE};
+    font-size: 11px;
+    padding: 8px 16px;
+}}
+QPushButton#updateBtn:hover {{
+    background-color: {ORANGE};
+    color: #0a0a0a;
 }}
 QTextEdit {{
-    background-color: #0d1117;
-    color: {TEXT_DIM};
+    background-color: #0d0d0d;
+    color: {TEXT_GRAY};
     border: 1px solid {CARD_BORDER};
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: 6px;
+    padding: 10px;
     font-size: 11px;
     font-family: 'Consolas', 'Courier New', monospace;
+    selection-background-color: {ORANGE_DARK};
 }}
 QLabel {{
     background-color: transparent;
-    color: {TEXT_DIM};
+    color: {TEXT_GRAY};
 }}
 QLabel#titleLabel {{
-    font-size: 24px;
+    font-size: 26px;
     font-weight: bold;
-    color: {TEXT};
+    color: {ORANGE};
+    letter-spacing: 2px;
 }}
 QLabel#subtitleLabel {{
-    font-size: 12px;
+    font-size: 11px;
     color: {TEXT_DIM};
+    letter-spacing: 1px;
 }}
 QLabel#statusOk {{
-    color: {SUCCESS};
+    color: {GREEN};
     font-weight: bold;
     font-size: 12px;
 }}
 QLabel#statusBad {{
-    color: {ERROR};
+    color: {RED};
     font-weight: bold;
     font-size: 12px;
 }}
 QLabel#statusWarn {{
-    color: {WARNING};
+    color: {YELLOW};
     font-weight: bold;
     font-size: 12px;
 }}
 QLabel#statusLabel {{
-    color: {TEXT_DIM};
+    color: {TEXT_GRAY};
     font-size: 12px;
 }}
 QLabel#pathLabel {{
     font-size: 11px;
     font-family: 'Consolas', 'Courier New', monospace;
+    color: {ORANGE_LIGHT};
+    padding: 8px 12px;
+    background-color: #1a1a1a;
+    border: 1px solid {CARD_BORDER};
+    border-radius: 6px;
+}}
+QLabel#footerLabel {{
     color: {TEXT_DIM};
-    padding: 6px 10px;
-    background-color: #0f3460;
+    font-size: 11px;
+}}
+QLabel#sectionHint {{
+    color: {TEXT_DIM};
+    font-size: 11px;
+}}
+QProgressBar {{
+    background-color: #1a1a1a;
+    border: none;
+    border-radius: 4px;
+    height: 6px;
+    text-align: center;
+}}
+QProgressBar::chunk {{
+    background-color: {ORANGE};
     border-radius: 4px;
 }}
 """
 
 
+def create_splash():
+    splash_pix = QPixmap(500, 320)
+    splash_pix.fill(QColor(BG))
+
+    painter = QPainter(splash_pix)
+    painter.setRenderHint(QPainter.Antialiasing)
+
+    grad = QLinearGradient(0, 0, 500, 320)
+    grad.setColorAt(0, QColor("#0a0a0a"))
+    grad.setColorAt(0.5, QColor("#111111"))
+    grad.setColorAt(1, QColor("#0a0a0a"))
+    painter.fillRect(0, 0, 500, 320, grad)
+
+    painter.setPen(Qt.NoPen)
+    painter.setBrush(QColor(ORANGE))
+    block_size = 16
+    gap = 4
+    start_x = 185
+    start_y = 50
+    for row in range(3):
+        for col in range(3):
+            x = start_x + col * (block_size + gap)
+            y = start_y + row * (block_size + gap)
+            if row == 2 and col == 2:
+                painter.setBrush(QColor(ORANGE_DARK))
+            else:
+                painter.setBrush(QColor(ORANGE))
+            painter.drawRoundedRect(x, y, block_size, block_size, 3, 3)
+
+    painter.setPen(QColor(ORANGE))
+    font = QFont("Segoe UI", 32, QFont.Bold)
+    font.setLetterSpacing(QFont.AbsoluteSpacing, 4)
+    painter.setFont(font)
+    painter.drawText(0, 130, 500, 50, Qt.AlignCenter, APP_NAME)
+
+    painter.setPen(QColor(TEXT_DIM))
+    font2 = QFont("Segoe UI", 12)
+    font2.setLetterSpacing(QFont.AbsoluteSpacing, 6)
+    painter.setFont(font2)
+    painter.drawText(0, 180, 500, 30, Qt.AlignCenter, "PORTABLE")
+
+    painter.setPen(QColor(TEXT_DIM))
+    font3 = QFont("Segoe UI", 9)
+    painter.setFont(font3)
+    painter.drawText(0, 260, 500, 20, Qt.AlignCenter, "Loading launcher...")
+
+    painter.setPen(QColor(ORANGE_DARK))
+    painter.drawRect(100, 290, 300, 4)
+    painter.fillRect(100, 290, 200, 4, QColor(ORANGE))
+
+    painter.setPen(QColor(TEXT_DIM))
+    font4 = QFont("Segoe UI", 8)
+    painter.setFont(font4)
+    painter.drawText(0, 300, 500, 20, Qt.AlignCenter, f"v{APP_VERSION}")
+
+    painter.end()
+    return splash_pix
+
+
 class DenfiRobloxLauncher(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{APP_NAME} - Portable Launcher")
-        self.setMinimumSize(700, 580)
-        self.resize(780, 620)
+        self.setWindowTitle(f"{APP_DISPLAY} - Portable Launcher")
+        self.setMinimumSize(720, 600)
+        self.resize(780, 640)
 
         icon_path = os.path.join(APP_DIR, "icon.ico")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
         self.roblox_found = False
-
         self.ensure_folders()
 
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(24, 18, 24, 18)
-        layout.setSpacing(12)
+        layout.setContentsMargins(24, 20, 24, 16)
+        layout.setSpacing(10)
 
         self.build_header(layout)
         self.build_folder_info(layout)
@@ -198,19 +308,25 @@ class DenfiRobloxLauncher(QMainWindow):
         header.setSpacing(14)
 
         icon = QLabel()
-        pixmap = QPixmap(50, 50)
+        pixmap = QPixmap(48, 48)
         pixmap.fill(QColor("transparent"))
         painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor(ACCENT))
-        painter.drawRoundedRect(5, 5, 18, 18, 3, 3)
-        painter.drawRoundedRect(27, 5, 18, 18, 3, 3)
-        painter.drawRoundedRect(5, 27, 18, 18, 3, 3)
-        painter.setBrush(QColor("#c53030"))
-        painter.drawRoundedRect(27, 27, 18, 18, 3, 3)
+        block = 14
+        gap = 3
+        for r in range(3):
+            for c in range(3):
+                x = c * (block + gap)
+                y = r * (block + gap)
+                if r == 2 and c == 2:
+                    painter.setBrush(QColor(ORANGE_DARK))
+                else:
+                    painter.setBrush(QColor(ORANGE))
+                painter.drawRoundedRect(x, y, block, block, 2, 2)
         painter.end()
         icon.setPixmap(pixmap)
-        icon.setFixedSize(50, 50)
+        icon.setFixedSize(48, 48)
         header.addWidget(icon)
 
         text_col = QVBoxLayout()
@@ -218,7 +334,7 @@ class DenfiRobloxLauncher(QMainWindow):
         title = QLabel(APP_NAME)
         title.setObjectName("titleLabel")
         text_col.addWidget(title)
-        subtitle = QLabel("Portable Roblox Launcher - No installation needed")
+        subtitle = QLabel("PORTABLE LAUNCHER")
         subtitle.setObjectName("subtitleLabel")
         text_col.addWidget(subtitle)
         header.addLayout(text_col)
@@ -227,21 +343,23 @@ class DenfiRobloxLauncher(QMainWindow):
 
         version_label = QLabel(f" v{APP_VERSION} ")
         version_label.setStyleSheet(
-            f"background-color: {CARD_BORDER}; color: {TEXT}; "
-            f"padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold;"
+            f"background-color: #1a1a1a; color: {ORANGE}; "
+            f"padding: 4px 14px; border-radius: 4px; font-size: 11px; "
+            f"font-weight: bold; border: 1px solid {CARD_BORDER};"
         )
         header.addWidget(version_label)
 
         parent_layout.addLayout(header)
 
+        sep = QWidget()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet(f"background-color: {CARD_BORDER};")
+        parent_layout.addWidget(sep)
+
     def build_folder_info(self, parent_layout):
-        group = QGroupBox("Roblox Files Location")
+        group = QGroupBox("ROBLOX FILES")
         layout = QVBoxLayout(group)
         layout.setSpacing(8)
-
-        info_label = QLabel("The launcher automatically reads Roblox from this folder:")
-        info_label.setStyleSheet(f"color: {TEXT}; font-size: 12px;")
-        layout.addWidget(info_label)
 
         path_label = QLabel(ROBLOX_DIR)
         path_label.setObjectName("pathLabel")
@@ -249,54 +367,74 @@ class DenfiRobloxLauncher(QMainWindow):
         layout.addWidget(path_label)
 
         hint = QLabel(
-            "Just copy all your Roblox files into the RobloxFiles folder next to this launcher, then click Launch!"
+            "Copy your Roblox files into the RobloxFiles folder next to this launcher."
         )
-        hint.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        hint.setObjectName("sectionHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
-        open_btn = QPushButton("Open RobloxFiles Folder")
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+
+        open_btn = QPushButton("Open Folder")
         open_btn.setCursor(Qt.PointingHandCursor)
-        open_btn.setFixedWidth(220)
+        open_btn.setFixedWidth(140)
         open_btn.clicked.connect(self.open_roblox_folder)
-        layout.addWidget(open_btn)
+        btn_row.addWidget(open_btn)
+
+        update_btn = QPushButton("Update Roblox Files")
+        update_btn.setObjectName("updateBtn")
+        update_btn.setCursor(Qt.PointingHandCursor)
+        update_btn.setFixedWidth(180)
+        update_btn.setToolTip("Copy updated Roblox files from your system installation")
+        update_btn.clicked.connect(self.update_roblox_files)
+        btn_row.addWidget(update_btn)
+
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
 
         parent_layout.addWidget(group)
 
     def build_status_section(self, parent_layout):
-        group = QGroupBox("File Check")
+        group = QGroupBox("STATUS")
         grid = QGridLayout(group)
-        grid.setSpacing(6)
+        grid.setSpacing(8)
+        grid.setContentsMargins(12, 12, 12, 12)
 
         labels = ["RobloxPlayerBeta.exe", "DLL Files", "Ready to Launch"]
         self.status_values = []
 
         for i, text in enumerate(labels):
+            dot = QLabel()
+            dot.setFixedSize(8, 8)
+            dot.setStyleSheet(f"background-color: {TEXT_DIM}; border-radius: 4px;")
+            grid.addWidget(dot, i, 0, Qt.AlignCenter)
+
             name_label = QLabel(text)
             name_label.setObjectName("statusLabel")
-            grid.addWidget(name_label, i, 0)
+            grid.addWidget(name_label, i, 1)
 
             val_label = QLabel("Checking...")
             val_label.setObjectName("statusLabel")
-            grid.addWidget(val_label, i, 1)
-            self.status_values.append(val_label)
+            grid.addWidget(val_label, i, 2)
+            self.status_values.append((dot, val_label))
 
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 2)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 2)
         parent_layout.addWidget(group)
 
     def build_launch_section(self, parent_layout):
-        group = QGroupBox("")
-        group.setStyleSheet(
-            f"QGroupBox {{ background-color: {CARD_BG}; border: 1px solid {CARD_BORDER}; "
-            f"border-radius: 8px; padding: 20px; }}"
+        launch_frame = QWidget()
+        launch_frame.setStyleSheet(
+            f"background-color: {CARD_BG}; border: 1px solid {CARD_BORDER}; border-radius: 10px;"
         )
-        layout = QHBoxLayout(group)
-        layout.setSpacing(12)
+        layout = QHBoxLayout(launch_frame)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(14)
 
         layout.addStretch()
 
-        self.launch_btn = QPushButton(f"Launch Roblox")
+        self.launch_btn = QPushButton("LAUNCH ROBLOX")
         self.launch_btn.setObjectName("launchBtn")
         self.launch_btn.setCursor(Qt.PointingHandCursor)
         self.launch_btn.clicked.connect(self.launch_roblox)
@@ -309,25 +447,31 @@ class DenfiRobloxLauncher(QMainWindow):
         layout.addWidget(refresh_btn)
 
         layout.addStretch()
-        parent_layout.addWidget(group)
+        parent_layout.addWidget(launch_frame)
 
     def build_log_section(self, parent_layout):
-        group = QGroupBox("Activity Log")
+        group = QGroupBox("LOG")
         layout = QVBoxLayout(group)
 
         self.log_box = QTextEdit()
         self.log_box.setReadOnly(True)
-        self.log_box.setFixedHeight(100)
+        self.log_box.setFixedHeight(90)
         layout.addWidget(self.log_box)
 
         parent_layout.addWidget(group)
         self.log(f"{APP_NAME} started")
-        self.log(f"Looking for Roblox files in: {ROBLOX_DIR}")
+        self.log(f"Roblox folder: {ROBLOX_DIR}")
 
     def build_footer(self, parent_layout):
+        footer = QHBoxLayout()
         self.footer_label = QLabel("Ready")
-        self.footer_label.setObjectName("statusLabel")
-        parent_layout.addWidget(self.footer_label)
+        self.footer_label.setObjectName("footerLabel")
+        footer.addWidget(self.footer_label)
+        footer.addStretch()
+        credit = QLabel(f"{APP_DISPLAY} Portable v{APP_VERSION}")
+        credit.setObjectName("footerLabel")
+        footer.addWidget(credit)
+        parent_layout.addLayout(footer)
 
     def log(self, message):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -341,17 +485,94 @@ class DenfiRobloxLauncher(QMainWindow):
             subprocess.Popen(["xdg-open", ROBLOX_DIR])
         self.log("Opened RobloxFiles folder")
 
+    def update_roblox_files(self):
+        if sys.platform == "win32":
+            local_app = os.environ.get("LOCALAPPDATA", "")
+            default_path = os.path.join(local_app, "Roblox", "Versions")
+            if os.path.isdir(default_path):
+                versions = []
+                for item in os.listdir(default_path):
+                    full = os.path.join(default_path, item)
+                    if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
+                        versions.append(full)
+
+                if versions:
+                    versions.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                    latest = versions[0]
+
+                    reply = QMessageBox.question(
+                        self, "Update Roblox Files",
+                        f"Found Roblox installation at:\n{latest}\n\n"
+                        f"Copy all files to your portable RobloxFiles folder?\n"
+                        f"This will overwrite existing files.",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if reply == QMessageBox.Yes:
+                        self.do_update(latest)
+                        return
+
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select folder with Roblox files to copy from"
+        )
+        if folder:
+            self.do_update(folder)
+
+    def do_update(self, source_dir):
+        try:
+            self.log(f"Updating from: {source_dir}")
+            self.footer_label.setText("Updating Roblox files...")
+            QApplication.processEvents()
+
+            count = 0
+            for item in os.listdir(source_dir):
+                src = os.path.join(source_dir, item)
+                dst = os.path.join(ROBLOX_DIR, item)
+                if os.path.isfile(src):
+                    shutil.copy2(src, dst)
+                    count += 1
+                elif os.path.isdir(src):
+                    if os.path.exists(dst):
+                        shutil.rmtree(dst)
+                    shutil.copytree(src, dst)
+                    count += 1
+
+            self.log(f"Updated {count} files/folders successfully")
+            self.check_roblox_files()
+            QMessageBox.information(
+                self, "Update Complete",
+                f"Copied {count} files from:\n{source_dir}\n\nYour portable Roblox is up to date!"
+            )
+        except Exception as e:
+            self.log(f"Update failed: {str(e)}")
+            QMessageBox.critical(self, "Update Failed", f"Could not update files:\n\n{str(e)}")
+
+    def set_status(self, index, text, status):
+        dot, label = self.status_values[index]
+        label.setText(text)
+        if status == "ok":
+            dot.setStyleSheet(f"background-color: {GREEN}; border-radius: 4px;")
+            label.setObjectName("statusOk")
+        elif status == "bad":
+            dot.setStyleSheet(f"background-color: {RED}; border-radius: 4px;")
+            label.setObjectName("statusBad")
+        elif status == "warn":
+            dot.setStyleSheet(f"background-color: {YELLOW}; border-radius: 4px;")
+            label.setObjectName("statusWarn")
+        else:
+            dot.setStyleSheet(f"background-color: {TEXT_DIM}; border-radius: 4px;")
+            label.setObjectName("statusLabel")
+        label.setStyle(label.style())
+
     def check_roblox_files(self):
         self.roblox_found = False
 
         if not os.path.isdir(ROBLOX_DIR):
-            for v in self.status_values:
-                v.setText("Folder missing")
-                v.setObjectName("statusBad")
-                v.setStyle(v.style())
+            self.set_status(0, "Folder missing", "bad")
+            self.set_status(1, "Folder missing", "bad")
+            self.set_status(2, "NO", "bad")
             self.footer_label.setText("RobloxFiles folder not found")
             self.launch_btn.setEnabled(False)
-            self.log("RobloxFiles folder is missing")
             return
 
         exe_path = os.path.join(ROBLOX_DIR, "RobloxPlayerBeta.exe")
@@ -364,39 +585,29 @@ class DenfiRobloxLauncher(QMainWindow):
 
         real_files = [f for f in files if f != "PLACE_ROBLOX_HERE.txt"]
         dll_count = len([f for f in files if f.lower().endswith(".dll")])
-        has_dlls = dll_count > 0
         total_files = len(real_files)
 
         if has_exe:
-            self.status_values[0].setText("Found")
-            self.status_values[0].setObjectName("statusOk")
+            self.set_status(0, "Found", "ok")
         else:
-            self.status_values[0].setText("Missing - copy it to RobloxFiles folder")
-            self.status_values[0].setObjectName("statusBad")
-        self.status_values[0].setStyle(self.status_values[0].style())
+            self.set_status(0, "Missing", "bad")
 
-        if has_dlls:
-            self.status_values[1].setText(f"Found ({dll_count} files)")
-            self.status_values[1].setObjectName("statusOk")
+        if dll_count > 0:
+            self.set_status(1, f"Found ({dll_count} files)", "ok")
         else:
-            self.status_values[1].setText("None found")
-            self.status_values[1].setObjectName("statusWarn")
-        self.status_values[1].setStyle(self.status_values[1].style())
+            self.set_status(1, "None found", "warn")
 
         if has_exe:
-            self.status_values[2].setText("YES - Ready!")
-            self.status_values[2].setObjectName("statusOk")
+            self.set_status(2, "YES - Ready!", "ok")
             self.roblox_found = True
-            self.footer_label.setText(f"Ready! Found {total_files} Roblox files")
+            self.footer_label.setText(f"Ready - {total_files} files loaded")
             self.launch_btn.setEnabled(True)
-            self.log(f"Roblox files OK: {total_files} files, {dll_count} DLLs")
+            self.log(f"Roblox OK: {total_files} files, {dll_count} DLLs")
         else:
-            self.status_values[2].setText("NO - Files missing")
-            self.status_values[2].setObjectName("statusBad")
-            self.footer_label.setText("Copy your Roblox files to the RobloxFiles folder")
+            self.set_status(2, "NO - Files needed", "bad")
+            self.footer_label.setText("Copy Roblox files to RobloxFiles folder")
             self.launch_btn.setEnabled(False)
             self.log("Waiting for Roblox files...")
-        self.status_values[2].setStyle(self.status_values[2].style())
 
     def launch_roblox(self):
         if not self.roblox_found:
@@ -409,8 +620,8 @@ class DenfiRobloxLauncher(QMainWindow):
 
         exe_path = os.path.join(ROBLOX_DIR, "RobloxPlayerBeta.exe")
 
-        self.log("Launching Roblox from portable folder...")
-        self.footer_label.setText("Launching Roblox...")
+        self.log("Launching Roblox...")
+        self.footer_label.setText("Launching...")
 
         try:
             env = os.environ.copy()
@@ -452,6 +663,41 @@ class DenfiRobloxLauncher(QMainWindow):
             )
 
 
+class SplashScreen(QSplashScreen):
+    def __init__(self, pixmap):
+        super().__init__(pixmap)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.SplashScreen)
+        self.progress = 0
+
+    def set_progress(self, value):
+        self.progress = value
+        self.repaint()
+
+    def drawContents(self, painter):
+        painter.setPen(QColor(ORANGE))
+        bar_y = 290
+        bar_w = int(300 * self.progress / 100)
+        painter.fillRect(100, bar_y, bar_w, 4, QColor(ORANGE))
+
+        messages = {
+            0: "Initializing...",
+            20: "Loading configuration...",
+            40: "Checking folders...",
+            60: "Scanning Roblox files...",
+            80: "Preparing launcher...",
+            100: "Ready!"
+        }
+        msg = "Loading..."
+        for threshold in sorted(messages.keys(), reverse=True):
+            if self.progress >= threshold:
+                msg = messages[threshold]
+                break
+
+        painter.setPen(QColor(TEXT_DIM))
+        painter.setFont(QFont("Segoe UI", 9))
+        painter.drawText(0, 260, 500, 20, Qt.AlignCenter, msg)
+
+
 def main():
     if sys.platform != "win32":
         os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -465,8 +711,31 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
-    window = DenfiRobloxLauncher()
-    window.show()
+    splash_pix = create_splash()
+    splash = SplashScreen(splash_pix)
+    splash.show()
+    app.processEvents()
+
+    steps = [0, 20, 40, 60, 80, 100]
+    current_step = [0]
+
+    def advance_splash():
+        if current_step[0] < len(steps):
+            splash.set_progress(steps[current_step[0]])
+            app.processEvents()
+            current_step[0] += 1
+            if current_step[0] < len(steps):
+                QTimer.singleShot(400, advance_splash)
+            else:
+                QTimer.singleShot(500, show_main)
+
+    def show_main():
+        window = DenfiRobloxLauncher()
+        window.show()
+        splash.finish(window)
+        app.main_window = window
+
+    advance_splash()
     sys.exit(app.exec_())
 
 
