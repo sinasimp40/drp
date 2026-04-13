@@ -9,7 +9,10 @@ from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QMessageBox, QFileDialog
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient
+from PyQt5.QtGui import (
+    QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient,
+    QRadialGradient, QPen, QPainterPath, QBrush
+)
 
 APP_NAME = "DENFI ROBLOX"
 APP_VERSION = "1.0.0"
@@ -141,6 +144,7 @@ class SplashScreen(QSplashScreen):
         self.status_msg = "Initializing..."
         self.error_msg = ""
         self.is_error = False
+        self._base_pixmap = pixmap
 
     def set_progress(self, value, msg=""):
         self.progress = value
@@ -156,79 +160,146 @@ class SplashScreen(QSplashScreen):
         self.repaint()
 
     def drawContents(self, painter):
-        if self.is_error:
-            painter.fillRect(0, 220, 500, 100, QColor("#1a0000"))
+        w = self._base_pixmap.width()
+        h = self._base_pixmap.height()
 
-            painter.fillRect(100, 290, 300, 4, QColor(RED))
+        bar_y = h - 70
+        bar_x = 80
+        bar_w = w - 160
+        bar_h = 3
+
+        status_y = bar_y - 30
+        version_y = h - 35
+
+        if self.is_error:
+            painter.fillRect(0, status_y - 10, w, h - status_y + 10, QColor("#0d0000"))
 
             painter.setPen(QColor(RED))
             painter.setFont(QFont("Segoe UI", 11, QFont.Bold))
-            painter.drawText(20, 230, 460, 25, Qt.AlignCenter, "ERROR")
+            painter.drawText(0, status_y - 5, w, 22, Qt.AlignCenter, "ERROR")
 
-            painter.setPen(QColor(TEXT_WHITE))
+            painter.setPen(QColor("#cccccc"))
             painter.setFont(QFont("Segoe UI", 9))
             lines = self.error_msg.split("\n")
-            y = 255
+            y_off = status_y + 20
             for line in lines[:3]:
-                painter.drawText(20, y, 460, 18, Qt.AlignCenter, line)
-                y += 16
+                painter.drawText(30, y_off, w - 60, 18, Qt.AlignCenter, line)
+                y_off += 18
+
+            painter.fillRect(bar_x, bar_y + 25, bar_w, bar_h, QColor(RED))
         else:
-            painter.fillRect(0, 245, 500, 25, QColor(BG))
+            painter.fillRect(0, status_y - 5, w, 25, QColor("#0a0a0a"))
 
-            painter.setPen(QColor(TEXT_DIM))
+            painter.setPen(QColor("#888888"))
             painter.setFont(QFont("Segoe UI", 9))
-            painter.drawText(0, 248, 500, 20, Qt.AlignCenter, self.status_msg)
+            painter.drawText(0, status_y, w, 20, Qt.AlignCenter, self.status_msg)
 
-            painter.fillRect(100, 290, int(300 * self.progress / 100), 4, QColor(ORANGE))
+            painter.fillRect(bar_x, bar_y, bar_w, bar_h, QColor("#1e1e1e"))
+
+            if self.progress > 0:
+                fill_w = int(bar_w * self.progress / 100)
+                bar_grad = QLinearGradient(bar_x, 0, bar_x + bar_w, 0)
+                bar_grad.setColorAt(0, QColor("#ff6a00"))
+                bar_grad.setColorAt(1, QColor("#ff9d4d"))
+                painter.fillRect(bar_x, bar_y, fill_w, bar_h, bar_grad)
+
+                glow = QRadialGradient(bar_x + fill_w, bar_y + bar_h // 2, 12)
+                glow.setColorAt(0, QColor(255, 106, 0, 80))
+                glow.setColorAt(1, QColor(255, 106, 0, 0))
+                painter.setBrush(QBrush(glow))
+                painter.setPen(Qt.NoPen)
+                painter.drawEllipse(bar_x + fill_w - 12, bar_y - 10, 24, 24)
+
+            painter.setPen(QColor("#444444"))
+            painter.setFont(QFont("Segoe UI", 8))
+            painter.drawText(0, version_y, w, 16, Qt.AlignCenter, f"v{APP_VERSION}")
 
 
 def create_splash_pixmap():
-    w, h = 520, 340
+    w, h = 560, 380
     splash_pix = QPixmap(w, h)
-    splash_pix.fill(QColor(BG))
+    splash_pix.fill(QColor("#0a0a0a"))
 
     painter = QPainter(splash_pix)
     painter.setRenderHint(QPainter.Antialiasing)
+    painter.setRenderHint(QPainter.TextAntialiasing)
+    painter.setRenderHint(QPainter.SmoothPixmapTransform)
 
-    grad = QLinearGradient(0, 0, w, h)
-    grad.setColorAt(0, QColor("#0a0a0a"))
-    grad.setColorAt(0.5, QColor("#111111"))
-    grad.setColorAt(1, QColor("#0a0a0a"))
-    painter.fillRect(0, 0, w, h, grad)
+    bg_grad = QLinearGradient(0, 0, w, h)
+    bg_grad.setColorAt(0.0, QColor("#0c0c0c"))
+    bg_grad.setColorAt(0.3, QColor("#111111"))
+    bg_grad.setColorAt(0.7, QColor("#0e0e0e"))
+    bg_grad.setColorAt(1.0, QColor("#0a0a0a"))
+    painter.fillRect(0, 0, w, h, bg_grad)
 
+    center_glow = QRadialGradient(w / 2, 140, 200)
+    center_glow.setColorAt(0, QColor(255, 106, 0, 18))
+    center_glow.setColorAt(0.5, QColor(255, 106, 0, 6))
+    center_glow.setColorAt(1, QColor(0, 0, 0, 0))
+    painter.fillRect(0, 0, w, h, center_glow)
+
+    border_pen = QPen(QColor("#1c1c1c"))
+    border_pen.setWidth(1)
+    painter.setPen(border_pen)
+    painter.setBrush(Qt.NoBrush)
+    painter.drawRect(0, 0, w - 1, h - 1)
+
+    inner_pen = QPen(QColor(255, 106, 0, 25))
+    inner_pen.setWidth(1)
+    painter.setPen(inner_pen)
+    painter.drawRect(1, 1, w - 3, h - 3)
+
+    block_size = 18
+    gap = 5
+    grid_w = 3 * block_size + 2 * gap
+    grid_x = (w - grid_w) // 2
+    grid_y = 50
     painter.setPen(Qt.NoPen)
-    block_size = 16
-    gap = 4
-    start_x = (w - 3 * block_size - 2 * gap) // 2
-    start_y = 40
     for row in range(3):
         for col in range(3):
-            x = start_x + col * (block_size + gap)
-            y = start_y + row * (block_size + gap)
+            x = grid_x + col * (block_size + gap)
+            y = grid_y + row * (block_size + gap)
+            block_grad = QLinearGradient(x, y, x + block_size, y + block_size)
             if row == 2 and col == 2:
-                painter.setBrush(QColor(ORANGE_DARK))
+                block_grad.setColorAt(0, QColor("#cc5500"))
+                block_grad.setColorAt(1, QColor("#993d00"))
             else:
-                painter.setBrush(QColor(ORANGE))
-            painter.drawRoundedRect(x, y, block_size, block_size, 3, 3)
+                block_grad.setColorAt(0, QColor("#ff7a1a"))
+                block_grad.setColorAt(1, QColor("#ff6a00"))
 
-    painter.setPen(QColor(ORANGE))
-    font = QFont("Segoe UI", 34, QFont.Bold)
-    font.setLetterSpacing(QFont.AbsoluteSpacing, 4)
-    painter.setFont(font)
-    painter.drawText(0, 120, w, 50, Qt.AlignCenter, APP_NAME)
+            path = QPainterPath()
+            path.addRoundedRect(x, y, block_size, block_size, 4, 4)
+            painter.fillPath(path, block_grad)
 
-    painter.setPen(QColor(ORANGE_DARK))
-    font2 = QFont("Segoe UI", 14)
-    font2.setLetterSpacing(QFont.AbsoluteSpacing, 8)
-    painter.setFont(font2)
-    painter.drawText(0, 172, w, 30, Qt.AlignCenter, "PORTABLE")
+            highlight = QLinearGradient(x, y, x, y + block_size)
+            highlight.setColorAt(0, QColor(255, 255, 255, 35))
+            highlight.setColorAt(0.5, QColor(255, 255, 255, 0))
+            painter.fillPath(path, highlight)
 
-    painter.setPen(QColor("#1a1a1a"))
-    painter.fillRect(110, 290, 300, 4, QColor("#1a1a1a"))
+    title_y = 140
+    painter.setPen(QColor("#ff6a00"))
+    title_font = QFont("Segoe UI", 32, QFont.Bold)
+    title_font.setLetterSpacing(QFont.AbsoluteSpacing, 6)
+    painter.setFont(title_font)
+    painter.drawText(0, title_y, w, 45, Qt.AlignCenter, APP_NAME)
 
-    painter.setPen(QColor(TEXT_DIM))
-    painter.setFont(QFont("Segoe UI", 8))
-    painter.drawText(0, 310, w, 20, Qt.AlignCenter, f"v{APP_VERSION}")
+    sub_y = title_y + 52
+    painter.setPen(QColor("#cc5500"))
+    sub_font = QFont("Segoe UI", 13)
+    sub_font.setLetterSpacing(QFont.AbsoluteSpacing, 12)
+    painter.setFont(sub_font)
+    painter.drawText(0, sub_y, w, 25, Qt.AlignCenter, "PORTABLE")
+
+    line_y = sub_y + 35
+    line_w = 100
+    line_x = (w - line_w) // 2
+    line_grad = QLinearGradient(line_x, 0, line_x + line_w, 0)
+    line_grad.setColorAt(0, QColor(255, 106, 0, 0))
+    line_grad.setColorAt(0.3, QColor(255, 106, 0, 60))
+    line_grad.setColorAt(0.5, QColor(255, 106, 0, 90))
+    line_grad.setColorAt(0.7, QColor(255, 106, 0, 60))
+    line_grad.setColorAt(1, QColor(255, 106, 0, 0))
+    painter.fillRect(line_x, line_y, line_w, 1, line_grad)
 
     painter.end()
     return splash_pix
