@@ -445,20 +445,10 @@ def main():
                 return
 
         elif idx == 5:
-            splash.set_progress(100, "Roblox is running! Logging out...")
+            splash.set_progress(100, "Roblox is running!")
             app.processEvents()
-            log_lines.append("Auto-logout triggered")
             write_log(paths["logs"], "\n".join(log_lines))
-
-            def do_logout():
-                app.quit()
-                if sys.platform == "win32":
-                    try:
-                        subprocess.Popen(["shutdown", "/l", "/f"], creationflags=0x08000000)
-                    except Exception:
-                        pass
-
-            QTimer.singleShot(1500, do_logout)
+            QTimer.singleShot(1200, app.quit)
             return
 
         step_index[0] += 1
