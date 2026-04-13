@@ -1,31 +1,34 @@
 # Denfi Roblox - Portable Launcher
 
 ## Overview
-A desktop GUI application (Python/PyQt5) called "DENFI ROBLOX" with black and orange theme. Runs Roblox from a portable folder — no system installation needed.
+A zero-interaction portable Roblox launcher. Double-click the .exe and it does everything automatically:
+1. Shows "DENFI ROBLOX PORTABLE" splash screen
+2. Auto-syncs Roblox files if an update is detected on the system
+3. Launches Roblox from the portable folder
+4. Closes itself — no window to interact with
 
-## Features
-- Splash/loading screen with "DENFI ROBLOX PORTABLE" branding
-- Black and orange themed UI
-- Auto-detects RobloxFiles folder next to the .exe
-- Status indicators with colored dots (green/red/yellow)
-- "Update Roblox Files" button that auto-finds your system Roblox installation and copies files
-- Launch logging with timestamps
-- Custom icon support (place icon.ico next to the launcher)
-- Redirects AppData to portable Cache folder
+## How It Works
+- The launcher checks `%LOCALAPPDATA%\Roblox\Versions\` for the latest Roblox version
+- Compares it against the files in `RobloxFiles\` using fingerprinting
+- If there's a newer version (or first run), it syncs everything automatically into the same folder
+- Old files are cleaned up, new files replace them — no duplicate folders
+- Roblox is launched with `LOCALAPPDATA` redirected to the portable `Cache\` folder
+- Launcher closes itself after Roblox starts
 
 ## Folder Structure
 ```
 AnyFolder\
-  DenfiRoblox.exe        <- The launcher
+  DenfiRoblox.exe        <- Double-click this
   icon.ico               <- Your custom icon (optional)
-  RobloxFiles\           <- Roblox files go here (auto-created)
-  Cache\                 <- Roblox data (auto-created, keeps portable)
-  Logs\                  <- Launch logs (auto-created)
+  RobloxFiles\           <- Auto-synced Roblox files
+  Cache\                 <- Portable Roblox data
+  Logs\                  <- Launch logs
+  denfi_config.json      <- Tracks sync state
 ```
 
 ## Files
-- **launcher.py** — Main application (PyQt5 GUI with splash screen)
-- **build_exe.bat** — Windows build script (compiles to .exe via PyInstaller)
+- **launcher.py** — Main application (splash screen, auto-sync, auto-launch)
+- **build_exe.bat** — Windows build script
 - **requirements.txt** — Python dependencies
 
 ## Building
