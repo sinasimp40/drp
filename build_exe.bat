@@ -8,7 +8,7 @@ echo        DENFI ROBLOX PORTABLE - BUILD
 echo   =============================================
 echo.
 
-echo [1/3] Checking Python...
+echo [1/4] Checking Python...
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python is not installed!
@@ -22,8 +22,8 @@ if errorlevel 1 (
 echo [OK] Python found.
 echo.
 
-echo [2/3] Installing dependencies...
-pip install PyQt5 pyinstaller
+echo [2/4] Installing dependencies...
+pip install PyQt5 Pillow pyinstaller
 if errorlevel 1 (
     echo [ERROR] Failed to install dependencies.
     pause
@@ -32,15 +32,28 @@ if errorlevel 1 (
 echo [OK] Dependencies installed.
 echo.
 
-echo [3/3] Building DenfiRoblox.exe ...
+echo [3/4] Checking for icon...
+echo.
+echo   Supported image formats:
+echo   .ico .png .jpg .jpeg .bmp .webp .tiff .gif
 echo.
 
 if exist "icon.ico" (
-    echo [*] Custom icon found - using icon.ico
+    echo [OK] icon.ico found - using it directly
+) else (
+    echo [*] No icon.ico found - checking for other images...
+    python convert_icon.py
+)
+echo.
+
+echo [4/4] Building DenfiRoblox.exe ...
+echo.
+
+if exist "icon.ico" (
+    echo [*] Building with custom icon
     pyinstaller --onefile --windowed --name "DenfiRoblox" --icon=icon.ico --add-data "icon.ico;." launcher.py
 ) else (
-    echo [*] No icon.ico found - building without custom icon
-    echo [*] TIP: Place "icon.ico" next to this script and rebuild
+    echo [*] Building without icon
     pyinstaller --onefile --windowed --name "DenfiRoblox" launcher.py
 )
 
@@ -58,15 +71,9 @@ echo   =============================================
 echo.
 echo   Your launcher: dist\DenfiRoblox.exe
 echo.
-echo   FIRST RUN:
-echo   The launcher will ask you where to store
-echo   your Roblox files (custom folder or same folder).
-echo   After that, it remembers your choice.
-echo.
-echo   EVERY LAUNCH:
-echo   1. Shows splash screen
-echo   2. Auto-syncs if Roblox updated
-echo   3. Launches Roblox
-echo   4. Closes itself
+echo   ICON TIP:
+echo   Drop any image file (PNG, JPG, BMP, etc.)
+echo   next to this script and rebuild.
+echo   It will be auto-converted to icon.ico!
 echo.
 pause
