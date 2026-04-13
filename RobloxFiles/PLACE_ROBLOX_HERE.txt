@@ -1,0 +1,16 @@
+Denfi Roblox - Portable Launcher
+========================================
+
+PLACE YOUR ROBLOX FILES HERE
+
+Copy ALL files from your Roblox installation:
+
+  Where to find them:
+  %LOCALAPPDATA%\Roblox\Versions\[version-hash]\
+
+  Files needed:
+  - RobloxPlayerBeta.exe
+  - All .dll files
+  - All other files in that folder
+
+After copying, just run the launcher!

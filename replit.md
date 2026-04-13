@@ -1,37 +1,39 @@
-# Roblox Portable Launcher
+# Denfi Roblox - Portable Launcher
 
 ## Overview
-A desktop GUI application (Python/PyQt5) that serves as a portable Roblox launcher. Users place their Roblox installation files into a specific folder, and this launcher runs Roblox directly from that folder — making it fully portable.
-
-## Architecture
-- **launcher.py** — Main application. Python PyQt5 desktop GUI.
-- **launcher_config.json** — Stores user preferences (auto-created at runtime).
-- **build_exe.bat** — Windows script to compile the app into a standalone .exe using PyInstaller.
-- **requirements.txt** — Python dependencies for building on Windows.
-
-## Features
-- Browse and select a folder containing Roblox files
-- Validates Roblox files (checks for RobloxPlayerBeta.exe, DLLs)
-- Setup wizard that creates the portable folder structure (RobloxPortable/RobloxFiles, Logs, Cache)
-- Launches Roblox from the selected folder with redirected AppData to keep data portable
-- Launch logging with timestamps
-- Persistent folder path (remembers last used folder)
-
-## Tech Stack
-- Python 3.11
-- PyQt5 (GUI framework)
-- VNC output for desktop rendering in Replit
-- PyInstaller for .exe compilation on Windows
+A desktop GUI application (Python/PyQt5) called "Denfi Roblox" that runs Roblox from a portable folder. No Roblox installation on the system needed — just put the files next to the launcher and click Launch.
 
 ## How It Works
-1. User clicks "Setup Folder" to create the portable directory structure
-2. User copies their Roblox files into the RobloxFiles subfolder
-3. App validates the files are present (checks for RobloxPlayerBeta.exe and DLL files)
-4. User clicks "Launch Roblox" to run from the portable folder
-5. AppData is redirected to a Cache folder to keep everything self-contained
+The launcher automatically looks for a `RobloxFiles` folder sitting right next to the .exe:
 
-## Building the EXE
-To build a standalone .exe on Windows:
-1. Install Python from python.org
-2. Run `build_exe.bat`
-3. The .exe will be in the `dist/` folder
+```
+SomeFolder\
+  DenfiRoblox.exe        <- The launcher
+  icon.ico               <- Your custom icon (optional)
+  RobloxFiles\           <- Roblox files go here
+    RobloxPlayerBeta.exe
+    *.dll files
+    (all other Roblox files)
+  Cache\                 <- Auto-created, keeps Roblox data portable
+  Logs\                  <- Auto-created, launch logs
+```
+
+When you click "Launch Roblox", it:
+1. Runs RobloxPlayerBeta.exe from the RobloxFiles folder
+2. Redirects Roblox's AppData to the Cache folder (so nothing gets installed on the PC)
+3. Logs each launch to the Logs folder
+
+## Files
+- **launcher.py** — Main application (PyQt5 GUI)
+- **build_exe.bat** — Windows script to compile into DenfiRoblox.exe
+- **requirements.txt** — Python dependencies
+- **icon.ico** — Place your custom .ico file here for the app icon
+
+## Building the EXE on Windows
+1. Install Python from python.org (check "Add to PATH")
+2. Place icon.ico next to launcher.py (optional)
+3. Run `build_exe.bat`
+4. Get your `DenfiRoblox.exe` from the `dist\` folder
+
+## Tech Stack
+- Python 3.11, PyQt5, PyInstaller

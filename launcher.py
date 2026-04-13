@@ -6,13 +6,24 @@ import datetime
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QLineEdit, QTextEdit, QFileDialog,
-    QMessageBox, QFrame, QGroupBox, QGridLayout, QSizePolicy
+    QLabel, QPushButton, QTextEdit, QMessageBox, QGroupBox, QGridLayout
 )
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont, QColor, QPalette, QIcon, QPainter, QPixmap
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPainter, QPixmap, QIcon
 
-CONFIG_FILE = "launcher_config.json"
+APP_NAME = "Denfi Roblox"
+APP_VERSION = "1.0.0"
+
+def get_app_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+APP_DIR = get_app_dir()
+ROBLOX_DIR = os.path.join(APP_DIR, "RobloxFiles")
+CACHE_DIR = os.path.join(APP_DIR, "Cache")
+LOGS_DIR = os.path.join(APP_DIR, "Logs")
+CONFIG_FILE = os.path.join(APP_DIR, "denfi_config.json")
 
 DARK_BG = "#1a1a2e"
 CARD_BG = "#16213e"
@@ -24,7 +35,6 @@ TEXT_DIM = "#8892b0"
 SUCCESS = "#00d672"
 WARNING = "#ffa502"
 ERROR = "#ff4757"
-INPUT_BG = "#0f3460"
 
 STYLESHEET = f"""
 QMainWindow {{
@@ -52,18 +62,6 @@ QGroupBox::title {{
     padding: 0 8px;
     color: {TEXT};
 }}
-QLineEdit {{
-    background-color: {INPUT_BG};
-    color: {TEXT};
-    border: 1px solid {CARD_BORDER};
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-family: 'Consolas', 'Courier New', monospace;
-}}
-QLineEdit:focus {{
-    border-color: {ACCENT};
-}}
 QPushButton {{
     background-color: {CARD_BORDER};
     color: {TEXT};
@@ -82,9 +80,9 @@ QPushButton:pressed {{
 QPushButton#launchBtn {{
     background-color: {ACCENT};
     color: white;
-    font-size: 16px;
-    padding: 14px 36px;
-    border-radius: 8px;
+    font-size: 18px;
+    padding: 18px 50px;
+    border-radius: 10px;
 }}
 QPushButton#launchBtn:hover {{
     background-color: {ACCENT_HOVER};
@@ -107,7 +105,7 @@ QLabel {{
     color: {TEXT_DIM};
 }}
 QLabel#titleLabel {{
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
     color: {TEXT};
 }}
@@ -134,40 +132,70 @@ QLabel#statusLabel {{
     color: {TEXT_DIM};
     font-size: 12px;
 }}
-QLabel#folderStatus {{
+QLabel#pathLabel {{
     font-size: 11px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: {TEXT_DIM};
+    padding: 6px 10px;
+    background-color: #0f3460;
+    border-radius: 4px;
 }}
 """
 
 
-class RobloxPortableLauncher(QMainWindow):
+class DenfiRobloxLauncher(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Roblox Portable Launcher")
-        self.setMinimumSize(780, 620)
-        self.resize(800, 650)
+        self.setWindowTitle(f"{APP_NAME} - Portable Launcher")
+        self.setMinimumSize(700, 580)
+        self.resize(780, 620)
 
-        self.config = self.load_config()
+        icon_path = os.path.join(APP_DIR, "icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         self.roblox_found = False
+
+        self.ensure_folders()
 
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(20, 15, 20, 15)
-        layout.setSpacing(10)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(12)
 
         self.build_header(layout)
-        self.build_folder_section(layout)
+        self.build_folder_info(layout)
         self.build_status_section(layout)
-        self.build_actions_section(layout)
+        self.build_launch_section(layout)
         self.build_log_section(layout)
         self.build_footer(layout)
 
         self.check_roblox_files()
 
+    def ensure_folders(self):
+        os.makedirs(ROBLOX_DIR, exist_ok=True)
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        os.makedirs(LOGS_DIR, exist_ok=True)
+
+        readme = os.path.join(ROBLOX_DIR, "PLACE_ROBLOX_HERE.txt")
+        if not os.path.exists(readme) and len(os.listdir(ROBLOX_DIR)) == 0:
+            with open(readme, "w") as f:
+                f.write(f"{APP_NAME} - Portable Launcher\n")
+                f.write("=" * 40 + "\n\n")
+                f.write("PLACE YOUR ROBLOX FILES HERE\n\n")
+                f.write("Copy ALL files from your Roblox installation:\n\n")
+                f.write("  Where to find them:\n")
+                f.write("  %LOCALAPPDATA%\\Roblox\\Versions\\[version-hash]\\\n\n")
+                f.write("  Files needed:\n")
+                f.write("  - RobloxPlayerBeta.exe\n")
+                f.write("  - All .dll files\n")
+                f.write("  - All other files in that folder\n\n")
+                f.write("After copying, just run the launcher!\n")
+
     def build_header(self, parent_layout):
         header = QHBoxLayout()
-        header.setSpacing(12)
+        header.setSpacing(14)
 
         icon = QLabel()
         pixmap = QPixmap(50, 50)
@@ -187,60 +215,60 @@ class RobloxPortableLauncher(QMainWindow):
 
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
-        title = QLabel("Roblox Portable Launcher")
+        title = QLabel(APP_NAME)
         title.setObjectName("titleLabel")
         text_col.addWidget(title)
-        subtitle = QLabel("Run Roblox from any folder - take it anywhere")
+        subtitle = QLabel("Portable Roblox Launcher - No installation needed")
         subtitle.setObjectName("subtitleLabel")
         text_col.addWidget(subtitle)
         header.addLayout(text_col)
 
         header.addStretch()
 
-        badge = QLabel(" Windows ")
-        badge.setStyleSheet(
+        version_label = QLabel(f" v{APP_VERSION} ")
+        version_label.setStyleSheet(
             f"background-color: {CARD_BORDER}; color: {TEXT}; "
             f"padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold;"
         )
-        header.addWidget(badge)
+        header.addWidget(version_label)
 
         parent_layout.addLayout(header)
 
-    def build_folder_section(self, parent_layout):
-        group = QGroupBox("Roblox Folder")
-
+    def build_folder_info(self, parent_layout):
+        group = QGroupBox("Roblox Files Location")
         layout = QVBoxLayout(group)
         layout.setSpacing(8)
 
-        path_row = QHBoxLayout()
-        path_row.setSpacing(8)
+        info_label = QLabel("The launcher automatically reads Roblox from this folder:")
+        info_label.setStyleSheet(f"color: {TEXT}; font-size: 12px;")
+        layout.addWidget(info_label)
 
-        self.path_input = QLineEdit()
-        self.path_input.setPlaceholderText("Select folder containing your Roblox files...")
-        self.path_input.setText(self.config.get("roblox_folder", ""))
-        self.path_input.returnPressed.connect(self.check_roblox_files)
-        path_row.addWidget(self.path_input)
+        path_label = QLabel(ROBLOX_DIR)
+        path_label.setObjectName("pathLabel")
+        path_label.setWordWrap(True)
+        layout.addWidget(path_label)
 
-        browse_btn = QPushButton("Browse")
-        browse_btn.setCursor(Qt.PointingHandCursor)
-        browse_btn.clicked.connect(self.browse_folder)
-        browse_btn.setFixedWidth(90)
-        path_row.addWidget(browse_btn)
+        hint = QLabel(
+            "Just copy all your Roblox files into the RobloxFiles folder next to this launcher, then click Launch!"
+        )
+        hint.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
 
-        layout.addLayout(path_row)
-
-        self.folder_status_label = QLabel("No folder selected")
-        self.folder_status_label.setObjectName("folderStatus")
-        layout.addWidget(self.folder_status_label)
+        open_btn = QPushButton("Open RobloxFiles Folder")
+        open_btn.setCursor(Qt.PointingHandCursor)
+        open_btn.setFixedWidth(220)
+        open_btn.clicked.connect(self.open_roblox_folder)
+        layout.addWidget(open_btn)
 
         parent_layout.addWidget(group)
 
     def build_status_section(self, parent_layout):
-        group = QGroupBox("File Status")
+        group = QGroupBox("File Check")
         grid = QGridLayout(group)
         grid.setSpacing(6)
 
-        labels = ["RobloxPlayerBeta.exe", "DLL Files", "Folder Ready"]
+        labels = ["RobloxPlayerBeta.exe", "DLL Files", "Ready to Launch"]
         self.status_values = []
 
         for i, text in enumerate(labels):
@@ -248,7 +276,7 @@ class RobloxPortableLauncher(QMainWindow):
             name_label.setObjectName("statusLabel")
             grid.addWidget(name_label, i, 0)
 
-            val_label = QLabel("--")
+            val_label = QLabel("Checking...")
             val_label.setObjectName("statusLabel")
             grid.addWidget(val_label, i, 1)
             self.status_values.append(val_label)
@@ -257,21 +285,23 @@ class RobloxPortableLauncher(QMainWindow):
         grid.setColumnStretch(1, 2)
         parent_layout.addWidget(group)
 
-    def build_actions_section(self, parent_layout):
-        group = QGroupBox("Actions")
+    def build_launch_section(self, parent_layout):
+        group = QGroupBox("")
+        group.setStyleSheet(
+            f"QGroupBox {{ background-color: {CARD_BG}; border: 1px solid {CARD_BORDER}; "
+            f"border-radius: 8px; padding: 20px; }}"
+        )
         layout = QHBoxLayout(group)
-        layout.setSpacing(10)
+        layout.setSpacing(12)
 
-        self.launch_btn = QPushButton("Launch Roblox")
+        layout.addStretch()
+
+        self.launch_btn = QPushButton(f"Launch Roblox")
         self.launch_btn.setObjectName("launchBtn")
         self.launch_btn.setCursor(Qt.PointingHandCursor)
         self.launch_btn.clicked.connect(self.launch_roblox)
+        self.launch_btn.setEnabled(False)
         layout.addWidget(self.launch_btn)
-
-        setup_btn = QPushButton("Setup Folder")
-        setup_btn.setCursor(Qt.PointingHandCursor)
-        setup_btn.clicked.connect(self.setup_folder)
-        layout.addWidget(setup_btn)
 
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setCursor(Qt.PointingHandCursor)
@@ -282,16 +312,17 @@ class RobloxPortableLauncher(QMainWindow):
         parent_layout.addWidget(group)
 
     def build_log_section(self, parent_layout):
-        group = QGroupBox("Log")
+        group = QGroupBox("Activity Log")
         layout = QVBoxLayout(group)
 
         self.log_box = QTextEdit()
         self.log_box.setReadOnly(True)
-        self.log_box.setFixedHeight(120)
+        self.log_box.setFixedHeight(100)
         layout.addWidget(self.log_box)
 
         parent_layout.addWidget(group)
-        self.log("Roblox Portable Launcher started")
+        self.log(f"{APP_NAME} started")
+        self.log(f"Looking for Roblox files in: {ROBLOX_DIR}")
 
     def build_footer(self, parent_layout):
         self.footer_label = QLabel("Ready")
@@ -302,58 +333,45 @@ class RobloxPortableLauncher(QMainWindow):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.log_box.append(f"[{timestamp}] {message}")
 
-    def browse_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Roblox Files Folder")
-        if folder:
-            self.path_input.setText(folder)
-            self.save_config(folder)
-            self.check_roblox_files()
-            self.log(f"Folder selected: {folder}")
+    def open_roblox_folder(self):
+        os.makedirs(ROBLOX_DIR, exist_ok=True)
+        if sys.platform == "win32":
+            os.startfile(ROBLOX_DIR)
+        else:
+            subprocess.Popen(["xdg-open", ROBLOX_DIR])
+        self.log("Opened RobloxFiles folder")
 
     def check_roblox_files(self):
-        folder = self.path_input.text().strip()
         self.roblox_found = False
 
-        if not folder:
+        if not os.path.isdir(ROBLOX_DIR):
             for v in self.status_values:
-                v.setText("--")
-                v.setObjectName("statusLabel")
-                v.setStyle(v.style())
-            self.folder_status_label.setText("No folder selected")
-            self.folder_status_label.setStyleSheet(f"color: {TEXT_DIM};")
-            self.footer_label.setText("Select a folder with your Roblox files")
-            self.launch_btn.setEnabled(False)
-            return
-
-        if not os.path.isdir(folder):
-            for v in self.status_values:
-                v.setText("Not found")
+                v.setText("Folder missing")
                 v.setObjectName("statusBad")
                 v.setStyle(v.style())
-            self.folder_status_label.setText("Folder does not exist")
-            self.folder_status_label.setStyleSheet(f"color: {ERROR};")
-            self.footer_label.setText("Folder path is invalid")
+            self.footer_label.setText("RobloxFiles folder not found")
             self.launch_btn.setEnabled(False)
-            self.log(f"Folder not found: {folder}")
+            self.log("RobloxFiles folder is missing")
             return
 
-        exe_path = os.path.join(folder, "RobloxPlayerBeta.exe")
+        exe_path = os.path.join(ROBLOX_DIR, "RobloxPlayerBeta.exe")
         has_exe = os.path.isfile(exe_path)
 
         try:
-            files = os.listdir(folder)
+            files = os.listdir(ROBLOX_DIR)
         except Exception:
             files = []
 
-        dll_count = len([f for f in files if f.endswith(".dll")])
+        real_files = [f for f in files if f != "PLACE_ROBLOX_HERE.txt"]
+        dll_count = len([f for f in files if f.lower().endswith(".dll")])
         has_dlls = dll_count > 0
-        total_files = len(files)
+        total_files = len(real_files)
 
         if has_exe:
             self.status_values[0].setText("Found")
             self.status_values[0].setObjectName("statusOk")
         else:
-            self.status_values[0].setText("Missing")
+            self.status_values[0].setText("Missing - copy it to RobloxFiles folder")
             self.status_values[0].setObjectName("statusBad")
         self.status_values[0].setStyle(self.status_values[0].style())
 
@@ -366,70 +384,64 @@ class RobloxPortableLauncher(QMainWindow):
         self.status_values[1].setStyle(self.status_values[1].style())
 
         if has_exe:
-            self.status_values[2].setText("Ready")
+            self.status_values[2].setText("YES - Ready!")
             self.status_values[2].setObjectName("statusOk")
             self.roblox_found = True
-            self.folder_status_label.setText(f"Found {total_files} files in folder")
-            self.folder_status_label.setStyleSheet(f"color: {SUCCESS};")
-            self.footer_label.setText("Ready to launch!")
+            self.footer_label.setText(f"Ready! Found {total_files} Roblox files")
             self.launch_btn.setEnabled(True)
-            self.log(f"Roblox files verified: {total_files} files, {dll_count} DLLs")
+            self.log(f"Roblox files OK: {total_files} files, {dll_count} DLLs")
         else:
-            self.status_values[2].setText("Not Ready")
+            self.status_values[2].setText("NO - Files missing")
             self.status_values[2].setObjectName("statusBad")
-            self.folder_status_label.setText("RobloxPlayerBeta.exe is missing")
-            self.folder_status_label.setStyleSheet(f"color: {ERROR};")
-            self.footer_label.setText("Missing required Roblox files")
+            self.footer_label.setText("Copy your Roblox files to the RobloxFiles folder")
             self.launch_btn.setEnabled(False)
-            self.log("RobloxPlayerBeta.exe not found in selected folder")
+            self.log("Waiting for Roblox files...")
         self.status_values[2].setStyle(self.status_values[2].style())
-
-        self.save_config(folder)
 
     def launch_roblox(self):
         if not self.roblox_found:
             QMessageBox.warning(
                 self, "Cannot Launch",
                 "Roblox files not found!\n\n"
-                "Please select a folder containing RobloxPlayerBeta.exe first."
+                "Copy your Roblox files into the RobloxFiles folder first."
             )
             return
 
-        folder = self.path_input.text().strip()
-        exe_path = os.path.join(folder, "RobloxPlayerBeta.exe")
+        exe_path = os.path.join(ROBLOX_DIR, "RobloxPlayerBeta.exe")
 
-        self.log("Launching Roblox...")
+        self.log("Launching Roblox from portable folder...")
         self.footer_label.setText("Launching Roblox...")
-
-        cache_dir = os.path.join(folder, "..", "Cache")
-        logs_dir = os.path.join(folder, "..", "Logs")
-        os.makedirs(cache_dir, exist_ok=True)
-        os.makedirs(logs_dir, exist_ok=True)
 
         try:
             env = os.environ.copy()
-            env["LOCALAPPDATA"] = os.path.abspath(cache_dir)
+            env["LOCALAPPDATA"] = os.path.abspath(CACHE_DIR)
 
             process = subprocess.Popen(
                 [exe_path],
-                cwd=folder,
+                cwd=ROBLOX_DIR,
                 env=env,
             )
 
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            log_file = os.path.join(logs_dir, f"launch_{timestamp}.log")
+            log_file = os.path.join(LOGS_DIR, f"launch_{timestamp}.log")
             with open(log_file, "w") as f:
+                f.write(f"Launcher: {APP_NAME} v{APP_VERSION}\n")
                 f.write(f"Launch Time: {datetime.datetime.now()}\n")
                 f.write(f"Executable: {exe_path}\n")
                 f.write(f"PID: {process.pid}\n")
-                f.write(f"Cache Dir: {os.path.abspath(cache_dir)}\n")
+                f.write(f"Cache Dir: {os.path.abspath(CACHE_DIR)}\n")
+                f.write(f"Roblox Dir: {ROBLOX_DIR}\n")
 
-            self.log(f"Roblox launched successfully (PID: {process.pid})")
+            self.log(f"Roblox launched! (PID: {process.pid})")
             self.footer_label.setText(f"Roblox running (PID: {process.pid})")
 
-            QMessageBox.information(
-                self, "Launched!",
-                f"Roblox has been launched from:\n{folder}\n\nPID: {process.pid}"
+        except FileNotFoundError:
+            self.log("Launch failed: RobloxPlayerBeta.exe not found")
+            self.footer_label.setText("Launch failed!")
+            QMessageBox.critical(
+                self, "Launch Failed",
+                "Could not find RobloxPlayerBeta.exe\n\n"
+                "Make sure you copied all Roblox files to the RobloxFiles folder."
             )
         except Exception as e:
             self.log(f"Launch failed: {str(e)}")
@@ -439,72 +451,21 @@ class RobloxPortableLauncher(QMainWindow):
                 f"Could not launch Roblox:\n\n{str(e)}"
             )
 
-    def setup_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Choose where to create the portable folder")
-        if not folder:
-            return
-
-        portable_dir = os.path.join(folder, "RobloxPortable")
-        roblox_files_dir = os.path.join(portable_dir, "RobloxFiles")
-        logs_dir = os.path.join(portable_dir, "Logs")
-        cache_dir = os.path.join(portable_dir, "Cache")
-
-        try:
-            os.makedirs(roblox_files_dir, exist_ok=True)
-            os.makedirs(logs_dir, exist_ok=True)
-            os.makedirs(cache_dir, exist_ok=True)
-
-            readme_path = os.path.join(roblox_files_dir, "PLACE_ROBLOX_HERE.txt")
-            with open(readme_path, "w") as f:
-                f.write("PLACE YOUR ROBLOX FILES HERE\n")
-                f.write("=" * 40 + "\n\n")
-                f.write("Copy ALL files from your Roblox installation:\n\n")
-                f.write("  Default location:\n")
-                f.write("  %LOCALAPPDATA%\\Roblox\\Versions\\[version-hash]\\\n\n")
-                f.write("  Files needed:\n")
-                f.write("  - RobloxPlayerBeta.exe\n")
-                f.write("  - All .dll files\n")
-                f.write("  - All other files in that folder\n")
-
-            self.path_input.setText(roblox_files_dir)
-            self.save_config(roblox_files_dir)
-            self.check_roblox_files()
-            self.log(f"Portable folder created at: {portable_dir}")
-
-            QMessageBox.information(
-                self, "Setup Complete",
-                f"Portable folder created at:\n{portable_dir}\n\n"
-                f"Next step: Copy your Roblox files into:\n{roblox_files_dir}"
-            )
-        except Exception as e:
-            self.log(f"Setup failed: {str(e)}")
-            QMessageBox.critical(
-                self, "Setup Failed",
-                f"Could not create folder:\n\n{str(e)}"
-            )
-
-    def load_config(self):
-        try:
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, "r") as f:
-                    return json.load(f)
-        except Exception:
-            pass
-        return {}
-
-    def save_config(self, folder):
-        try:
-            with open(CONFIG_FILE, "w") as f:
-                json.dump({"roblox_folder": folder}, f, indent=2)
-        except Exception:
-            pass
-
 
 def main():
-    os.environ["QT_QPA_PLATFORM"] = "xcb"
+    if sys.platform != "win32":
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+
     app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(APP_VERSION)
     app.setStyleSheet(STYLESHEET)
-    window = RobloxPortableLauncher()
+
+    icon_path = os.path.join(APP_DIR, "icon.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+
+    window = DenfiRobloxLauncher()
     window.show()
     sys.exit(app.exec_())
 

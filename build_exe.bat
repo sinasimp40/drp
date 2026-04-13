@@ -1,9 +1,9 @@
 @echo off
-title Building Roblox Portable Launcher EXE
+title Building Denfi Roblox Launcher
 color 0A
 
 echo ============================================
-echo   Building Roblox Portable Launcher .EXE
+echo   DENFI ROBLOX - Building Launcher EXE
 echo ============================================
 echo.
 
@@ -17,6 +17,7 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [OK] Python found.
+echo.
 
 echo [2/3] Installing dependencies...
 pip install PyQt5 pyinstaller
@@ -26,10 +27,24 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [OK] Dependencies installed.
+echo.
 
 echo [3/3] Building EXE...
-pyinstaller --onefile --windowed --name "RobloxPortableLauncher" --icon=NONE launcher.py
+echo.
+
+REM Check if user has a custom icon
+if exist "icon.ico" (
+    echo [*] Custom icon found! Using icon.ico
+    pyinstaller --onefile --windowed --name "DenfiRoblox" --icon=icon.ico --add-data "icon.ico;." launcher.py
+) else (
+    echo [*] No icon.ico found - building without custom icon
+    echo [*] To add your icon: place an "icon.ico" file next to this script
+    echo     and run this build again.
+    pyinstaller --onefile --windowed --name "DenfiRoblox" launcher.py
+)
+
 if errorlevel 1 (
+    echo.
     echo [ERROR] Build failed.
     pause
     exit /b 1
@@ -40,8 +55,17 @@ echo ============================================
 echo   BUILD COMPLETE!
 echo ============================================
 echo.
-echo Your EXE is at: dist\RobloxPortableLauncher.exe
+echo Your launcher is at: dist\DenfiRoblox.exe
 echo.
-echo You can copy that file anywhere and run it!
+echo HOW TO USE:
+echo 1. Copy DenfiRoblox.exe to any folder
+echo 2. Run it once - it creates a "RobloxFiles" folder
+echo 3. Copy your Roblox files into RobloxFiles\
+echo    (from %%LOCALAPPDATA%%\Roblox\Versions\[hash]\)
+echo 4. Click "Launch Roblox" in the launcher!
+echo.
+echo CUSTOM ICON:
+echo   Place "icon.ico" next to DenfiRoblox.exe
+echo   The launcher will use it automatically.
 echo.
 pause
