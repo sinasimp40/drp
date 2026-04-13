@@ -54,9 +54,17 @@ def save_config(config):
 
 def get_paths(config):
     base = config.get("denfi_path", APP_DIR)
+    roblox_dir = os.path.join(base, "RobloxFiles")
+
+    if os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe")):
+        roblox_dir = base
+
+    if os.path.basename(base).lower() == "robloxfiles":
+        roblox_dir = base
+
     return {
         "base": base,
-        "roblox": os.path.join(base, "RobloxFiles"),
+        "roblox": roblox_dir,
         "cache": os.path.join(base, "Cache"),
         "logs": os.path.join(base, "Logs"),
     }
@@ -314,8 +322,10 @@ def ask_for_path(app, config):
     msg.setIcon(QMessageBox.Question)
     msg.setText(
         "Welcome to Denfi Roblox Portable!\n\n"
-        "Where do you want to store your Roblox files?\n\n"
-        "A 'RobloxFiles' folder will be created at the location you choose."
+        "Select the folder where your Roblox files are.\n\n"
+        "You can pick a folder that already has RobloxPlayerBeta.exe,\n"
+        "or pick a parent folder and a 'RobloxFiles' subfolder will be created.\n\n"
+        "To change this later, delete 'denfi_config.json' next to the launcher."
     )
     msg.setStyleSheet(
         f"QMessageBox {{ background-color: {BG}; color: {TEXT_WHITE}; }}"
@@ -327,13 +337,16 @@ def ask_for_path(app, config):
     )
 
     here_btn = msg.addButton("Use current folder", QMessageBox.AcceptRole)
-    custom_btn = msg.addButton("Choose custom folder", QMessageBox.ActionRole)
+    custom_btn = msg.addButton("Choose folder", QMessageBox.ActionRole)
     msg.exec_()
 
     clicked = msg.clickedButton()
 
     if clicked == custom_btn:
-        folder = QFileDialog.getExistingDirectory(None, "Choose folder for Denfi Roblox")
+        folder = QFileDialog.getExistingDirectory(
+            None,
+            "Select your Roblox files folder (or a parent folder)"
+        )
         if not folder:
             return False
         config["denfi_path"] = folder
