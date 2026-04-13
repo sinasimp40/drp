@@ -77,12 +77,15 @@ echo.
 echo [5/5] Building DenfiRoblox.exe ...
 echo.
 
+set ADDDATA=
+if exist "splash_logo.png" set ADDDATA=--add-data "splash_logo.png;."
+
 if exist "icon.ico" (
     echo [*] Building with custom icon
-    pyinstaller --onefile --windowed --name "DenfiRoblox" --icon=icon.ico --add-data "icon.ico;." launcher.py
+    pyinstaller --onefile --windowed --name "DenfiRoblox" --icon=icon.ico --add-data "icon.ico;." %ADDDATA% launcher.py
 ) else (
     echo [*] Building without icon
-    pyinstaller --onefile --windowed --name "DenfiRoblox" launcher.py
+    pyinstaller --onefile --windowed --name "DenfiRoblox" %ADDDATA% launcher.py
 )
 
 if errorlevel 1 (

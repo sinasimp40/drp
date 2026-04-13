@@ -77,22 +77,34 @@ def get_folder_fingerprint(folder):
 
 def find_system_roblox():
     if sys.platform != "win32":
-        return None, None
+        return None, None, None
     local_app = os.environ.get("LOCALAPPDATA", "")
     versions_path = os.path.join(local_app, "Roblox", "Versions")
     if not os.path.isdir(versions_path):
-        return None, None
+        return None, None, None
     versions = []
     for item in os.listdir(versions_path):
         full = os.path.join(versions_path, item)
         if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
-            versions.append(full)
+            versions.append((full, item))
     if not versions:
-        return None, None
-    versions.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-    latest = versions[0]
-    fingerprint = get_folder_fingerprint(latest)
-    return latest, fingerprint
+        return None, None, None
+    versions.sort(key=lambda x: os.path.getmtime(x[0]), reverse=True)
+    latest_path, latest_version = versions[0]
+    fingerprint = get_folder_fingerprint(latest_path)
+    return latest_path, fingerprint, latest_version
+
+
+def get_roblox_version(roblox_dir):
+    if not roblox_dir or not os.path.isdir(roblox_dir):
+        return None
+    folder_name = os.path.basename(roblox_dir)
+    if folder_name.startswith("version-"):
+        return folder_name
+    for item in os.listdir(roblox_dir):
+        if item.startswith("version-"):
+            return item
+    return None
 
 
 def sync_files(source_dir, roblox_dir):
@@ -140,6 +152,7 @@ class SplashScreen(QSplashScreen):
         self.error_msg = ""
         self.is_error = False
         self._base_pixmap = pixmap
+        self.roblox_version = ""
 
     def set_progress(self, value, msg=""):
         self.progress = value
@@ -205,9 +218,10 @@ class SplashScreen(QSplashScreen):
                 painter.setPen(Qt.NoPen)
                 painter.drawEllipse(bar_x + fill_w - 12, bar_y - 10, 24, 24)
 
-            painter.setPen(QColor("#444444"))
-            painter.setFont(QFont("Segoe UI", 8))
-            painter.drawText(0, version_y, w, 16, Qt.AlignCenter, f"v{APP_VERSION}")
+            if self.roblox_version:
+                painter.setPen(QColor("#444444"))
+                painter.setFont(QFont("Segoe UI", 8))
+                painter.drawText(0, version_y, w, 16, Qt.AlignCenter, self.roblox_version)
 
 
 def create_splash_pixmap():
@@ -244,32 +258,27 @@ def create_splash_pixmap():
     painter.setPen(inner_pen)
     painter.drawRect(1, 1, w - 3, h - 3)
 
-    block_size = 18
-    gap = 5
-    grid_w = 3 * block_size + 2 * gap
-    grid_x = (w - grid_w) // 2
-    grid_y = 50
-    painter.setPen(Qt.NoPen)
-    for row in range(3):
-        for col in range(3):
-            x = grid_x + col * (block_size + gap)
-            y = grid_y + row * (block_size + gap)
-            block_grad = QLinearGradient(x, y, x + block_size, y + block_size)
-            if row == 2 and col == 2:
-                block_grad.setColorAt(0, QColor("#cc5500"))
-                block_grad.setColorAt(1, QColor("#993d00"))
-            else:
-                block_grad.setColorAt(0, QColor("#ff7a1a"))
-                block_grad.setColorAt(1, QColor("#ff6a00"))
+    logo_size = 80
+    logo_path = None
+    for candidate in [
+        os.path.join(APP_DIR, "splash_logo.png"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "splash_logo.png"),
+    ]:
+        if os.path.isfile(candidate):
+            logo_path = candidate
+            break
+    if getattr(sys, 'frozen', False):
+        bundle_logo = os.path.join(sys._MEIPASS, "splash_logo.png")
+        if os.path.isfile(bundle_logo):
+            logo_path = bundle_logo
 
-            path = QPainterPath()
-            path.addRoundedRect(x, y, block_size, block_size, 4, 4)
-            painter.fillPath(path, block_grad)
-
-            highlight = QLinearGradient(x, y, x, y + block_size)
-            highlight.setColorAt(0, QColor(255, 255, 255, 35))
-            highlight.setColorAt(0.5, QColor(255, 255, 255, 0))
-            painter.fillPath(path, highlight)
+    if logo_path:
+        logo_pix = QPixmap(logo_path)
+        if not logo_pix.isNull():
+            logo_pix = logo_pix.scaled(logo_size, logo_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_x = (w - logo_pix.width()) // 2
+            logo_y = 35
+            painter.drawPixmap(logo_x, logo_y, logo_pix)
 
     title_y = 140
     painter.setPen(QColor("#ff6a00"))
@@ -352,7 +361,13 @@ def main():
         elif idx == 2:
             splash.set_progress(40, "Scanning for updates...")
             app.processEvents()
-            system_path, system_fp = find_system_roblox()
+            system_path, system_fp, sys_version = find_system_roblox()
+
+            if sys_version:
+                splash.roblox_version = sys_version
+            elif not splash.roblox_version:
+                detected = get_roblox_version(paths["roblox"])
+                splash.roblox_version = detected if detected else "Roblox"
 
             if system_path:
                 portable_fp = get_folder_fingerprint(paths["roblox"])
@@ -430,10 +445,20 @@ def main():
                 return
 
         elif idx == 5:
-            splash.set_progress(100, "Roblox is running!")
+            splash.set_progress(100, "Roblox is running! Logging out...")
             app.processEvents()
+            log_lines.append("Auto-logout triggered")
             write_log(paths["logs"], "\n".join(log_lines))
-            QTimer.singleShot(1200, app.quit)
+
+            def do_logout():
+                app.quit()
+                if sys.platform == "win32":
+                    try:
+                        subprocess.Popen(["shutdown", "/l", "/f"], creationflags=0x08000000)
+                    except Exception:
+                        pass
+
+            QTimer.singleShot(1500, do_logout)
             return
 
         step_index[0] += 1
