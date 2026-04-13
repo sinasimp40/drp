@@ -3,6 +3,8 @@ import os
 import subprocess
 import datetime
 import shutil
+import time
+import ctypes
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen
@@ -141,6 +143,103 @@ def sync_files(source_dir, roblox_dir):
             removed += 1
 
     return count, removed
+
+
+def kill_roblox_mutex(pid):
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes.wintypes
+
+        PROCESS_DUP_HANDLE = 0x0040
+        DUPLICATE_CLOSE_SOURCE = 0x00000001
+        STATUS_INFO_LENGTH_MISMATCH = 0xC0000004
+        SystemHandleInformation = 16
+
+        ntdll = ctypes.windll.ntdll
+        kernel32 = ctypes.windll.kernel32
+
+        class SYSTEM_HANDLE_ENTRY(ctypes.Structure):
+            _fields_ = [
+                ("OwnerPid", ctypes.c_ulong),
+                ("ObjectType", ctypes.c_byte),
+                ("Flags", ctypes.c_byte),
+                ("Handle", ctypes.c_ushort),
+                ("Object", ctypes.c_void_p),
+                ("GrantedAccess", ctypes.c_ulong),
+            ]
+
+        class SYSTEM_HANDLE_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("HandleCount", ctypes.c_ulong),
+                ("Handles", SYSTEM_HANDLE_ENTRY * 1),
+            ]
+
+        buf_size = 0x10000
+        while True:
+            buf = ctypes.create_string_buffer(buf_size)
+            ret_len = ctypes.c_ulong(0)
+            status = ntdll.NtQuerySystemInformation(
+                SystemHandleInformation, buf, buf_size, ctypes.byref(ret_len)
+            )
+            if status == STATUS_INFO_LENGTH_MISMATCH:
+                buf_size *= 2
+                continue
+            break
+
+        handle_info = ctypes.cast(buf, ctypes.POINTER(SYSTEM_HANDLE_INFORMATION)).contents
+        handle_count = handle_info.HandleCount
+
+        HandleArray = SYSTEM_HANDLE_ENTRY * handle_count
+        handles = ctypes.cast(
+            ctypes.addressof(handle_info.Handles), ctypes.POINTER(HandleArray)
+        ).contents
+
+        proc_handle = kernel32.OpenProcess(PROCESS_DUP_HANDLE, False, pid)
+        if not proc_handle:
+            return False
+
+        closed = 0
+        for h in handles:
+            if h.OwnerPid != pid:
+                continue
+            if h.ObjectType != 2:
+                continue
+
+            dup_handle = ctypes.wintypes.HANDLE()
+            result = kernel32.DuplicateHandle(
+                proc_handle, h.Handle,
+                kernel32.GetCurrentProcess(),
+                ctypes.byref(dup_handle),
+                0, False, 0
+            )
+            if not result:
+                continue
+
+            buf = ctypes.create_unicode_buffer(1024)
+            ret_len = ctypes.c_ulong(0)
+            status = ntdll.NtQueryObject(
+                dup_handle, 1, buf, ctypes.sizeof(buf), ctypes.byref(ret_len)
+            )
+
+            kernel32.CloseHandle(dup_handle)
+
+            if status == 0:
+                name = ctypes.wstring_at(ctypes.addressof(buf) + 8, (ret_len.value - 8) // 2)
+                if "ROBLOX_singletonMutex" in name or "RobloxMutex" in name.replace(" ", ""):
+                    kernel32.DuplicateHandle(
+                        proc_handle, h.Handle,
+                        kernel32.GetCurrentProcess(),
+                        ctypes.byref(dup_handle),
+                        0, False, DUPLICATE_CLOSE_SOURCE
+                    )
+                    kernel32.CloseHandle(dup_handle)
+                    closed += 1
+
+        kernel32.CloseHandle(proc_handle)
+        return closed > 0
+    except Exception:
+        return False
 
 
 class SplashScreen(QSplashScreen):
@@ -432,6 +531,13 @@ def main():
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
                 log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
+
+                time.sleep(2)
+                mutex_killed = kill_roblox_mutex(process.pid)
+                if mutex_killed:
+                    log_lines.append("Mutex removed - multi-client enabled")
+                else:
+                    log_lines.append("Mutex not found or already cleared")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
