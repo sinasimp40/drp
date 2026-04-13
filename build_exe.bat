@@ -58,16 +58,15 @@ echo   =============================================
 echo.
 echo   Your launcher: dist\DenfiRoblox.exe
 echo.
-echo   HOW TO USE:
-echo   1. Copy DenfiRoblox.exe anywhere you want
-echo   2. Run it - it auto-creates RobloxFiles folder
-echo   3. Copy Roblox files into RobloxFiles\
-echo      OR click "Update Roblox Files" in the launcher
-echo      (it auto-detects your Roblox installation!)
-echo   4. Click LAUNCH ROBLOX!
+echo   FIRST RUN:
+echo   The launcher will ask you where to store
+echo   your Roblox files (custom folder or same folder).
+echo   After that, it remembers your choice.
 echo.
-echo   CUSTOM ICON:
-echo   Place "icon.ico" next to DenfiRoblox.exe
-echo   The launcher picks it up automatically.
+echo   EVERY LAUNCH:
+echo   1. Shows splash screen
+echo   2. Auto-syncs if Roblox updated
+echo   3. Launches Roblox
+echo   4. Closes itself
 echo.
 pause
