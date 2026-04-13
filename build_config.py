@@ -7,7 +7,8 @@ def main():
         sys.exit(1)
 
     roblox_path = sys.argv[1].strip().strip('"').strip("'")
-    roblox_path = roblox_path.replace("\\", "\\\\")
+
+    roblox_path = roblox_path.replace("\\", "/")
 
     with open("launcher.py", "r", encoding="utf-8") as f:
         content = f.read()
