@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roblox Portable Launcher</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="header">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="8" width="10" height="10" rx="2" fill="#e53e3e"/>
+          <rect x="22" y="8" width="10" height="10" rx="2" fill="#e53e3e"/>
+          <rect x="8" y="22" width="10" height="10" rx="2" fill="#e53e3e"/>
+          <rect x="22" y="22" width="10" height="10" rx="2" fill="#c53030"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Roblox Portable Launcher</h1>
+        <p class="subtitle">Run Roblox from any folder — anywhere</p>
+      </div>
+    </div>
+    <div class="badge">Windows</div>
+  </header>
+
+  <main class="main">
+
+    <section class="hero-card">
+      <div class="hero-icon">📁</div>
+      <div class="hero-text">
+        <h2>What does this do?</h2>
+        <p>
+          Instead of Roblox being locked to one PC's installation, you place all your
+          Roblox files into a single folder. The launcher reads from that folder and runs
+          Roblox directly — making it fully portable. Take it on a USB drive, a network
+          share, or any folder you choose.
+        </p>
+      </div>
+    </section>
+
+    <section class="steps-section">
+      <h2 class="section-title">How to set it up</h2>
+      <div class="steps-grid">
+
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Download the scripts</h3>
+          <p>Download the launcher package below. It includes the setup script and the launcher script.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>Run Setup</h3>
+          <p>Run <code>SetupPortableFolder.bat</code> — it creates the <code>RobloxPortable\</code> folder structure automatically.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Copy Roblox files</h3>
+          <p>Go to <code>%LOCALAPPDATA%\Roblox\Versions\[hash]\</code> and copy <strong>all</strong> files into the <code>RobloxFiles\</code> folder.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3>Launch!</h3>
+          <p>Run <code>Launch Roblox.bat</code> from your portable folder. Roblox starts from your folder — not the system install.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="folder-section">
+      <h2 class="section-title">Folder Structure</h2>
+      <div class="folder-tree">
+        <div class="tree-line root">📁 RobloxPortable\</div>
+        <div class="tree-line indent-1">🚀 <strong>Launch Roblox.bat</strong> <span class="tag">← Run this!</span></div>
+        <div class="tree-line indent-1">⚙️ SetupPortableFolder.bat</div>
+        <div class="tree-line indent-1">📁 RobloxFiles\ <span class="tag">← Your Roblox files go here</span></div>
+        <div class="tree-line indent-2">▪ RobloxPlayerBeta.exe</div>
+        <div class="tree-line indent-2">▪ *.dll files</div>
+        <div class="tree-line indent-2">▪ (all other Roblox files)</div>
+        <div class="tree-line indent-1">📁 Logs\ <span class="muted">← Launch logs</span></div>
+        <div class="tree-line indent-1">📁 Cache\ <span class="muted">← Roblox data (stays portable)</span></div>
+      </div>
+    </section>
+
+    <section class="find-roblox-section">
+      <h2 class="section-title">Where to find your Roblox files</h2>
+      <div class="info-box">
+        <p>Open <strong>File Explorer</strong> and paste this path into the address bar:</p>
+        <div class="path-box" id="pathBox">
+          <span id="pathText">%LOCALAPPDATA%\Roblox\Versions</span>
+          <button class="copy-btn" onclick="copyPath()">Copy</button>
+        </div>
+        <p class="hint">Inside you'll see one or more folders with a hash name (like <code>version-abc123def456</code>). Open the latest one and copy <strong>all files</strong> into your <code>RobloxFiles\</code> folder.</p>
+      </div>
+    </section>
+
+    <section class="download-section">
+      <h2 class="section-title">Download</h2>
+      <div class="download-grid">
+
+        <div class="download-card main-download">
+          <div class="dl-icon">📦</div>
+          <div class="dl-info">
+            <h3>Full Package (.zip)</h3>
+            <p>Everything you need — setup script, launcher, and README guide.</p>
+          </div>
+          <a href="/download/all.zip" class="dl-btn primary">Download ZIP</a>
+        </div>
+
+        <div class="download-card">
+          <div class="dl-icon">⚙️</div>
+          <div class="dl-info">
+            <h3>Setup Script</h3>
+            <p>Creates the folder structure on your PC.</p>
+          </div>
+          <a href="/download/setup.bat" class="dl-btn">Download .bat</a>
+        </div>
+
+        <div class="download-card">
+          <div class="dl-icon">🚀</div>
+          <div class="dl-info">
+            <h3>Launcher Script</h3>
+            <p>The main launcher that runs Roblox from your folder.</p>
+          </div>
+          <a href="/download/launcher.bat" class="dl-btn">Download .bat</a>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="notes-section">
+      <h2 class="section-title">Good to know</h2>
+      <div class="notes-grid">
+        <div class="note-card">
+          <span class="note-icon">💾</span>
+          <div>
+            <strong>Data stays portable</strong>
+            <p>The launcher redirects Roblox's AppData to the <code>Cache\</code> folder inside your portable directory, so your settings travel with the folder.</p>
+          </div>
+        </div>
+        <div class="note-card">
+          <span class="note-icon">🔄</span>
+          <div>
+            <strong>Roblox updates</strong>
+            <p>When Roblox updates, you'll need to copy the new version files into your <code>RobloxFiles\</code> folder to keep up.</p>
+          </div>
+        </div>
+        <div class="note-card">
+          <span class="note-icon">🖥️</span>
+          <div>
+            <strong>Windows only</strong>
+            <p>The launcher scripts are Windows batch files (.bat). They run on any Windows 10 or Windows 11 machine without installing anything extra.</p>
+          </div>
+        </div>
+        <div class="note-card">
+          <span class="note-icon">📋</span>
+          <div>
+            <strong>Launch logs</strong>
+            <p>Every time you launch, a log file is saved in <code>Logs\</code> with the time and details — useful for troubleshooting.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>Roblox Portable Launcher &mdash; For Windows &mdash; No installation required</p>
+  </footer>
+
+  <div class="toast" id="toast">Path copied to clipboard!</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
