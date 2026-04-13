@@ -4,13 +4,14 @@ import json
 import subprocess
 import datetime
 import shutil
+import hashlib
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QTextEdit, QMessageBox, QGroupBox, QGridLayout,
     QSplashScreen, QProgressBar, QFileDialog
 )
-from PyQt5.QtCore import Qt, QTimer, QSize, QPropertyAnimation, QEasingCurve
+from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient
 
 APP_NAME = "DENFI ROBLOX"
@@ -34,7 +35,6 @@ CARD_BORDER = "#2a2a2a"
 ORANGE = "#ff6a00"
 ORANGE_LIGHT = "#ff8c33"
 ORANGE_DARK = "#cc5500"
-ORANGE_GLOW = "#ff6a0040"
 TEXT_WHITE = "#f0f0f0"
 TEXT_GRAY = "#888888"
 TEXT_DIM = "#555555"
@@ -120,6 +120,17 @@ QPushButton#updateBtn:hover {{
     background-color: {ORANGE};
     color: #0a0a0a;
 }}
+QPushButton#autoUpdateBtn {{
+    background-color: {ORANGE};
+    color: #0a0a0a;
+    border: 1px solid {ORANGE_LIGHT};
+    font-size: 11px;
+    font-weight: bold;
+    padding: 8px 16px;
+}}
+QPushButton#autoUpdateBtn:hover {{
+    background-color: {ORANGE_LIGHT};
+}}
 QTextEdit {{
     background-color: #0d0d0d;
     color: {TEXT_GRAY};
@@ -181,6 +192,15 @@ QLabel#sectionHint {{
     color: {TEXT_DIM};
     font-size: 11px;
 }}
+QLabel#updateAlert {{
+    color: {ORANGE};
+    font-size: 12px;
+    font-weight: bold;
+    padding: 6px 10px;
+    background-color: #1a1200;
+    border: 1px solid {ORANGE_DARK};
+    border-radius: 6px;
+}}
 QProgressBar {{
     background-color: #1a1a1a;
     border: none;
@@ -193,6 +213,51 @@ QProgressBar::chunk {{
     border-radius: 4px;
 }}
 """
+
+
+def get_file_hash(filepath):
+    h = hashlib.md5()
+    try:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return None
+
+
+def get_folder_fingerprint(folder):
+    if not os.path.isdir(folder):
+        return None
+    exe = os.path.join(folder, "RobloxPlayerBeta.exe")
+    if os.path.isfile(exe):
+        stat = os.stat(exe)
+        return f"{stat.st_size}_{stat.st_mtime}"
+    return None
+
+
+def find_system_roblox():
+    if sys.platform != "win32":
+        return None, None
+
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    versions_path = os.path.join(local_app, "Roblox", "Versions")
+    if not os.path.isdir(versions_path):
+        return None, None
+
+    versions = []
+    for item in os.listdir(versions_path):
+        full = os.path.join(versions_path, item)
+        if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
+            versions.append(full)
+
+    if not versions:
+        return None, None
+
+    versions.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    latest = versions[0]
+    fingerprint = get_folder_fingerprint(latest)
+    return latest, fingerprint
 
 
 def create_splash():
@@ -209,7 +274,6 @@ def create_splash():
     painter.fillRect(0, 0, 500, 320, grad)
 
     painter.setPen(Qt.NoPen)
-    painter.setBrush(QColor(ORANGE))
     block_size = 16
     gap = 4
     start_x = 185
@@ -258,14 +322,15 @@ class DenfiRobloxLauncher(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{APP_DISPLAY} - Portable Launcher")
-        self.setMinimumSize(720, 600)
-        self.resize(780, 640)
+        self.setMinimumSize(720, 620)
+        self.resize(780, 660)
 
         icon_path = os.path.join(APP_DIR, "icon.ico")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
         self.roblox_found = False
+        self.config = self.load_config()
         self.ensure_folders()
 
         central = QWidget()
@@ -282,6 +347,7 @@ class DenfiRobloxLauncher(QMainWindow):
         self.build_footer(layout)
 
         self.check_roblox_files()
+        QTimer.singleShot(1000, self.auto_check_update)
 
     def ensure_folders(self):
         os.makedirs(ROBLOX_DIR, exist_ok=True)
@@ -367,11 +433,16 @@ class DenfiRobloxLauncher(QMainWindow):
         layout.addWidget(path_label)
 
         hint = QLabel(
-            "Copy your Roblox files into the RobloxFiles folder next to this launcher."
+            "Roblox files are loaded from the RobloxFiles folder next to this launcher."
         )
         hint.setObjectName("sectionHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
+
+        self.update_alert = QLabel("")
+        self.update_alert.setObjectName("updateAlert")
+        self.update_alert.setVisible(False)
+        layout.addWidget(self.update_alert)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
@@ -386,9 +457,16 @@ class DenfiRobloxLauncher(QMainWindow):
         update_btn.setObjectName("updateBtn")
         update_btn.setCursor(Qt.PointingHandCursor)
         update_btn.setFixedWidth(180)
-        update_btn.setToolTip("Copy updated Roblox files from your system installation")
+        update_btn.setToolTip("Copy updated Roblox files from your system into the same RobloxFiles folder")
         update_btn.clicked.connect(self.update_roblox_files)
         btn_row.addWidget(update_btn)
+
+        self.auto_update_btn = QPushButton("Update Available - Click to Sync")
+        self.auto_update_btn.setObjectName("autoUpdateBtn")
+        self.auto_update_btn.setCursor(Qt.PointingHandCursor)
+        self.auto_update_btn.clicked.connect(self.auto_sync_update)
+        self.auto_update_btn.setVisible(False)
+        btn_row.addWidget(self.auto_update_btn)
 
         btn_row.addStretch()
         layout.addLayout(btn_row)
@@ -401,7 +479,7 @@ class DenfiRobloxLauncher(QMainWindow):
         grid.setSpacing(8)
         grid.setContentsMargins(12, 12, 12, 12)
 
-        labels = ["RobloxPlayerBeta.exe", "DLL Files", "Ready to Launch"]
+        labels = ["RobloxPlayerBeta.exe", "DLL Files", "Roblox Version", "Ready to Launch"]
         self.status_values = []
 
         for i, text in enumerate(labels):
@@ -443,7 +521,7 @@ class DenfiRobloxLauncher(QMainWindow):
 
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setCursor(Qt.PointingHandCursor)
-        refresh_btn.clicked.connect(self.check_roblox_files)
+        refresh_btn.clicked.connect(self.refresh_all)
         layout.addWidget(refresh_btn)
 
         layout.addStretch()
@@ -477,6 +555,10 @@ class DenfiRobloxLauncher(QMainWindow):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.log_box.append(f"[{timestamp}] {message}")
 
+    def refresh_all(self):
+        self.check_roblox_files()
+        self.auto_check_update()
+
     def open_roblox_folder(self):
         os.makedirs(ROBLOX_DIR, exist_ok=True)
         if sys.platform == "win32":
@@ -485,49 +567,86 @@ class DenfiRobloxLauncher(QMainWindow):
             subprocess.Popen(["xdg-open", ROBLOX_DIR])
         self.log("Opened RobloxFiles folder")
 
+    def auto_check_update(self):
+        system_path, system_fp = find_system_roblox()
+        if not system_path:
+            self.update_alert.setVisible(False)
+            self.auto_update_btn.setVisible(False)
+            return
+
+        portable_fp = get_folder_fingerprint(ROBLOX_DIR)
+        saved_fp = self.config.get("last_synced_fingerprint", "")
+
+        if system_fp and system_fp != portable_fp and system_fp != saved_fp:
+            version_name = os.path.basename(system_path)
+            self.update_alert.setText(
+                f"Roblox update detected! New version: {version_name}"
+            )
+            self.update_alert.setVisible(True)
+            self.auto_update_btn.setVisible(True)
+            self.pending_update_path = system_path
+            self.pending_update_fp = system_fp
+            self.log(f"Update detected: {version_name}")
+        else:
+            self.update_alert.setVisible(False)
+            self.auto_update_btn.setVisible(False)
+            if system_fp:
+                self.log("Roblox files are up to date")
+
+    def auto_sync_update(self):
+        if not hasattr(self, 'pending_update_path'):
+            return
+
+        reply = QMessageBox.question(
+            self, "Update Roblox Files",
+            f"Update detected at:\n{self.pending_update_path}\n\n"
+            f"Sync new files into your RobloxFiles folder?\n"
+            f"(Old files will be replaced - same folder, no new folders created)",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        if reply == QMessageBox.Yes:
+            self.do_update(self.pending_update_path, self.pending_update_fp)
+
     def update_roblox_files(self):
-        if sys.platform == "win32":
-            local_app = os.environ.get("LOCALAPPDATA", "")
-            default_path = os.path.join(local_app, "Roblox", "Versions")
-            if os.path.isdir(default_path):
-                versions = []
-                for item in os.listdir(default_path):
-                    full = os.path.join(default_path, item)
-                    if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
-                        versions.append(full)
-
-                if versions:
-                    versions.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-                    latest = versions[0]
-
-                    reply = QMessageBox.question(
-                        self, "Update Roblox Files",
-                        f"Found Roblox installation at:\n{latest}\n\n"
-                        f"Copy all files to your portable RobloxFiles folder?\n"
-                        f"This will overwrite existing files.",
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.No
-                    )
-                    if reply == QMessageBox.Yes:
-                        self.do_update(latest)
-                        return
+        system_path, system_fp = find_system_roblox()
+        if system_path:
+            reply = QMessageBox.question(
+                self, "Update Roblox Files",
+                f"Found Roblox at:\n{system_path}\n\n"
+                f"Sync all files into your RobloxFiles folder?\n"
+                f"(Files are replaced in the same folder - nothing new is created)",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self.do_update(system_path, system_fp)
+                return
 
         folder = QFileDialog.getExistingDirectory(
             self, "Select folder with Roblox files to copy from"
         )
         if folder:
-            self.do_update(folder)
+            self.do_update(folder, None)
 
-    def do_update(self, source_dir):
+    def do_update(self, source_dir, fingerprint):
         try:
-            self.log(f"Updating from: {source_dir}")
+            self.log(f"Syncing from: {source_dir}")
             self.footer_label.setText("Updating Roblox files...")
             QApplication.processEvents()
 
+            old_files = set()
+            if os.path.isdir(ROBLOX_DIR):
+                for item in os.listdir(ROBLOX_DIR):
+                    if item != "PLACE_ROBLOX_HERE.txt":
+                        old_files.add(item)
+
+            new_files = set()
             count = 0
             for item in os.listdir(source_dir):
                 src = os.path.join(source_dir, item)
                 dst = os.path.join(ROBLOX_DIR, item)
+                new_files.add(item)
                 if os.path.isfile(src):
                     shutil.copy2(src, dst)
                     count += 1
@@ -537,11 +656,35 @@ class DenfiRobloxLauncher(QMainWindow):
                     shutil.copytree(src, dst)
                     count += 1
 
-            self.log(f"Updated {count} files/folders successfully")
+            removed = 0
+            for old_item in old_files - new_files:
+                old_path = os.path.join(ROBLOX_DIR, old_item)
+                if os.path.isfile(old_path):
+                    os.remove(old_path)
+                    removed += 1
+                elif os.path.isdir(old_path):
+                    shutil.rmtree(old_path)
+                    removed += 1
+
+            if fingerprint:
+                self.config["last_synced_fingerprint"] = fingerprint
+                self.config["last_synced_from"] = source_dir
+                self.config["last_synced_time"] = datetime.datetime.now().isoformat()
+                self.save_config()
+
+            self.update_alert.setVisible(False)
+            self.auto_update_btn.setVisible(False)
+
+            self.log(f"Synced {count} files, removed {removed} old files")
             self.check_roblox_files()
+
             QMessageBox.information(
                 self, "Update Complete",
-                f"Copied {count} files from:\n{source_dir}\n\nYour portable Roblox is up to date!"
+                f"Roblox files synced!\n\n"
+                f"Copied: {count} files\n"
+                f"Cleaned up: {removed} old files\n"
+                f"From: {source_dir}\n\n"
+                f"Everything is in your same RobloxFiles folder."
             )
         except Exception as e:
             self.log(f"Update failed: {str(e)}")
@@ -570,7 +713,8 @@ class DenfiRobloxLauncher(QMainWindow):
         if not os.path.isdir(ROBLOX_DIR):
             self.set_status(0, "Folder missing", "bad")
             self.set_status(1, "Folder missing", "bad")
-            self.set_status(2, "NO", "bad")
+            self.set_status(2, "--", "none")
+            self.set_status(3, "NO", "bad")
             self.footer_label.setText("RobloxFiles folder not found")
             self.launch_btn.setEnabled(False)
             return
@@ -597,17 +741,36 @@ class DenfiRobloxLauncher(QMainWindow):
         else:
             self.set_status(1, "None found", "warn")
 
+        version_str = self.detect_version()
+        if version_str:
+            self.set_status(2, version_str, "ok")
+        else:
+            self.set_status(2, "Unknown", "warn" if has_exe else "none")
+
         if has_exe:
-            self.set_status(2, "YES - Ready!", "ok")
+            self.set_status(3, "YES - Ready!", "ok")
             self.roblox_found = True
             self.footer_label.setText(f"Ready - {total_files} files loaded")
             self.launch_btn.setEnabled(True)
             self.log(f"Roblox OK: {total_files} files, {dll_count} DLLs")
         else:
-            self.set_status(2, "NO - Files needed", "bad")
+            self.set_status(3, "NO - Files needed", "bad")
             self.footer_label.setText("Copy Roblox files to RobloxFiles folder")
             self.launch_btn.setEnabled(False)
             self.log("Waiting for Roblox files...")
+
+    def detect_version(self):
+        last_from = self.config.get("last_synced_from", "")
+        if last_from:
+            version_hash = os.path.basename(last_from)
+            if version_hash.startswith("version-"):
+                return version_hash
+        exe_path = os.path.join(ROBLOX_DIR, "RobloxPlayerBeta.exe")
+        if os.path.isfile(exe_path):
+            stat = os.stat(exe_path)
+            mod_time = datetime.datetime.fromtimestamp(stat.st_mtime)
+            return f"Synced {mod_time.strftime('%Y-%m-%d %H:%M')}"
+        return None
 
     def launch_roblox(self):
         if not self.roblox_found:
@@ -662,6 +825,22 @@ class DenfiRobloxLauncher(QMainWindow):
                 f"Could not launch Roblox:\n\n{str(e)}"
             )
 
+    def load_config(self):
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, "r") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def save_config(self):
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(self.config, f, indent=2)
+        except Exception:
+            pass
+
 
 class SplashScreen(QSplashScreen):
     def __init__(self, pixmap):
@@ -684,7 +863,7 @@ class SplashScreen(QSplashScreen):
             20: "Loading configuration...",
             40: "Checking folders...",
             60: "Scanning Roblox files...",
-            80: "Preparing launcher...",
+            80: "Checking for updates...",
             100: "Ready!"
         }
         msg = "Loading..."
