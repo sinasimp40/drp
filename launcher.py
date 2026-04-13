@@ -3,7 +3,6 @@ import os
 import subprocess
 import datetime
 import shutil
-import time
 import ctypes
 
 from PyQt5.QtWidgets import (
@@ -145,101 +144,17 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
-def kill_roblox_mutex(pid):
+def grab_roblox_mutex():
     if sys.platform != "win32":
-        return False
+        return None
     try:
-        import ctypes.wintypes
-
-        PROCESS_DUP_HANDLE = 0x0040
-        DUPLICATE_CLOSE_SOURCE = 0x00000001
-        STATUS_INFO_LENGTH_MISMATCH = 0xC0000004
-        SystemHandleInformation = 16
-
-        ntdll = ctypes.windll.ntdll
         kernel32 = ctypes.windll.kernel32
-
-        class SYSTEM_HANDLE_ENTRY(ctypes.Structure):
-            _fields_ = [
-                ("OwnerPid", ctypes.c_ulong),
-                ("ObjectType", ctypes.c_byte),
-                ("Flags", ctypes.c_byte),
-                ("Handle", ctypes.c_ushort),
-                ("Object", ctypes.c_void_p),
-                ("GrantedAccess", ctypes.c_ulong),
-            ]
-
-        class SYSTEM_HANDLE_INFORMATION(ctypes.Structure):
-            _fields_ = [
-                ("HandleCount", ctypes.c_ulong),
-                ("Handles", SYSTEM_HANDLE_ENTRY * 1),
-            ]
-
-        buf_size = 0x10000
-        while True:
-            buf = ctypes.create_string_buffer(buf_size)
-            ret_len = ctypes.c_ulong(0)
-            status = ntdll.NtQuerySystemInformation(
-                SystemHandleInformation, buf, buf_size, ctypes.byref(ret_len)
-            )
-            if status == STATUS_INFO_LENGTH_MISMATCH:
-                buf_size *= 2
-                continue
-            break
-
-        handle_info = ctypes.cast(buf, ctypes.POINTER(SYSTEM_HANDLE_INFORMATION)).contents
-        handle_count = handle_info.HandleCount
-
-        HandleArray = SYSTEM_HANDLE_ENTRY * handle_count
-        handles = ctypes.cast(
-            ctypes.addressof(handle_info.Handles), ctypes.POINTER(HandleArray)
-        ).contents
-
-        proc_handle = kernel32.OpenProcess(PROCESS_DUP_HANDLE, False, pid)
-        if not proc_handle:
-            return False
-
-        closed = 0
-        for h in handles:
-            if h.OwnerPid != pid:
-                continue
-            if h.ObjectType != 2:
-                continue
-
-            dup_handle = ctypes.wintypes.HANDLE()
-            result = kernel32.DuplicateHandle(
-                proc_handle, h.Handle,
-                kernel32.GetCurrentProcess(),
-                ctypes.byref(dup_handle),
-                0, False, 0
-            )
-            if not result:
-                continue
-
-            buf = ctypes.create_unicode_buffer(1024)
-            ret_len = ctypes.c_ulong(0)
-            status = ntdll.NtQueryObject(
-                dup_handle, 1, buf, ctypes.sizeof(buf), ctypes.byref(ret_len)
-            )
-
-            kernel32.CloseHandle(dup_handle)
-
-            if status == 0:
-                name = ctypes.wstring_at(ctypes.addressof(buf) + 8, (ret_len.value - 8) // 2)
-                if "ROBLOX_singletonMutex" in name or "RobloxMutex" in name.replace(" ", ""):
-                    kernel32.DuplicateHandle(
-                        proc_handle, h.Handle,
-                        kernel32.GetCurrentProcess(),
-                        ctypes.byref(dup_handle),
-                        0, False, DUPLICATE_CLOSE_SOURCE
-                    )
-                    kernel32.CloseHandle(dup_handle)
-                    closed += 1
-
-        kernel32.CloseHandle(proc_handle)
-        return closed > 0
+        mutex = kernel32.CreateMutexW(None, True, "ROBLOX_singletonEvent")
+        if mutex:
+            return mutex
     except Exception:
-        return False
+        pass
+    return None
 
 
 class SplashScreen(QSplashScreen):
@@ -520,12 +435,14 @@ def main():
             app.processEvents()
 
             try:
-                instance_id = int(time.time() * 1000) % 100000
-                instance_cache = os.path.join(os.path.abspath(paths["cache"]), f"instance_{instance_id}")
-                os.makedirs(instance_cache, exist_ok=True)
+                mutex_handle = grab_roblox_mutex()
+                if mutex_handle:
+                    log_lines.append("Mutex acquired - multi-client enabled")
+                else:
+                    log_lines.append("Could not acquire mutex")
 
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = instance_cache
+                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -533,20 +450,8 @@ def main():
                     env=env,
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
-                log_lines.append(f"Instance: {instance_id}")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {instance_cache}")
-
-                splash.set_progress(90, "Removing mutex lock...")
-                app.processEvents()
-
-                for attempt in range(5):
-                    time.sleep(1)
-                    if kill_roblox_mutex(process.pid):
-                        log_lines.append(f"Mutex removed on attempt {attempt + 1}")
-                        break
-                else:
-                    log_lines.append("Mutex not found after 5 attempts")
+                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
