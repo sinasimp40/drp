@@ -520,8 +520,12 @@ def main():
             app.processEvents()
 
             try:
+                instance_id = int(time.time() * 1000) % 100000
+                instance_cache = os.path.join(os.path.abspath(paths["cache"]), f"instance_{instance_id}")
+                os.makedirs(instance_cache, exist_ok=True)
+
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
+                env["LOCALAPPDATA"] = instance_cache
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -529,15 +533,20 @@ def main():
                     env=env,
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
+                log_lines.append(f"Instance: {instance_id}")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
+                log_lines.append(f"Cache: {instance_cache}")
 
-                time.sleep(2)
-                mutex_killed = kill_roblox_mutex(process.pid)
-                if mutex_killed:
-                    log_lines.append("Mutex removed - multi-client enabled")
+                splash.set_progress(90, "Removing mutex lock...")
+                app.processEvents()
+
+                for attempt in range(5):
+                    time.sleep(1)
+                    if kill_roblox_mutex(process.pid):
+                        log_lines.append(f"Mutex removed on attempt {attempt + 1}")
+                        break
                 else:
-                    log_lines.append("Mutex not found or already cleared")
+                    log_lines.append("Mutex not found after 5 attempts")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
