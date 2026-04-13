@@ -1,12 +1,11 @@
 import sys
 import os
-import json
 import subprocess
 import datetime
 import shutil
 
 from PyQt5.QtWidgets import (
-    QApplication, QSplashScreen, QMessageBox, QFileDialog
+    QApplication, QSplashScreen
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
@@ -16,6 +15,7 @@ from PyQt5.QtGui import (
 
 APP_NAME = "DENFI ROBLOX"
 APP_VERSION = "1.0.0"
+HARDCODED_PATH = ""
 
 def get_app_dir():
     if getattr(sys, 'frozen', False):
@@ -23,7 +23,6 @@ def get_app_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 APP_DIR = get_app_dir()
-CONFIG_FILE = os.path.join(APP_DIR, "denfi_config.json")
 
 BG = "#0a0a0a"
 ORANGE = "#ff6a00"
@@ -34,26 +33,14 @@ TEXT_DIM = "#555555"
 RED = "#ff3333"
 
 
-def load_config():
-    try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return {}
+def get_base_path():
+    if HARDCODED_PATH:
+        return HARDCODED_PATH
+    return APP_DIR
 
 
-def save_config(config):
-    try:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(config, f, indent=2)
-    except Exception:
-        pass
-
-
-def get_paths(config):
-    base = config.get("denfi_path", APP_DIR)
+def get_paths():
+    base = get_base_path()
     roblox_dir = os.path.join(base, "RobloxFiles")
 
     if os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe")):
@@ -313,50 +300,6 @@ def create_splash_pixmap():
     return splash_pix
 
 
-def ask_for_path(app, config):
-    if "denfi_path" in config:
-        return True
-
-    msg = QMessageBox()
-    msg.setWindowTitle(APP_NAME)
-    msg.setIcon(QMessageBox.Question)
-    msg.setText(
-        "Welcome to Denfi Roblox Portable!\n\n"
-        "Select the folder where your Roblox files are.\n\n"
-        "You can pick a folder that already has RobloxPlayerBeta.exe,\n"
-        "or pick a parent folder and a 'RobloxFiles' subfolder will be created.\n\n"
-        "To change this later, delete 'denfi_config.json' next to the launcher."
-    )
-    msg.setStyleSheet(
-        f"QMessageBox {{ background-color: {BG}; color: {TEXT_WHITE}; }}"
-        f"QLabel {{ color: {TEXT_WHITE}; font-size: 12px; }}"
-        f"QPushButton {{ background-color: #2a2a2a; color: {TEXT_WHITE}; "
-        f"border: 1px solid #3a3a3a; padding: 8px 20px; border-radius: 4px; "
-        f"font-weight: bold; font-size: 11px; }}"
-        f"QPushButton:hover {{ background-color: {ORANGE}; color: #0a0a0a; }}"
-    )
-
-    here_btn = msg.addButton("Use current folder", QMessageBox.AcceptRole)
-    custom_btn = msg.addButton("Choose folder", QMessageBox.ActionRole)
-    msg.exec_()
-
-    clicked = msg.clickedButton()
-
-    if clicked == custom_btn:
-        folder = QFileDialog.getExistingDirectory(
-            None,
-            "Select your Roblox files folder (or a parent folder)"
-        )
-        if not folder:
-            return False
-        config["denfi_path"] = folder
-    else:
-        config["denfi_path"] = APP_DIR
-
-    save_config(config)
-    return True
-
-
 def main():
     if sys.platform != "win32":
         os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -369,13 +312,7 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
-    config = load_config()
-
-    if "denfi_path" not in config:
-        if not ask_for_path(app, config):
-            sys.exit(0)
-
-    paths = get_paths(config)
+    paths = get_paths()
 
     splash_pix = create_splash_pixmap()
     splash = SplashScreen(splash_pix)
@@ -387,6 +324,7 @@ def main():
     log_lines.append(f"Time: {datetime.datetime.now()}")
     log_lines.append(f"Base path: {paths['base']}")
 
+    sync_state = {"do_sync": False, "source": "", "fp": ""}
     step_index = [0]
 
     def do_step():
@@ -416,17 +354,15 @@ def main():
             app.processEvents()
             system_path, system_fp = find_system_roblox()
 
-            config["_do_sync"] = False
             if system_path:
                 portable_fp = get_folder_fingerprint(paths["roblox"])
-                saved_fp = config.get("last_synced_fingerprint", "")
-                needs_update = system_fp and (system_fp != portable_fp) and (system_fp != saved_fp)
+                needs_update = system_fp and (system_fp != portable_fp)
                 needs_first = not os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
 
                 if needs_update or needs_first:
-                    config["_sync_source"] = system_path
-                    config["_sync_fp"] = system_fp
-                    config["_do_sync"] = True
+                    sync_state["do_sync"] = True
+                    sync_state["source"] = system_path
+                    sync_state["fp"] = system_fp
                     reason = "first sync" if needs_first else "update detected"
                     log_lines.append(f"Sync needed ({reason}): {system_path}")
                 else:
@@ -435,18 +371,11 @@ def main():
                 log_lines.append("No system Roblox found")
 
         elif idx == 3:
-            if config.get("_do_sync"):
+            if sync_state["do_sync"]:
                 splash.set_progress(55, "Syncing Roblox files...")
                 app.processEvents()
-                source = config.pop("_sync_source", "")
-                fp = config.pop("_sync_fp", "")
-                config.pop("_do_sync", None)
                 try:
-                    count, removed = sync_files(source, paths["roblox"])
-                    config["last_synced_fingerprint"] = fp
-                    config["last_synced_from"] = source
-                    config["last_synced_time"] = datetime.datetime.now().isoformat()
-                    save_config(config)
+                    count, removed = sync_files(sync_state["source"], paths["roblox"])
                     log_lines.append(f"Synced {count} files, cleaned {removed} old files")
                     splash.set_progress(70, f"Synced {count} files!")
                     app.processEvents()
@@ -455,7 +384,6 @@ def main():
                     splash.set_progress(70, "Sync failed - using existing files")
                     app.processEvents()
             else:
-                config.pop("_do_sync", None)
                 splash.set_progress(70, "Files ready!")
                 app.processEvents()
 
