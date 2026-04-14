@@ -1,79 +1,166 @@
-# License Server Deployment Guide
+# License Server - Setup Guide
 
-## Quick Setup on Windows Server
+Follow these steps one by one in Command Prompt on your Windows server.
 
-### 1. Install Python
-Download Python 3.11+ from https://python.org
-Check "Add Python to PATH" during install.
 
-### 2. Copy Files
-Copy the entire `license_server/` folder to your server (e.g. `C:\LicenseServer`).
+## Step 1: Install Python
 
-### 3. Install Dependencies
+Download Python from https://python.org/downloads
+
+IMPORTANT: During install, check the box that says "Add Python to PATH"
+
+After install, open Command Prompt and type:
 ```
-cd C:\LicenseServer
+python --version
+```
+You should see something like "Python 3.11.x". If you get an error, restart your PC and try again.
+
+
+## Step 2: Create folder and copy files
+
+Create a folder on your server:
+```
+mkdir C:\LicenseServer
+```
+
+Copy these files into `C:\LicenseServer`:
+- `server.py`
+- The `templates` folder (with all the .html files inside it)
+
+Your folder should look like this:
+```
+C:\LicenseServer\
+    server.py
+    templates\
+        base.html
+        create.html
+        dashboard.html
+        history.html
+        login.html
+```
+
+
+## Step 3: Install Flask
+
+Type this and press Enter:
+```
 pip install flask
 ```
 
-### 4. Configure Environment Variables
-Set these before running the server (each on its own line):
-```
-set LICENSE_ADMIN_PASSWORD=YourStrongPassword
-set LICENSE_SHARED_SECRET=YourSharedSecret
-set LICENSE_PORT=3842
-```
+Wait for it to finish.
 
-The shared secret must match what you entered during the launcher build.
 
-### 5. Open Firewall
+## Step 4: Open the firewall port
+
+Type this and press Enter:
 ```
 netsh advfirewall firewall add rule name="License Server" dir=in action=allow protocol=TCP localport=3842
 ```
 
-### 6. Run
+You should see "Ok."
+
+
+## Step 5: Set your passwords
+
+Type each line below ONE AT A TIME. Press Enter after each line:
+
+```
+set LICENSE_ADMIN_PASSWORD=admin
+```
+(press Enter)
+
+```
+set LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024
+```
+(press Enter)
+
+```
+set LICENSE_PORT=3842
+```
+(press Enter)
+
+IMPORTANT: The shared secret must match what you entered when building the launcher .exe
+
+
+## Step 6: Go to the folder
+
+```
+cd C:\LicenseServer
+```
+(press Enter)
+
+
+## Step 7: Start the server
+
 ```
 python server.py
 ```
+(press Enter)
 
-### 7. Run as Background Service (Optional)
-To keep the server running after you close the terminal:
+You should see:
+```
+License server starting on port 3842
+Dashboard: http://0.0.0.0:3842/
+```
 
-**Using nssm (recommended for Windows):**
-1. Download nssm from https://nssm.cc
-2. Run: `nssm install LicenseServer "C:\Python311\python.exe" "C:\LicenseServer\server.py"`
-3. Run: `nssm set LicenseServer AppDirectory "C:\LicenseServer"`
-4. Run: `nssm set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=YourPassword" "LICENSE_SHARED_SECRET=YourSecret" "LICENSE_PORT=3842"`
-5. Run: `nssm start LicenseServer`
+Now open your browser and go to: http://YOUR_SERVER_IP:3842
 
-**Using Task Scheduler:**
-1. Open Task Scheduler
-2. Create Basic Task
-3. Set trigger to "At startup"
-4. Action: Start a program
-5. Program: `python`
-6. Arguments: `server.py`
-7. Start in: `C:\LicenseServer`
+Log in with the password you set in Step 5.
 
-## Admin Dashboard
+IMPORTANT: Use http:// NOT https://
 
-- Login at your server URL
-- Default password: `admin` (change this!)
-- Create keys with custom duration (countdown starts only when key is activated)
-- Monitor who's online in real-time
-- Revoke/delete keys instantly
-- View full license history with activation timestamps
 
-## License Flow
+## Step 8: Make it run forever (optional)
+
+If you close the Command Prompt window, the server stops.
+To make it run as a Windows service that auto-starts:
+
+Download nssm from https://nssm.cc/release/nssm-2.24.zip
+
+Extract it, then type each line ONE AT A TIME:
+
+First, find where Python is installed:
+```
+where python
+```
+(note the path it shows, like C:\Python311\python.exe)
+
+Then type these one by one (replace the Python path if yours is different):
+
+```
+C:\nssm\nssm-2.24\win64\nssm.exe install LicenseServer "C:\Python311\python.exe" "C:\LicenseServer\server.py"
+```
+(press Enter)
+
+```
+C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppDirectory "C:\LicenseServer"
+```
+(press Enter)
+
+```
+C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=admin" "LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024" "LICENSE_PORT=3842"
+```
+(press Enter)
+
+```
+C:\nssm\nssm-2.24\win64\nssm.exe start LicenseServer
+```
+(press Enter)
+
+Done! The server will now auto-start every time your server boots up.
+
+
+## How it works
 
 1. You create a key in the dashboard — it starts as **Pending**
 2. User enters the key in the launcher — key becomes **Active** and countdown starts
-3. Dashboard shows real-time status: Online/Offline, time remaining, last IP
-4. When time runs out — key becomes **Expired** and the `.license_key` file is auto-deleted
-5. You can **Revoke** a key at any time — user gets kicked within 15 seconds
+3. Dashboard shows real-time: Online/Offline, time remaining, last IP
+4. When time runs out — key becomes **Expired**, user's license file is auto-deleted
+5. You can **Revoke** a key anytime — user gets kicked within 15 seconds
 
-## Security Notes
 
-- Change the default admin password immediately
-- The shared secret must match on both server and launcher
-- Access the dashboard via `http://` not `https://` (unless you set up SSL)
-- Back up `licenses.db` regularly to preserve license data
+## Security
+
+- Change the default admin password to something strong
+- The shared secret must be the same on both server and launcher
+- Back up `licenses.db` regularly (this file stores all your license data)
