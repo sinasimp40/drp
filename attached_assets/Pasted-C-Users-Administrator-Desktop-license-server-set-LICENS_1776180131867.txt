@@ -1,0 +1,27 @@
+C:\Users\Administrator\Desktop\license_server>set LICENSE_ADMIN_PASSWORD=admin set LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024 set LICENSE_PORT=3842
+
+C:\Users\Administrator\Desktop\license_server>netsh advfirewall firewall add rule name="License Server" dir=in action=allow protocol=TCP localport=3842
+Ok.
+
+
+C:\Users\Administrator\Desktop\license_server>server.py
+License server starting on port 3842
+Dashboard: http://0.0.0.0:3842/
+ * Serving Flask app 'server'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3842
+ * Running on http://144.31.48.238:3842
+Press CTRL+C to quit
+49.146.44.33 - - [14/Apr/2026 23:21:05] code 400, message Bad request version ('\x0e8\x04')
+49.146.44.33 - - [14/Apr/2026 23:21:05] "\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03jó\x1eI~\x1dW\x04\x897Ë\x90h\x16\x83ôy\x99ºÃbÂ¦õvÓFT9Wë¹ áÆàFZÿk\x8e@`m°\x13}L1åO$\x94¸¤\x08\x90Tou\x8ai«\x058\x00 \x9a\x9a\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93\x1a\x1a\x00\x00\x00\x0b\x00\x02\x01\x00\x00+\x00\x07\x06jj\x03\x04\x03\x03\x00\x12\x00\x00DÍ\x00\x05\x00\x03\x02h2\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x10\x00\x0e\x00\x0c\x02h2\x08http/1.1\x00\x1b\x00\x03\x02\x00\x02þ\x0d\x01\x1a\x00\x00\x01\x00\x01\x00\x00 ÷¥©]PÖéÊÂ\x1f\x95ns±ã/x¤Ú¦\x10!´\x93»"³¥\x83²\x0bh\x00ð\x09DÈÿïÇ\x02¤úÁ({\x9cÇQ\x1e\x04Ô)ßwA,\x11Ä\x8f\x07\x04ZpnÑý@\x0cíÖàÝúÐýo98²»\x16q7#Å\x8d\x0dPÎÉÎÛ6N\x15\x08éosyf\x81xÄ\x1d¢Ñ`óÓ\x90\x11\x06\x96¯Ã4·6 p\x90m`£\x1e\x0e8\x04\x0c" 400 -
+49.146.44.33 - - [14/Apr/2026 23:21:05] code 400, message Bad request version ('lÁÒ0|TD\x06Ûý$Î8\x01Ãë\x00+\x00\x07\x06ªª\x03\x04\x03\x03\x00-\x00\x02\x01\x01\x00#\x00\x00\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00')
+49.146.44.33 - - [14/Apr/2026 23:21:05] "\x16\x03\x01\x06 \x01\x00\x06\x9c\x03\x03¸n\x99\x04Æå\x1c©³\x06æ\x7f\x8cxáp]\x9bôç\x06\\\x8fÄ\x13\x87K>NÎô÷ ú\x0cnW\x86\x94v[@\x08É4½%\x9aOèøÐìü¼\x85\x0e±Y\x02ò\x99\x95\x1cì\x00 ÚÚ\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x063ºº\x00\x00\x00\x12\x00\x00\x00\x10\x00\x0e\x00\x0c\x02h2\x08http/1.1DÍ\x00\x05\x00\x03\x02h2þ\x0d\x00º\x00\x00\x01\x00\x01ã\x00 +\x08\x82E'ÞÕ*©\x1e}¢\x1f\x19å\x84þG\x0e\x1eüiÝ«QÆQ\x0bdãÒ8\x00\x90í(+½÷n;ü\x10f\x1eÖ_*D¨\x80\x1e-Ã¿}Oné\x90§ïBægÄÀ\x12PÅ\x92xÀ§q<û\x95~ÂÀ\x14$Bà3çð\x12\x1b#F×\x9f²½Ï4k©G+\x94ÚM\x94C¤\x0b¦$\x9dÁXe\x8aÐ\x95\x97dª~\x0d\x11\x18\x1f\x17¨t\x9aßèÙ\x867¢B'E_ë\x01,\x0e\x86Ah\x8a\x9c\x8f'º¶¾âÝ\x97¨² Ð\x1flÁÒ0|TD\x06Ûý$Î8\x01Ãë\x00+\x00\x07\x06ªª\x03\x04\x03\x03\x00-\x00\x02\x01\x01\x00#\x00\x00\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00" 400 -
+49.146.44.33 - - [14/Apr/2026 23:21:07] "GET / HTTP/1.1" 302 -
+49.146.44.33 - - [14/Apr/2026 23:21:07] "GET /login HTTP/1.1" 200 -
+49.146.44.33 - - [14/Apr/2026 23:21:08] "GET /favicon.ico HTTP/1.1" 404 -
+49.146.44.33 - - [14/Apr/2026 23:21:10] "POST /login HTTP/1.1" 200 -
+49.146.44.33 - - [14/Apr/2026 23:21:13] "POST /login HTTP/1.1" 200 -
+49.146.44.33 - - [14/Apr/2026 23:21:17] "POST /login HTTP/1.1" 200 -
+49.146.44.33 - - [14/Apr/2026 23:21:21] "POST /login HTTP/1.1" 200 -
