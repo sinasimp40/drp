@@ -216,30 +216,23 @@ def ensure_windowed_mode():
         return False
 
 
-def get_roblox_pids():
+def get_existing_memprof_files():
     if sys.platform != "win32":
         return set()
-    try:
-        result = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq RobloxPlayerBeta.exe", "/FO", "CSV", "/NH"],
-            capture_output=True, text=True,
-            creationflags=0x08000000
-        )
-        pids = set()
-        for line in result.stdout.strip().split("\n"):
-            line = line.strip()
-            if "RobloxPlayerBeta.exe" in line:
-                parts = line.split(",")
-                if len(parts) >= 2:
-                    pid_str = parts[1].strip('"').strip()
-                    if pid_str.isdigit():
-                        pids.add(int(pid_str))
-        return pids
-    except Exception:
+    real_local = os.environ.get("LOCALAPPDATA", "")
+    if not real_local:
         return set()
+    local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+    if not os.path.isdir(local_storage):
+        return set()
+    files = set()
+    for item in os.listdir(local_storage):
+        if item.lower().startswith("memprofstorage") and item.lower().endswith(".json"):
+            files.add(item)
+    return files
 
 
-def clear_instance_login(pids_to_clean):
+def clear_instance_login(my_files):
     if sys.platform != "win32":
         return "skipped"
     real_local = os.environ.get("LOCALAPPDATA", "")
@@ -249,16 +242,14 @@ def clear_instance_login(pids_to_clean):
     if not os.path.isdir(local_storage):
         return "not_found"
     cleared = 0
-    for item in os.listdir(local_storage):
-        item_lower = item.lower()
-        if item_lower.startswith("memprofstorage") and item_lower.endswith(".json"):
-            pid_part = item_lower.replace("memprofstorage", "").replace(".json", "")
-            if pid_part.isdigit() and int(pid_part) in pids_to_clean:
-                try:
-                    os.remove(os.path.join(local_storage, item))
-                    cleared += 1
-                except Exception:
-                    pass
+    for filename in my_files:
+        filepath = os.path.join(local_storage, filename)
+        if os.path.isfile(filepath):
+            try:
+                os.remove(filepath)
+                cleared += 1
+            except Exception:
+                pass
     cookies_path = os.path.join(local_storage, "RobloxCookies.dat")
     if os.path.isfile(cookies_path):
         try:
@@ -589,30 +580,39 @@ def main():
             write_log(paths["logs"], "\n".join(log_lines))
 
             app.setQuitOnLastWindowClosed(False)
-            pids_before = get_roblox_pids()
+            files_before = get_existing_memprof_files()
 
             def hide_and_watch():
                 splash.hide()
-                my_pids = [None]
+                my_files = [None]
 
-                def capture_pids():
-                    current_pids = get_roblox_pids()
-                    new_pids = current_pids - pids_before
-                    if new_pids:
-                        my_pids[0] = new_pids
+                def capture_my_files():
+                    current_files = get_existing_memprof_files()
+                    new_files = current_files - files_before
+                    if new_files:
+                        my_files[0] = new_files
                     else:
-                        my_pids[0] = current_pids
+                        my_files[0] = current_files
 
                 def start_watching():
-                    capture_pids()
+                    capture_my_files()
 
                     def check_roblox():
-                        if my_pids[0] is None:
+                        if my_files[0] is None:
                             return
-                        current_pids = get_roblox_pids()
-                        still_running = my_pids[0] & current_pids
-                        if not still_running:
-                            clear_instance_login(my_pids[0])
+                        real_local = os.environ.get("LOCALAPPDATA", "")
+                        local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+                        all_gone = True
+                        for f in my_files[0]:
+                            if os.path.isfile(os.path.join(local_storage, f)):
+                                try:
+                                    os.remove(os.path.join(local_storage, f))
+                                except PermissionError:
+                                    all_gone = False
+                                except Exception:
+                                    pass
+                        if all_gone:
+                            clear_instance_login(my_files[0])
                             app.quit()
 
                     timer = QTimer()
