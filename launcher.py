@@ -487,20 +487,12 @@ def main():
                 splash.hide()
 
                 def check_roblox():
-                    try:
-                        result = subprocess.run(
-                            ["tasklist", "/FI", "IMAGENAME eq RobloxPlayerBeta.exe", "/NH"],
-                            capture_output=True, text=True,
-                            creationflags=0x08000000 if sys.platform == "win32" else 0
-                        )
-                        if "RobloxPlayerBeta.exe" not in result.stdout:
-                            app.quit()
-                    except Exception:
+                    if process.poll() is not None:
                         app.quit()
 
                 timer = QTimer()
                 timer.timeout.connect(check_roblox)
-                timer.start(5000)
+                timer.start(3000)
                 app._bg_timer = timer
 
             QTimer.singleShot(1500, hide_and_watch)
