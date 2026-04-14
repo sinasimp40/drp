@@ -144,6 +144,65 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
+def get_next_instance_dir(cache_base):
+    os.makedirs(cache_base, exist_ok=True)
+    for i in range(1, 100):
+        instance_dir = os.path.join(cache_base, f"instance_{i}")
+        lock_file = os.path.join(instance_dir, ".lock")
+        if not os.path.exists(instance_dir):
+            os.makedirs(instance_dir, exist_ok=True)
+            with open(lock_file, "w") as f:
+                f.write(str(os.getpid()))
+            return instance_dir, i
+        if not os.path.exists(lock_file):
+            with open(lock_file, "w") as f:
+                f.write(str(os.getpid()))
+            return instance_dir, i
+        try:
+            with open(lock_file, "r") as f:
+                pid = int(f.read().strip())
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                    capture_output=True, text=True,
+                    creationflags=0x08000000
+                )
+                if str(pid) not in result.stdout:
+                    shutil.rmtree(instance_dir, ignore_errors=True)
+                    os.makedirs(instance_dir, exist_ok=True)
+                    with open(lock_file, "w") as f:
+                        f.write(str(os.getpid()))
+                    return instance_dir, i
+            else:
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    shutil.rmtree(instance_dir, ignore_errors=True)
+                    os.makedirs(instance_dir, exist_ok=True)
+                    with open(lock_file, "w") as f:
+                        f.write(str(os.getpid()))
+                    return instance_dir, i
+        except (ValueError, FileNotFoundError):
+            shutil.rmtree(instance_dir, ignore_errors=True)
+            os.makedirs(instance_dir, exist_ok=True)
+            with open(lock_file, "w") as f:
+                f.write(str(os.getpid()))
+            return instance_dir, i
+    fallback = os.path.join(cache_base, f"instance_{int(datetime.datetime.now().timestamp())}")
+    os.makedirs(fallback, exist_ok=True)
+    return fallback, 0
+
+
+def cleanup_instance_dir(instance_dir):
+    try:
+        lock_file = os.path.join(instance_dir, ".lock")
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+        shutil.rmtree(instance_dir, ignore_errors=True)
+    except Exception:
+        pass
+
+
 _held_handles = []
 
 def grab_roblox_mutex():
@@ -452,11 +511,14 @@ def main():
                 else:
                     log_lines.append("Could not acquire mutex (non-Windows or error)")
 
-                splash.set_progress(85, "Launching Roblox...")
+                instance_dir, instance_num = get_next_instance_dir(paths["cache"])
+                log_lines.append(f"Instance #{instance_num}: {instance_dir}")
+
+                splash.set_progress(85, f"Launching Roblox (instance #{instance_num})...")
                 app.processEvents()
 
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
+                env["LOCALAPPDATA"] = os.path.abspath(instance_dir)
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -465,7 +527,7 @@ def main():
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
+                log_lines.append(f"Cache: {os.path.abspath(instance_dir)}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -488,6 +550,7 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
+                        cleanup_instance_dir(instance_dir)
                         app.quit()
 
                 timer = QTimer()
