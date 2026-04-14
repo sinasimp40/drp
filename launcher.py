@@ -523,21 +523,19 @@ def main():
 
             def hide_and_watch():
                 splash.hide()
-                initial_check_done = [False]
 
-                def check_roblox():
-                    if not initial_check_done[0]:
-                        if is_roblox_running():
-                            initial_check_done[0] = True
-                        return
-                    if not is_roblox_running():
-                        clear_roblox_login()
-                        app.quit()
+                def start_watching():
+                    def check_roblox():
+                        if not is_roblox_running():
+                            clear_roblox_login()
+                            app.quit()
 
-                timer = QTimer()
-                timer.timeout.connect(check_roblox)
-                timer.start(3000)
-                app._bg_timer = timer
+                    timer = QTimer()
+                    timer.timeout.connect(check_roblox)
+                    timer.start(5000)
+                    app._bg_timer = timer
+
+                QTimer.singleShot(20000, start_watching)
 
             QTimer.singleShot(1500, hide_and_watch)
             return
