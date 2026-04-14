@@ -169,14 +169,25 @@ def clear_roblox_login():
     real_local = os.environ.get("LOCALAPPDATA", "")
     if not real_local:
         return "no_localappdata"
-    db_path = os.path.join(real_local, "Roblox", "rbx-storage.db")
-    if not os.path.isfile(db_path):
+    roblox_dir = os.path.join(real_local, "Roblox")
+    if not os.path.isdir(roblox_dir):
         return "not_found"
-    try:
-        os.remove(db_path)
-        return "deleted"
-    except Exception:
-        return "error"
+    keep_folders = {"clientsettings", "localstorage", "versions"}
+    cleared = 0
+    for item in os.listdir(roblox_dir):
+        if item.lower() in keep_folders:
+            continue
+        item_path = os.path.join(roblox_dir, item)
+        try:
+            if os.path.isfile(item_path):
+                os.remove(item_path)
+                cleared += 1
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path, ignore_errors=True)
+                cleared += 1
+        except Exception:
+            pass
+    return f"cleared_{cleared}"
 
 
 class SplashScreen(QSplashScreen):
