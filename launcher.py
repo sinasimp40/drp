@@ -24,7 +24,8 @@ HARDCODED_PATH = ""
 LICENSE_SERVER_URL = ""
 _LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x04,0x12,0x08,0x04,0x12,0x14,0x05,0x12,0x03,0x08,0x1c,0x12,0x0e,0x08,0x65,0x67,0x65,0x63]
 _LICENSE_SECRET_KEY = 0x57
-LICENSE_CHECK_INTERVAL = 150000
+LICENSE_CHECK_INTERVAL = 15000
+LICENSE_OFFLINE_GRACE = 3
 
 
 def _decode_secret():
@@ -768,9 +769,20 @@ def start_license_watchdog(app):
     if not key:
         return None
 
+    app._license_fail_count = 0
+
     def check():
         result = validate_license(key, "heartbeat")
         if not result.get("valid"):
+            error_msg = result.get("error", "")
+            is_network_error = "unreachable" in error_msg.lower() or "timeout" in error_msg.lower()
+
+            if is_network_error:
+                app._license_fail_count += 1
+                if app._license_fail_count < LICENSE_OFFLINE_GRACE:
+                    return
+            app._license_fail_count = 0
+
             if hasattr(app, '_license_timer'):
                 app._license_timer.stop()
             kill_all_roblox_pids(app)
@@ -780,6 +792,8 @@ def start_license_watchdog(app):
             lock.show()
             app._lock_screen = lock
             QTimer.singleShot(10000, app.quit)
+        else:
+            app._license_fail_count = 0
 
     timer = QTimer()
     timer.timeout.connect(check)

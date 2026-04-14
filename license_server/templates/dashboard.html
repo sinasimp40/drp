@@ -3,62 +3,178 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>Active Licenses</h1>
+    <h1>Active Licenses <span id="live-dot" class="live-indicator"></span></h1>
     <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
 </div>
 
 <div class="card">
-    {% if licenses %}
-    <table>
-        <thead>
-            <tr>
-                <th>License Key</th>
-                <th>Status</th>
-                <th>Time Remaining</th>
-                <th>Last IP</th>
-                <th>Last Seen</th>
-                <th>Note</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for lic in licenses %}
-            <tr>
-                <td><span class="key-text">{{ lic.key }}</span></td>
-                <td>
-                    {% if lic.online %}
-                    <span class="badge badge-online">Online</span>
-                    {% else %}
-                    <span class="badge badge-offline">Offline</span>
-                    {% endif %}
-                </td>
-                <td class="time-remaining">{{ lic.remaining }}</td>
-                <td>{{ lic.last_ip }}</td>
-                <td>{{ lic.last_heartbeat }}</td>
-                <td>{{ lic.note }}</td>
-                <td class="actions-cell">
-                    <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
-                    </form>
-                    <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state">
-        <p>No active licenses</p>
-        <a href="{{ url_for('create_license') }}" class="btn btn-primary">Create your first key</a>
+    <div id="license-table-container">
+        {% if licenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>License Key</th>
+                    <th>Status</th>
+                    <th>Time Remaining</th>
+                    <th>Last IP</th>
+                    <th>Last Seen</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="license-tbody">
+                {% for lic in licenses %}
+                <tr data-remaining="{{ lic.remaining_seconds }}">
+                    <td><span class="key-text">{{ lic.key }}</span></td>
+                    <td>
+                        {% if lic.online %}
+                        <span class="badge badge-online">Online</span>
+                        {% else %}
+                        <span class="badge badge-offline">Offline</span>
+                        {% endif %}
+                    </td>
+                    <td class="time-remaining" data-seconds="{{ lic.remaining_seconds }}">{{ lic.remaining }}</td>
+                    <td>{{ lic.last_ip }}</td>
+                    <td>{{ lic.last_heartbeat }}</td>
+                    <td>{{ lic.note }}</td>
+                    <td class="actions-cell">
+                        <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>No active licenses</p>
+            <a href="{{ url_for('create_license') }}" class="btn btn-primary">Create your first key</a>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
+<style>
+    .live-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #44cc44;
+        border-radius: 50%;
+        margin-left: 8px;
+        animation: pulse-live 2s infinite;
+        vertical-align: middle;
+    }
+    @keyframes pulse-live {
+        0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
+        50% { opacity: 0.4; box-shadow: none; }
+    }
+    .fade-update { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
+</style>
 <script>
-    setTimeout(function() { location.reload(); }, 30000);
+(function() {
+    var POLL_INTERVAL = 5000;
+    var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
+    var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
+
+    function formatDuration(seconds) {
+        if (seconds <= 0) return "Expired";
+        var d = Math.floor(seconds / 86400);
+        var h = Math.floor((seconds % 86400) / 3600);
+        var m = Math.floor((seconds % 3600) / 60);
+        var s = Math.floor(seconds % 60);
+        var parts = [];
+        if (d > 0) parts.push(d + "d");
+        if (h > 0) parts.push(h + "h");
+        if (m > 0) parts.push(m + "m");
+        if (parts.length === 0) parts.push(s + "s");
+        return parts.join(" ");
+    }
+
+    function buildRow(lic) {
+        var tr = document.createElement("tr");
+        tr.setAttribute("data-remaining", lic.remaining_seconds);
+
+        var statusBadge = lic.online
+            ? '<span class="badge badge-online">Online</span>'
+            : '<span class="badge badge-offline">Offline</span>';
+
+        tr.innerHTML =
+            '<td><span class="key-text">' + lic.key + '</span></td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '">' + lic.remaining + '</td>' +
+            '<td>' + lic.last_ip + '</td>' +
+            '<td>' + lic.last_heartbeat + '</td>' +
+            '<td>' + (lic.note || '') + '</td>' +
+            '<td class="actions-cell">' +
+                '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
+                    '<button type="submit" class="btn btn-danger btn-sm">Revoke</button>' +
+                '</form>' +
+                '<form method="POST" action="' + deleteUrl + '/' + lic.id + '" onsubmit="return confirm(\'Delete this license?\')">' +
+                    '<button type="submit" class="btn btn-danger btn-sm">Delete</button>' +
+                '</form>' +
+            '</td>';
+        return tr;
+    }
+
+    function refreshData() {
+        fetch("/api/dashboard_data", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var container = document.getElementById("license-table-container");
+                if (!data.licenses || data.licenses.length === 0) {
+                    container.innerHTML =
+                        '<div class="empty-state">' +
+                            '<p>No active licenses</p>' +
+                            '<a href="/create" class="btn btn-primary">Create your first key</a>' +
+                        '</div>';
+                    return;
+                }
+
+                var table = container.querySelector("table");
+                if (!table) {
+                    table = document.createElement("table");
+                    table.innerHTML =
+                        '<thead><tr>' +
+                            '<th>License Key</th><th>Status</th><th>Time Remaining</th>' +
+                            '<th>Last IP</th><th>Last Seen</th><th>Note</th><th>Actions</th>' +
+                        '</tr></thead><tbody id="license-tbody"></tbody>';
+                    container.innerHTML = "";
+                    container.appendChild(table);
+                }
+
+                var tbody = table.querySelector("tbody");
+                tbody.innerHTML = "";
+                data.licenses.forEach(function(lic) {
+                    var row = buildRow(lic);
+                    row.classList.add("fade-update");
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(function() {});
+    }
+
+    function tickCountdowns() {
+        var cells = document.querySelectorAll(".time-remaining[data-seconds]");
+        cells.forEach(function(cell) {
+            var s = parseInt(cell.getAttribute("data-seconds"), 10);
+            if (s > 0) {
+                s--;
+                cell.setAttribute("data-seconds", s);
+                cell.textContent = formatDuration(s);
+            }
+        });
+    }
+
+    setInterval(refreshData, POLL_INTERVAL);
+    setInterval(tickCountdowns, 1000);
+})();
 </script>
 {% endblock %}

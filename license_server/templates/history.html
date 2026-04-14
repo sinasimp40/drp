@@ -3,68 +3,161 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>License History</h1>
+    <h1>License History <span class="live-indicator"></span></h1>
 </div>
 
 <div class="card">
-    {% if licenses %}
-    <table>
-        <thead>
-            <tr>
-                <th>License Key</th>
-                <th>Status</th>
-                <th>Duration</th>
-                <th>Created</th>
-                <th>Expires</th>
-                <th>Last IP</th>
-                <th>Note</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for lic in licenses %}
-            <tr>
-                <td><span class="key-text">{{ lic.key }}</span></td>
-                <td>
-                    {% if lic.status == 'active' %}
-                        {% if lic.online %}
-                        <span class="badge badge-online">Online</span>
-                        {% else %}
-                        <span class="badge badge-active">Active</span>
+    <div id="history-table-container">
+        {% if licenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>License Key</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Last IP</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="history-tbody">
+                {% for lic in licenses %}
+                <tr>
+                    <td><span class="key-text">{{ lic.key }}</span></td>
+                    <td>
+                        {% if lic.status == 'active' %}
+                            {% if lic.online %}
+                            <span class="badge badge-online">Online</span>
+                            {% else %}
+                            <span class="badge badge-active">Active</span>
+                            {% endif %}
+                        {% elif lic.status == 'expired' %}
+                        <span class="badge badge-expired">Expired</span>
+                        {% elif lic.status == 'revoked' %}
+                        <span class="badge badge-revoked">Revoked</span>
+                        {% elif lic.status == 'deleted' %}
+                        <span class="badge badge-deleted">Deleted</span>
                         {% endif %}
-                    {% elif lic.status == 'expired' %}
-                    <span class="badge badge-expired">Expired</span>
-                    {% elif lic.status == 'revoked' %}
-                    <span class="badge badge-revoked">Revoked</span>
-                    {% elif lic.status == 'deleted' %}
-                    <span class="badge badge-deleted">Deleted</span>
-                    {% endif %}
-                </td>
-                <td>{{ lic.duration_text }}</td>
-                <td>{{ lic.created }}</td>
-                <td>{{ lic.expires }}</td>
-                <td>{{ lic.last_ip }}</td>
-                <td>{{ lic.note }}</td>
-                <td class="actions-cell">
-                    {% if lic.status == 'active' %}
-                    <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
-                    </form>
-                    {% endif %}
-                    {% if lic.status != 'deleted' %}
-                    <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state">
-        <p>No license history yet</p>
+                    </td>
+                    <td>{{ lic.duration_text }}</td>
+                    <td>{{ lic.created }}</td>
+                    <td>{{ lic.expires }}</td>
+                    <td>{{ lic.last_ip }}</td>
+                    <td>{{ lic.note }}</td>
+                    <td class="actions-cell">
+                        {% if lic.status == 'active' %}
+                        <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                        </form>
+                        {% endif %}
+                        {% if lic.status != 'deleted' %}
+                        <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>No license history yet</p>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .live-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #44cc44;
+        border-radius: 50%;
+        margin-left: 8px;
+        animation: pulse-live 2s infinite;
+        vertical-align: middle;
+    }
+    @keyframes pulse-live {
+        0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
+        50% { opacity: 0.4; box-shadow: none; }
+    }
+</style>
+<script>
+(function() {
+    var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
+    var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
+
+    function statusBadge(lic) {
+        if (lic.status === 'active') {
+            return lic.online
+                ? '<span class="badge badge-online">Online</span>'
+                : '<span class="badge badge-active">Active</span>';
+        }
+        var map = { expired: 'badge-expired', revoked: 'badge-revoked', deleted: 'badge-deleted' };
+        var cls = map[lic.status] || 'badge-offline';
+        return '<span class="badge ' + cls + '">' + lic.status.charAt(0).toUpperCase() + lic.status.slice(1) + '</span>';
+    }
+
+    function buildActions(lic) {
+        var html = '';
+        if (lic.status === 'active') {
+            html += '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
+                '<button type="submit" class="btn btn-danger btn-sm">Revoke</button></form>';
+        }
+        if (lic.status !== 'deleted') {
+            html += '<form method="POST" action="' + deleteUrl + '/' + lic.id + '" onsubmit="return confirm(\'Delete this license?\')">' +
+                '<button type="submit" class="btn btn-danger btn-sm">Delete</button></form>';
+        }
+        return html;
+    }
+
+    function refreshHistory() {
+        fetch("/api/history_data", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var container = document.getElementById("history-table-container");
+                if (!data.licenses || data.licenses.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No license history yet</p></div>';
+                    return;
+                }
+
+                var table = container.querySelector("table");
+                if (!table) {
+                    table = document.createElement("table");
+                    table.innerHTML =
+                        '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
+                        '<th>Created</th><th>Expires</th><th>Last IP</th><th>Note</th><th>Actions</th></tr></thead>' +
+                        '<tbody id="history-tbody"></tbody>';
+                    container.innerHTML = "";
+                    container.appendChild(table);
+                }
+
+                var tbody = table.querySelector("tbody");
+                tbody.innerHTML = "";
+                data.licenses.forEach(function(lic) {
+                    var tr = document.createElement("tr");
+                    tr.innerHTML =
+                        '<td><span class="key-text">' + lic.key + '</span></td>' +
+                        '<td>' + statusBadge(lic) + '</td>' +
+                        '<td>' + lic.duration_text + '</td>' +
+                        '<td>' + lic.created + '</td>' +
+                        '<td>' + lic.expires + '</td>' +
+                        '<td>' + lic.last_ip + '</td>' +
+                        '<td>' + (lic.note || '') + '</td>' +
+                        '<td class="actions-cell">' + buildActions(lic) + '</td>';
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(function() {});
+    }
+
+    setInterval(refreshHistory, 5000);
+})();
+</script>
 {% endblock %}

@@ -24,9 +24,11 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 ## License System
 - License server runs on your RDP (default: 144.31.48.238:3842)
 - Admin dashboard at the server URL — create keys, monitor online users, revoke access
+- Dashboard updates live every 5 seconds via AJAX (no page reload), with real-time countdown timers
 - Launcher prompts for license key on first run, saves it locally
-- Validates with server before launching, re-checks every 2.5 minutes
+- Validates with server before launching, re-checks every 15 seconds for near-instant revocation
 - If license expires or is revoked, shows lock screen and stops
+- Offline grace: 3 consecutive server failures tolerated before locking (prevents brief network blips from killing sessions)
 - Server signs responses with HMAC to prevent tampering
 - Optional: leave license server URL blank during build to disable checking
 

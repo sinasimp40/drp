@@ -496,6 +496,77 @@ def api_list_licenses():
     return jsonify({"data": resp, "signature": sign_response(resp)})
 
 
+@app.route("/api/dashboard_data")
+@require_admin
+def api_dashboard_data():
+    conn = get_db()
+    now = time.time()
+
+    conn.execute(
+        "UPDATE licenses SET status = 'expired' WHERE status = 'active' AND expires_at <= ?",
+        (now,)
+    )
+    conn.commit()
+
+    rows = conn.execute(
+        "SELECT * FROM licenses WHERE status = 'active' ORDER BY created_at DESC"
+    ).fetchall()
+    conn.close()
+
+    licenses = []
+    for row in rows:
+        remaining = row["expires_at"] - now
+        licenses.append({
+            "id": row["id"],
+            "key": row["license_key"],
+            "created": format_time(row["created_at"]),
+            "remaining": format_duration(remaining),
+            "remaining_seconds": int(remaining),
+            "online": is_online(row["last_heartbeat"]),
+            "last_heartbeat": format_time(row["last_heartbeat"]),
+            "last_ip": row["last_ip"] or "N/A",
+            "note": row["note"] or "",
+            "status": row["status"],
+        })
+
+    return jsonify({"licenses": licenses})
+
+
+@app.route("/api/history_data")
+@require_admin
+def api_history_data():
+    conn = get_db()
+    now = time.time()
+
+    conn.execute(
+        "UPDATE licenses SET status = 'expired' WHERE status = 'active' AND expires_at <= ?",
+        (now,)
+    )
+    conn.commit()
+
+    rows = conn.execute("SELECT * FROM licenses ORDER BY created_at DESC").fetchall()
+    conn.close()
+
+    licenses = []
+    for row in rows:
+        remaining = max(0, row["expires_at"] - now)
+        licenses.append({
+            "id": row["id"],
+            "key": row["license_key"],
+            "created": format_time(row["created_at"]),
+            "expires": format_time(row["expires_at"]),
+            "remaining": format_duration(remaining) if row["status"] == "active" else "-",
+            "remaining_seconds": int(remaining) if row["status"] == "active" else 0,
+            "online": is_online(row["last_heartbeat"]) if row["status"] == "active" else False,
+            "last_ip": row["last_ip"] or "N/A",
+            "note": row["note"] or "",
+            "status": row["status"],
+            "duration_text": format_duration(row["duration_seconds"]),
+        })
+
+    return jsonify({"licenses": licenses})
+
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
