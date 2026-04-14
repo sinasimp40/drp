@@ -7,13 +7,12 @@ import ctypes
 import json
 import hmac
 import hashlib
-import threading
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QWidget
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
     QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient,
     QRadialGradient, QPen, QPainterPath, QBrush
@@ -31,9 +30,6 @@ LICENSE_CHECK_INTERVAL = 150000
 def _decode_secret():
     return "".join(chr(b ^ _LICENSE_SECRET_KEY) for b in _LICENSE_SECRET_XOR)
 
-
-def _encode_secret(plaintext, xor_key=0x57):
-    return [ord(c) ^ xor_key for c in plaintext]
 
 def get_app_dir():
     if getattr(sys, 'frozen', False):
