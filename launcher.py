@@ -144,6 +144,26 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
+def cleanup_old_instances(cache_dir):
+    if not os.path.isdir(cache_dir):
+        return
+    for item in os.listdir(cache_dir):
+        if item.startswith("instance_"):
+            instance_path = os.path.join(cache_dir, item)
+            lock_file = os.path.join(instance_path, ".lock")
+            if os.path.isfile(lock_file):
+                try:
+                    os.remove(lock_file)
+                except PermissionError:
+                    continue
+                except Exception:
+                    pass
+            try:
+                shutil.rmtree(instance_path)
+            except Exception:
+                pass
+
+
 _held_handles = []
 
 def grab_roblox_mutex():
@@ -452,11 +472,23 @@ def main():
                 else:
                     log_lines.append("Could not acquire mutex (non-Windows or error)")
 
+                cleanup_old_instances(paths["cache"])
+
+                instance_id = os.getpid()
+                instance_cache = os.path.join(os.path.abspath(paths["cache"]), f"instance_{instance_id}")
+                os.makedirs(instance_cache, exist_ok=True)
+
+                lock_file = os.path.join(instance_cache, ".lock")
+                lock_fh = open(lock_file, "w")
+                lock_fh.write(str(instance_id))
+                lock_fh.flush()
+                app._lock_fh = lock_fh
+
                 splash.set_progress(85, "Launching Roblox...")
                 app.processEvents()
 
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
+                env["LOCALAPPDATA"] = instance_cache
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -465,7 +497,7 @@ def main():
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
+                log_lines.append(f"Instance cache: {instance_cache}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -488,6 +520,14 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
+                        try:
+                            app._lock_fh.close()
+                        except Exception:
+                            pass
+                        try:
+                            shutil.rmtree(instance_cache)
+                        except Exception:
+                            pass
                         app.quit()
 
                 timer = QTimer()
