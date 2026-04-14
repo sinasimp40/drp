@@ -620,7 +620,7 @@ def main():
                     timer.start(5000)
                     app._bg_timer = timer
 
-                QTimer.singleShot(15000, start_watching)
+                QTimer.singleShot(5000, start_watching)
 
             QTimer.singleShot(1500, hide_and_watch)
             return
