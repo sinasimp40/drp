@@ -751,6 +751,9 @@ def check_license_or_prompt(app):
 def kill_all_roblox_pids(app):
     if sys.platform != "win32":
         return
+    if hasattr(app, '_roblox_pid') and app._roblox_pid:
+        if is_pid_alive(app._roblox_pid):
+            kill_pid_tree(app._roblox_pid)
     if hasattr(app, '_watcher_state'):
         state = app._watcher_state
         for pid in state.get("my_pids", set()):
@@ -926,6 +929,7 @@ def main():
                     [exe_path],
                     cwd=paths["roblox"],
                 )
+                app._roblox_pid = process.pid
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
             except Exception as e:

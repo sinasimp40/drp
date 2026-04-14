@@ -395,8 +395,21 @@ def delete_license(license_id):
     return redirect(request.referrer or url_for("dashboard"))
 
 
+def require_admin_api(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get("admin_logged_in"):
+            return f(*args, **kwargs)
+        admin_key = request.headers.get("X-Admin-Key", "")
+        if admin_key and hmac.compare_digest(admin_key, ADMIN_PASSWORD):
+            return f(*args, **kwargs)
+        resp = {"success": False, "error": "Admin authentication required"}
+        return jsonify({"data": resp, "signature": sign_response(resp)}), 403
+    return decorated
+
+
 @app.route("/api/create", methods=["POST"])
-@require_signed_request
+@require_admin_api
 def api_create():
     data = request.get_json(silent=True)
     if not data:
@@ -426,7 +439,7 @@ def api_create():
 
 
 @app.route("/api/revoke", methods=["POST"])
-@require_signed_request
+@require_admin_api
 def api_revoke():
     data = request.get_json(silent=True)
     if not data or "key" not in data:
@@ -450,7 +463,7 @@ def api_revoke():
 
 
 @app.route("/api/licenses", methods=["POST"])
-@require_signed_request
+@require_admin_api
 def api_list_licenses():
     conn = get_db()
     now = time.time()
