@@ -4,6 +4,7 @@ import subprocess
 import datetime
 import shutil
 import ctypes
+import json
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen
@@ -187,6 +188,29 @@ def clear_roblox_login():
             except Exception:
                 pass
     return f"cleared_{cleared}"
+
+
+def ensure_windowed_mode(roblox_dir):
+    client_settings_dir = os.path.join(roblox_dir, "ClientSettings")
+    os.makedirs(client_settings_dir, exist_ok=True)
+    settings_file = os.path.join(client_settings_dir, "ClientAppSettings.json")
+    settings = {}
+    if os.path.isfile(settings_file):
+        try:
+            with open(settings_file, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+        except Exception:
+            settings = {}
+    settings["FFlagHandleAltEnterFullscreenManually"] = "False"
+    settings["DFIntTaskSchedulerTargetFps"] = 9999
+    if "FIntFullscreenTitleBarTriggerDelayMillis" not in settings:
+        settings["FIntFullscreenTitleBarTriggerDelayMillis"] = 3600000
+    try:
+        with open(settings_file, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception:
+        return False
 
 
 def is_roblox_running():
@@ -491,6 +515,9 @@ def main():
 
             login_result = clear_roblox_login()
             log_lines.append(f"Login clear (rbx-storage.db): {login_result}")
+
+            ensure_windowed_mode(paths["roblox"])
+            log_lines.append("Windowed mode settings applied")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
