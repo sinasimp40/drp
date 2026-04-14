@@ -175,19 +175,34 @@ def clear_roblox_login():
     cleared = 0
     for item in os.listdir(local_storage):
         item_lower = item.lower()
+        should_delete = False
         if item_lower.startswith("memprofstorage") and item_lower.endswith(".json"):
-            try:
-                os.remove(os.path.join(local_storage, item))
-                cleared += 1
-            except Exception:
-                pass
+            should_delete = True
         elif item_lower == "robloxcookies.dat":
+            should_delete = True
+        elif item_lower == "appstorage.json":
+            should_delete = True
+        if should_delete:
             try:
                 os.remove(os.path.join(local_storage, item))
                 cleared += 1
             except Exception:
                 pass
     return f"cleared_{cleared}"
+
+
+def is_roblox_running():
+    if sys.platform != "win32":
+        return False
+    try:
+        result = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq RobloxPlayerBeta.exe", "/NH"],
+            capture_output=True, text=True,
+            creationflags=0x08000000
+        )
+        return "RobloxPlayerBeta.exe" in result.stdout
+    except Exception:
+        return False
 
 
 class SplashScreen(QSplashScreen):
@@ -510,9 +525,14 @@ def main():
 
             def hide_and_watch():
                 splash.hide()
+                initial_check_done = [False]
 
                 def check_roblox():
-                    if process.poll() is not None:
+                    if not initial_check_done[0]:
+                        if is_roblox_running():
+                            initial_check_done[0] = True
+                        return
+                    if not is_roblox_running():
                         clear_roblox_login()
                         app.quit()
 
