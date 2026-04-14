@@ -455,8 +455,13 @@ def main():
                 splash.set_progress(85, "Launching Roblox...")
                 app.processEvents()
 
+                import random
+                instance_id = f"{int(datetime.datetime.now().timestamp())}_{random.randint(1000,9999)}"
+                instance_cache = os.path.join(os.path.abspath(paths["cache"]), f"inst_{instance_id}")
+                os.makedirs(instance_cache, exist_ok=True)
+
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
+                env["LOCALAPPDATA"] = instance_cache
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -465,7 +470,7 @@ def main():
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
+                log_lines.append(f"Instance cache: {instance_cache}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -488,6 +493,11 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
+                        try:
+                            shutil.rmtree(instance_cache, ignore_errors=True)
+                            log_lines.append(f"Cleaned up instance cache: {instance_cache}")
+                        except Exception:
+                            pass
                         app.quit()
 
                 timer = QTimer()
