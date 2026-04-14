@@ -144,17 +144,28 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
+_held_handles = []
+
 def grab_roblox_mutex():
     if sys.platform != "win32":
-        return None
+        return False
     try:
         kernel32 = ctypes.windll.kernel32
-        mutex = kernel32.CreateMutexW(None, True, "ROBLOX_singletonEvent")
-        if mutex:
-            return mutex
+
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        kernel32.CreateMutexW.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_wchar_p,
+        ]
+
+        handle = kernel32.CreateMutexW(None, 1, "ROBLOX_singletonEvent")
+        if handle:
+            _held_handles.append(handle)
+            return True
     except Exception:
         pass
-    return None
+    return False
 
 
 class SplashScreen(QSplashScreen):
@@ -431,15 +442,18 @@ def main():
                 QTimer.singleShot(5000, app.quit)
                 return
 
-            splash.set_progress(85, "Launching Roblox...")
+            splash.set_progress(80, "Preparing multi-client...")
             app.processEvents()
 
             try:
-                mutex_handle = grab_roblox_mutex()
-                if mutex_handle:
+                mutex_ok = grab_roblox_mutex()
+                if mutex_ok:
                     log_lines.append("Mutex acquired - multi-client enabled")
                 else:
-                    log_lines.append("Could not acquire mutex")
+                    log_lines.append("Could not acquire mutex (non-Windows or error)")
+
+                splash.set_progress(85, "Launching Roblox...")
+                app.processEvents()
 
                 env = os.environ.copy()
                 env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
