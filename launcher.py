@@ -190,24 +190,27 @@ def clear_roblox_login():
     return f"cleared_{cleared}"
 
 
-def ensure_windowed_mode(roblox_dir):
-    client_settings_dir = os.path.join(roblox_dir, "ClientSettings")
-    os.makedirs(client_settings_dir, exist_ok=True)
-    settings_file = os.path.join(client_settings_dir, "ClientAppSettings.json")
-    settings = {}
-    if os.path.isfile(settings_file):
+def ensure_windowed_mode():
+    if sys.platform != "win32":
+        return False
+    real_local = os.environ.get("LOCALAPPDATA", "")
+    if not real_local:
+        return False
+    local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+    os.makedirs(local_storage, exist_ok=True)
+    app_storage_file = os.path.join(local_storage, "appStorage.json")
+    data = {}
+    if os.path.isfile(app_storage_file):
         try:
-            with open(settings_file, "r", encoding="utf-8") as f:
-                settings = json.load(f)
+            with open(app_storage_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
         except Exception:
-            settings = {}
-    settings["FFlagHandleAltEnterFullscreenManually"] = "False"
-    settings["DFIntTaskSchedulerTargetFps"] = 9999
-    if "FIntFullscreenTitleBarTriggerDelayMillis" not in settings:
-        settings["FIntFullscreenTitleBarTriggerDelayMillis"] = 3600000
+            data = {}
+    data["IsFullscreen"] = False
+    data["InFullScreen"] = False
     try:
-        with open(settings_file, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2)
+        with open(app_storage_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
         return True
     except Exception:
         return False
@@ -516,7 +519,7 @@ def main():
             login_result = clear_roblox_login()
             log_lines.append(f"Login clear (rbx-storage.db): {login_result}")
 
-            ensure_windowed_mode(paths["roblox"])
+            ensure_windowed_mode()
             log_lines.append("Windowed mode settings applied")
 
             splash.set_progress(85, "Launching Roblox...")
