@@ -1,0 +1,50 @@
+
+  Supported image formats:
+  .ico .png .jpg .jpeg .bmp .webp .tiff .gif
+
+[*] No icon.ico found - checking for other images...
+[*] Found image: Removal-321_1773225085421.png
+[*] Converting to icon.ico...
+[OK] Created icon.ico from Removal-321_1773225085421.png
+
+[5/5] Building DenfiRoblox.exe ...
+
+[*] Building with custom icon
+226 INFO: PyInstaller: 6.16.0, contrib hooks: 2025.9
+227 INFO: Python: 3.13.9
+255 INFO: Platform: Windows-10-10.0.19045-SP0
+255 INFO: Python environment: C:\Users\Mary\AppData\Local\Programs\Python\Python313
+257 INFO: wrote C:\Users\Mary\Desktop\Roblox-Portable-Launcher\DenfiRoblox.spec
+261 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\pyinstaller.exe',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\python313.zip',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\DLLs',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages',
+ 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\setuptools\\_vendor',
+ 'C:\\Users\\Mary\\Desktop\\Roblox-Portable-Launcher']
+610 INFO: Appending 'datas' from .spec
+611 INFO: checking Analysis
+612 INFO: Building Analysis because Analysis-00.toc is non existent
+612 INFO: Looking for Python shared library...
+613 INFO: Using Python shared library: C:\Users\Mary\AppData\Local\Programs\Python\Python313\python313.dll
+613 INFO: Running Analysis Analysis-00.toc
+613 INFO: Target bytecode optimization level: 0
+614 INFO: Initializing module dependency graph...
+615 INFO: Initializing module graph hook caches...
+629 INFO: Analyzing modules for base_library.zip ...
+2143 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+3585 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+4968 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Mary\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+5401 INFO: Caching module dependency graph...
+5444 INFO: Analyzing C:\Users\Mary\Desktop\Roblox-Portable-Launcher\launcher.py
+
+Syntax error in C:\Users\Mary\Desktop\Roblox-Portable-Launcher\launcher.py
+  File "C:\Users\Mary\Desktop\Roblox-Portable-Launcher\launcher.py", line 18
+     HARDCODED_PATH = "C:\Users\Mary\Desktop\RobloxFiles"
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \UXXXXXXXX escape
+
+
+[ERROR] Build failed!

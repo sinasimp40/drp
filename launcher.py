@@ -159,64 +159,13 @@ def grab_roblox_mutex():
             ctypes.c_wchar_p,
         ]
 
-        kernel32.CreateEventW.restype = ctypes.c_void_p
-        kernel32.CreateEventW.argtypes = [
-            ctypes.c_void_p,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_wchar_p,
-        ]
-
-        h1 = kernel32.CreateMutexW(None, 1, "ROBLOX_singletonEvent")
-        if h1:
-            _held_handles.append(h1)
-
-        h2 = kernel32.CreateMutexW(None, 1, "ROBLOX_singletonMutex")
-        if h2:
-            _held_handles.append(h2)
-
-        h3 = kernel32.CreateEventW(None, 1, 0, "ROBLOX_singletonEvent")
-        if h3:
-            _held_handles.append(h3)
-
-        return len(_held_handles) > 0
+        handle = kernel32.CreateMutexW(None, 1, "ROBLOX_singletonEvent")
+        if handle:
+            _held_handles.append(handle)
+            return True
     except Exception:
         pass
     return False
-
-
-def clear_roblox_session(cache_dir):
-    roblox_cache = os.path.join(cache_dir, "Roblox")
-    if not os.path.isdir(roblox_cache):
-        return
-    auth_paths = [
-        os.path.join(roblox_cache, "LocalStorage"),
-        os.path.join(roblox_cache, "Cookies"),
-        os.path.join(roblox_cache, "Session"),
-        os.path.join(roblox_cache, "WebView2"),
-    ]
-    for p in auth_paths:
-        if os.path.isdir(p):
-            try:
-                shutil.rmtree(p)
-            except Exception:
-                pass
-        elif os.path.isfile(p):
-            try:
-                os.remove(p)
-            except Exception:
-                pass
-    for item in os.listdir(roblox_cache):
-        lower = item.lower()
-        if "cookie" in lower or "session" in lower or "token" in lower or "auth" in lower:
-            fp = os.path.join(roblox_cache, item)
-            try:
-                if os.path.isfile(fp):
-                    os.remove(fp)
-                elif os.path.isdir(fp):
-                    shutil.rmtree(fp)
-            except Exception:
-                pass
 
 
 class SplashScreen(QSplashScreen):
@@ -506,12 +455,8 @@ def main():
                 splash.set_progress(85, "Launching Roblox...")
                 app.processEvents()
 
-                cache_abs = os.path.abspath(paths["cache"])
-                clear_roblox_session(cache_abs)
-                log_lines.append("Cleared login session data")
-
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = cache_abs
+                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
 
                 process = subprocess.Popen(
                     [exe_path],
