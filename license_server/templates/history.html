@@ -16,6 +16,7 @@
                     <th>Status</th>
                     <th>Duration</th>
                     <th>Created</th>
+                    <th>Activated</th>
                     <th>Expires</th>
                     <th>Last IP</th>
                     <th>Note</th>
@@ -27,7 +28,9 @@
                 <tr>
                     <td><span class="key-text">{{ lic.key }}</span></td>
                     <td>
-                        {% if lic.status == 'active' %}
+                        {% if lic.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                        {% elif lic.status == 'active' %}
                             {% if lic.online %}
                             <span class="badge badge-online">Online</span>
                             {% else %}
@@ -43,11 +46,12 @@
                     </td>
                     <td>{{ lic.duration_text }}</td>
                     <td>{{ lic.created }}</td>
+                    <td>{{ lic.activated }}</td>
                     <td>{{ lic.expires }}</td>
                     <td>{{ lic.last_ip }}</td>
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
-                        {% if lic.status == 'active' %}
+                        {% if lic.status in ('active', 'pending') %}
                         <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
                             <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
                         </form>
@@ -87,6 +91,7 @@
         0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
         50% { opacity: 0.4; box-shadow: none; }
     }
+    .badge-pending { background: #1a1a2a; color: #6688cc; }
 </style>
 <script>
 (function() {
@@ -94,6 +99,7 @@
     var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
 
     function statusBadge(lic) {
+        if (lic.status === 'pending') return '<span class="badge badge-pending">Pending</span>';
         if (lic.status === 'active') {
             return lic.online
                 ? '<span class="badge badge-online">Online</span>'
@@ -106,7 +112,7 @@
 
     function buildActions(lic) {
         var html = '';
-        if (lic.status === 'active') {
+        if (lic.status === 'active' || lic.status === 'pending') {
             html += '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
                 '<button type="submit" class="btn btn-danger btn-sm">Revoke</button></form>';
         }
@@ -132,7 +138,7 @@
                     table = document.createElement("table");
                     table.innerHTML =
                         '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
-                        '<th>Created</th><th>Expires</th><th>Last IP</th><th>Note</th><th>Actions</th></tr></thead>' +
+                        '<th>Created</th><th>Activated</th><th>Expires</th><th>Last IP</th><th>Note</th><th>Actions</th></tr></thead>' +
                         '<tbody id="history-tbody"></tbody>';
                     container.innerHTML = "";
                     container.appendChild(table);
@@ -147,6 +153,7 @@
                         '<td>' + statusBadge(lic) + '</td>' +
                         '<td>' + lic.duration_text + '</td>' +
                         '<td>' + lic.created + '</td>' +
+                        '<td>' + lic.activated + '</td>' +
                         '<td>' + lic.expires + '</td>' +
                         '<td>' + lic.last_ip + '</td>' +
                         '<td>' + (lic.note || '') + '</td>' +

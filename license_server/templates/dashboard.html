@@ -15,6 +15,7 @@
                 <tr>
                     <th>License Key</th>
                     <th>Status</th>
+                    <th>Activated</th>
                     <th>Time Remaining</th>
                     <th>Last IP</th>
                     <th>Last Seen</th>
@@ -24,16 +25,31 @@
             </thead>
             <tbody id="license-tbody">
                 {% for lic in licenses %}
-                <tr data-remaining="{{ lic.remaining_seconds }}">
+                <tr data-remaining="{{ lic.remaining_seconds }}" data-status="{{ lic.status }}">
                     <td><span class="key-text">{{ lic.key }}</span></td>
                     <td>
-                        {% if lic.online %}
+                        {% if lic.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                        {% elif lic.online %}
                         <span class="badge badge-online">Online</span>
                         {% else %}
                         <span class="badge badge-offline">Offline</span>
                         {% endif %}
                     </td>
-                    <td class="time-remaining" data-seconds="{{ lic.remaining_seconds }}">{{ lic.remaining }}</td>
+                    <td>
+                        {% if lic.status == 'pending' %}
+                        <span style="color: #666;">Not yet</span>
+                        {% else %}
+                        {{ lic.activated }}
+                        {% endif %}
+                    </td>
+                    <td class="time-remaining" data-seconds="{{ lic.remaining_seconds }}" data-status="{{ lic.status }}">
+                        {% if lic.status == 'pending' %}
+                        {{ lic.remaining }} <span style="color: #666; font-size: 11px;">(waiting)</span>
+                        {% else %}
+                        {{ lic.remaining }}
+                        {% endif %}
+                    </td>
                     <td>{{ lic.last_ip }}</td>
                     <td>{{ lic.last_heartbeat }}</td>
                     <td>{{ lic.note }}</td>
@@ -77,6 +93,7 @@
     }
     .fade-update { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
+    .badge-pending { background: #1a1a2a; color: #6688cc; }
 </style>
 <script>
 (function() {
@@ -98,18 +115,30 @@
         return parts.join(" ");
     }
 
+    function statusBadge(lic) {
+        if (lic.status === 'pending') return '<span class="badge badge-pending">Pending</span>';
+        if (lic.online) return '<span class="badge badge-online">Online</span>';
+        return '<span class="badge badge-offline">Offline</span>';
+    }
+
     function buildRow(lic) {
         var tr = document.createElement("tr");
         tr.setAttribute("data-remaining", lic.remaining_seconds);
+        tr.setAttribute("data-status", lic.status);
 
-        var statusBadge = lic.online
-            ? '<span class="badge badge-online">Online</span>'
-            : '<span class="badge badge-offline">Offline</span>';
+        var activatedText = lic.status === 'pending'
+            ? '<span style="color: #666;">Not yet</span>'
+            : lic.activated;
+
+        var remainingText = lic.status === 'pending'
+            ? lic.remaining + ' <span style="color: #666; font-size: 11px;">(waiting)</span>'
+            : lic.remaining;
 
         tr.innerHTML =
             '<td><span class="key-text">' + lic.key + '</span></td>' +
-            '<td>' + statusBadge + '</td>' +
-            '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '">' + lic.remaining + '</td>' +
+            '<td>' + statusBadge(lic) + '</td>' +
+            '<td>' + activatedText + '</td>' +
+            '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '" data-status="' + lic.status + '">' + remainingText + '</td>' +
             '<td>' + lic.last_ip + '</td>' +
             '<td>' + lic.last_heartbeat + '</td>' +
             '<td>' + (lic.note || '') + '</td>' +
@@ -143,7 +172,7 @@
                     table = document.createElement("table");
                     table.innerHTML =
                         '<thead><tr>' +
-                            '<th>License Key</th><th>Status</th><th>Time Remaining</th>' +
+                            '<th>License Key</th><th>Status</th><th>Activated</th><th>Time Remaining</th>' +
                             '<th>Last IP</th><th>Last Seen</th><th>Note</th><th>Actions</th>' +
                         '</tr></thead><tbody id="license-tbody"></tbody>';
                     container.innerHTML = "";
@@ -164,6 +193,8 @@
     function tickCountdowns() {
         var cells = document.querySelectorAll(".time-remaining[data-seconds]");
         cells.forEach(function(cell) {
+            var status = cell.getAttribute("data-status");
+            if (status === "pending") return;
             var s = parseInt(cell.getAttribute("data-seconds"), 10);
             if (s > 0) {
                 s--;

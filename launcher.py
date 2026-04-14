@@ -788,6 +788,12 @@ def start_license_watchdog(app):
             kill_all_roblox_pids(app)
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
+            try:
+                lf = get_license_file()
+                if os.path.isfile(lf):
+                    os.remove(lf)
+            except Exception:
+                pass
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()
             app._lock_screen = lock
