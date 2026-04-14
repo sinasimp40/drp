@@ -169,24 +169,24 @@ def clear_roblox_login():
     real_local = os.environ.get("LOCALAPPDATA", "")
     if not real_local:
         return "no_localappdata"
-    roblox_dir = os.path.join(real_local, "Roblox")
-    if not os.path.isdir(roblox_dir):
+    local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+    if not os.path.isdir(local_storage):
         return "not_found"
-    keep_folders = {"clientsettings", "localstorage", "versions"}
     cleared = 0
-    for item in os.listdir(roblox_dir):
-        if item.lower() in keep_folders:
-            continue
-        item_path = os.path.join(roblox_dir, item)
-        try:
-            if os.path.isfile(item_path):
-                os.remove(item_path)
+    for item in os.listdir(local_storage):
+        item_lower = item.lower()
+        if item_lower.startswith("memprofstorage") and item_lower.endswith(".json"):
+            try:
+                os.remove(os.path.join(local_storage, item))
                 cleared += 1
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path, ignore_errors=True)
+            except Exception:
+                pass
+        elif item_lower == "robloxcookies.dat":
+            try:
+                os.remove(os.path.join(local_storage, item))
                 cleared += 1
-        except Exception:
-            pass
+            except Exception:
+                pass
     return f"cleared_{cleared}"
 
 
