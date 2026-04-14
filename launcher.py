@@ -216,18 +216,57 @@ def ensure_windowed_mode():
         return False
 
 
-def is_roblox_running():
+def get_roblox_pids():
     if sys.platform != "win32":
-        return False
+        return set()
     try:
         result = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq RobloxPlayerBeta.exe", "/NH"],
+            ["tasklist", "/FI", "IMAGENAME eq RobloxPlayerBeta.exe", "/FO", "CSV", "/NH"],
             capture_output=True, text=True,
             creationflags=0x08000000
         )
-        return "RobloxPlayerBeta.exe" in result.stdout
+        pids = set()
+        for line in result.stdout.strip().split("\n"):
+            line = line.strip()
+            if "RobloxPlayerBeta.exe" in line:
+                parts = line.split(",")
+                if len(parts) >= 2:
+                    pid_str = parts[1].strip('"').strip()
+                    if pid_str.isdigit():
+                        pids.add(int(pid_str))
+        return pids
     except Exception:
-        return False
+        return set()
+
+
+def clear_instance_login(pids_to_clean):
+    if sys.platform != "win32":
+        return "skipped"
+    real_local = os.environ.get("LOCALAPPDATA", "")
+    if not real_local:
+        return "no_localappdata"
+    local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+    if not os.path.isdir(local_storage):
+        return "not_found"
+    cleared = 0
+    for item in os.listdir(local_storage):
+        item_lower = item.lower()
+        if item_lower.startswith("memprofstorage") and item_lower.endswith(".json"):
+            pid_part = item_lower.replace("memprofstorage", "").replace(".json", "")
+            if pid_part.isdigit() and int(pid_part) in pids_to_clean:
+                try:
+                    os.remove(os.path.join(local_storage, item))
+                    cleared += 1
+                except Exception:
+                    pass
+    cookies_path = os.path.join(local_storage, "RobloxCookies.dat")
+    if os.path.isfile(cookies_path):
+        try:
+            os.remove(cookies_path)
+            cleared += 1
+        except Exception:
+            pass
+    return f"cleared_{cleared}"
 
 
 class SplashScreen(QSplashScreen):
@@ -550,14 +589,30 @@ def main():
             write_log(paths["logs"], "\n".join(log_lines))
 
             app.setQuitOnLastWindowClosed(False)
+            pids_before = get_roblox_pids()
 
             def hide_and_watch():
                 splash.hide()
+                my_pids = [None]
+
+                def capture_pids():
+                    current_pids = get_roblox_pids()
+                    new_pids = current_pids - pids_before
+                    if new_pids:
+                        my_pids[0] = new_pids
+                    else:
+                        my_pids[0] = current_pids
 
                 def start_watching():
+                    capture_pids()
+
                     def check_roblox():
-                        if not is_roblox_running():
-                            clear_roblox_login()
+                        if my_pids[0] is None:
+                            return
+                        current_pids = get_roblox_pids()
+                        still_running = my_pids[0] & current_pids
+                        if not still_running:
+                            clear_instance_login(my_pids[0])
                             app.quit()
 
                     timer = QTimer()
@@ -565,7 +620,7 @@ def main():
                     timer.start(5000)
                     app._bg_timer = timer
 
-                QTimer.singleShot(20000, start_watching)
+                QTimer.singleShot(15000, start_watching)
 
             QTimer.singleShot(1500, hide_and_watch)
             return
