@@ -3,6 +3,7 @@ import os
 import subprocess
 import datetime
 import shutil
+import ctypes
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen
@@ -143,21 +144,49 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
-def clear_roblox_login(cache_dir):
+_mutex_handle = None
+
+def grab_roblox_mutex():
+    global _mutex_handle
+    if sys.platform != "win32":
+        return False
+    try:
+        kernel32 = ctypes.windll.kernel32
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_wchar_p]
+        handle = kernel32.CreateMutexW(None, 1, "ROBLOX_singletonEvent")
+        if handle:
+            _mutex_handle = handle
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def clear_roblox_login():
     cleared = 0
-    roblox_cache = os.path.join(cache_dir, "Roblox")
-    if os.path.isdir(roblox_cache):
-        for item in os.listdir(roblox_cache):
-            item_path = os.path.join(roblox_cache, item)
-            try:
-                if os.path.isfile(item_path):
-                    os.remove(item_path)
-                    cleared += 1
-                elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path, ignore_errors=True)
-                    cleared += 1
-            except Exception:
-                pass
+    if sys.platform != "win32":
+        return cleared
+    real_local = os.environ.get("LOCALAPPDATA", "")
+    if not real_local:
+        return cleared
+    roblox_dir = os.path.join(real_local, "Roblox")
+    if not os.path.isdir(roblox_dir):
+        return cleared
+    skip_folders = {"versions"}
+    for item in os.listdir(roblox_dir):
+        if item.lower() in skip_folders:
+            continue
+        item_path = os.path.join(roblox_dir, item)
+        try:
+            if os.path.isfile(item_path):
+                os.remove(item_path)
+                cleared += 1
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path, ignore_errors=True)
+                cleared += 1
+        except Exception:
+            pass
     return cleared
 
 
@@ -435,30 +464,34 @@ def main():
                 QTimer.singleShot(5000, app.quit)
                 return
 
+            splash.set_progress(75, "Grabbing mutex...")
+            app.processEvents()
+
+            mutex_ok = grab_roblox_mutex()
+            if mutex_ok:
+                log_lines.append("Mutex acquired - multi-client enabled")
+            else:
+                log_lines.append("Could not acquire mutex (non-Windows or error)")
+
             splash.set_progress(80, "Clearing login data...")
             app.processEvents()
 
-            cleared = clear_roblox_login(paths["cache"])
+            cleared = clear_roblox_login()
             if cleared > 0:
-                log_lines.append(f"Cleared {cleared} cached login items")
+                log_lines.append(f"Cleared {cleared} login items from AppData\\Local\\Roblox")
             else:
-                log_lines.append("No cached login data to clear")
+                log_lines.append("No login data to clear")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
 
             try:
-                env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
-
                 process = subprocess.Popen(
                     [exe_path],
                     cwd=paths["roblox"],
-                    env=env,
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -475,7 +508,22 @@ def main():
             splash.set_progress(100, "Roblox is running!")
             app.processEvents()
             write_log(paths["logs"], "\n".join(log_lines))
-            QTimer.singleShot(1200, app.quit)
+
+            app.setQuitOnLastWindowClosed(False)
+
+            def hide_and_watch():
+                splash.hide()
+
+                def check_roblox():
+                    if process.poll() is not None:
+                        app.quit()
+
+                timer = QTimer()
+                timer.timeout.connect(check_roblox)
+                timer.start(3000)
+                app._bg_timer = timer
+
+            QTimer.singleShot(1500, hide_and_watch)
             return
 
         step_index[0] += 1
