@@ -23,8 +23,17 @@ APP_NAME = "DENFI ROBLOX"
 APP_VERSION = "1.0.0"
 HARDCODED_PATH = ""
 LICENSE_SERVER_URL = ""
-LICENSE_SHARED_SECRET = "DENFI_LICENSE_SECRET_KEY_2024"
+_LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x04,0x12,0x08,0x04,0x12,0x14,0x05,0x12,0x03,0x08,0x1c,0x12,0x0e,0x08,0x65,0x67,0x65,0x63]
+_LICENSE_SECRET_KEY = 0x57
 LICENSE_CHECK_INTERVAL = 150000
+
+
+def _decode_secret():
+    return "".join(chr(b ^ _LICENSE_SECRET_KEY) for b in _LICENSE_SECRET_XOR)
+
+
+def _encode_secret(plaintext, xor_key=0x57):
+    return [ord(c) ^ xor_key for c in plaintext]
 
 def get_app_dir():
     if getattr(sys, 'frozen', False):
@@ -519,13 +528,33 @@ def save_license_key(key):
 
 
 def verify_signature(data_dict, signature):
+    secret = _decode_secret()
     payload = json.dumps(data_dict, sort_keys=True, separators=(',', ':'))
     expected = hmac.new(
-        LICENSE_SHARED_SECRET.encode('utf-8'),
+        secret.encode('utf-8'),
         payload.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
+
+
+def sign_request(body_dict):
+    secret = _decode_secret()
+    timestamp = str(int(import_time()))
+    nonce = hashlib.md5(os.urandom(16)).hexdigest()[:12]
+    body_json = json.dumps(body_dict, sort_keys=True, separators=(',', ':'))
+    sign_payload = f"{timestamp}:{nonce}:{body_json}"
+    sig = hmac.new(
+        secret.encode('utf-8'),
+        sign_payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    return timestamp, nonce, sig
+
+
+def import_time():
+    import time as _t
+    return _t.time()
 
 
 def validate_license(key, endpoint="validate"):
@@ -534,9 +563,15 @@ def validate_license(key, endpoint="validate"):
     try:
         import urllib.request
         url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
-        req_data = json.dumps({"key": key}).encode('utf-8')
-        req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"})
-        req.timeout = 10
+        body = {"key": key}
+        timestamp, nonce, req_sig = sign_request(body)
+        req_data = json.dumps(body).encode('utf-8')
+        req = urllib.request.Request(url, data=req_data, headers={
+            "Content-Type": "application/json",
+            "X-Timestamp": timestamp,
+            "X-Nonce": nonce,
+            "X-Signature": req_sig,
+        })
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode('utf-8'))
 
@@ -713,6 +748,19 @@ def check_license_or_prompt(app):
             return False
 
 
+def kill_all_roblox_pids(app):
+    if sys.platform != "win32":
+        return
+    if hasattr(app, '_watcher_state'):
+        state = app._watcher_state
+        for pid in state.get("my_pids", set()):
+            if is_pid_alive(pid):
+                kill_pid_tree(pid)
+        my_files = state.get("my_files", set())
+        if my_files:
+            clear_instance_login(my_files)
+
+
 def start_license_watchdog(app):
     if not LICENSE_SERVER_URL:
         return None
@@ -724,11 +772,15 @@ def start_license_watchdog(app):
     def check():
         result = validate_license(key, "heartbeat")
         if not result.get("valid"):
+            if hasattr(app, '_license_timer'):
+                app._license_timer.stop()
+            kill_all_roblox_pids(app)
+            if hasattr(app, '_bg_timer'):
+                app._bg_timer.stop()
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()
             app._lock_screen = lock
-            if hasattr(app, '_license_timer'):
-                app._license_timer.stop()
+            QTimer.singleShot(10000, app.quit)
 
     timer = QTimer()
     timer.timeout.connect(check)
@@ -901,6 +953,7 @@ def main():
                 splash.hide()
                 state = {"phase": "WAIT_FILES", "my_files": set(), "my_pids": set(),
                          "no_window_count": 0, "cleanup_attempts": 0}
+                app._watcher_state = state
 
                 def watcher_tick():
                     if state["phase"] == "WAIT_FILES":

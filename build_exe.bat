@@ -8,7 +8,7 @@ echo        ROBLOX PORTABLE LAUNCHER - BUILD
 echo   =============================================
 echo.
 
-echo [1/7] Checking Python...
+echo [1/8] Checking Python...
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python is not installed!
@@ -22,7 +22,7 @@ if errorlevel 1 (
 echo [OK] Python found.
 echo.
 
-echo [2/7] Installing dependencies...
+echo [2/8] Installing dependencies...
 pip install PyQt5 Pillow pyinstaller
 if errorlevel 1 (
     echo [ERROR] Failed to install dependencies.
@@ -32,7 +32,7 @@ if errorlevel 1 (
 echo [OK] Dependencies installed.
 echo.
 
-echo [3/7] Setting launcher name...
+echo [3/8] Setting launcher name...
 echo.
 echo   What should the launcher be called?
 echo.
@@ -55,7 +55,7 @@ echo.
 echo   Launcher name: %APP_NAME_INPUT%
 echo.
 
-echo [4/7] Setting Roblox files path...
+echo [4/8] Setting Roblox files path...
 echo.
 echo   Where are your Roblox files located?
 echo.
@@ -74,7 +74,7 @@ echo.
 echo   Path set to: %ROBLOX_PATH%
 echo.
 
-echo [5/7] Setting license server...
+echo [5/8] Setting license server...
 echo.
 echo   Enter the license server URL for online validation.
 echo   Leave blank to disable license checking.
@@ -86,12 +86,32 @@ set /p LICENSE_URL="   Enter license server URL (or press Enter to skip): "
 if "%LICENSE_URL%"=="" (
     echo   [*] License checking disabled
     set LICENSE_URL=
+    set LICENSE_SECRET=
+    goto skip_secret
 ) else (
     echo   License server: %LICENSE_URL%
 )
 echo.
 
-python build_config.py "%ROBLOX_PATH%" "%APP_NAME_INPUT%" "%LICENSE_URL%" > _build_output.tmp 2>&1
+echo [6/8] Setting license secret...
+echo.
+echo   Enter the shared secret for license authentication.
+echo   This MUST match the secret on your license server.
+echo   Default: DENFI_LICENSE_SECRET_KEY_2024
+echo.
+set /p LICENSE_SECRET="   Enter shared secret (or press Enter for default): "
+
+if "%LICENSE_SECRET%"=="" (
+    set LICENSE_SECRET=DENFI_LICENSE_SECRET_KEY_2024
+    echo   [*] Using default secret
+) else (
+    echo   [*] Custom secret set
+)
+echo.
+
+:skip_secret
+
+python build_config.py "%ROBLOX_PATH%" "%APP_NAME_INPUT%" "%LICENSE_URL%" "%LICENSE_SECRET%" > _build_output.tmp 2>&1
 if errorlevel 1 (
     type _build_output.tmp
     del _build_output.tmp >nul 2>&1
@@ -109,7 +129,7 @@ if "%EXE_NAME%"=="" set EXE_NAME=DenfiRoblox
 echo [OK] Config saved into launcher.
 echo.
 
-echo [6/7] Checking for icon...
+echo [7/8] Checking for icon...
 echo.
 echo   Supported image formats:
 echo   .ico .png .jpg .jpeg .bmp .webp .tiff .gif
@@ -123,7 +143,7 @@ if exist "icon.ico" (
 )
 echo.
 
-echo [7/7] Building %EXE_NAME%.exe ...
+echo [8/8] Building %EXE_NAME%.exe ...
 echo.
 
 set ADDDATA=

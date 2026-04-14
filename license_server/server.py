@@ -6,18 +6,25 @@ import hmac
 import hashlib
 import json
 import sqlite3
+import secrets
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 
 app = Flask(__name__)
-app.secret_key = os.urandom(32).hex()
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db")
-SHARED_SECRET = "DENFI_LICENSE_SECRET_KEY_2024"
+SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 HEARTBEAT_TIMEOUT = 300
+REQUEST_TIMESTAMP_TOLERANCE = 300
+_used_nonces = set()
+_nonce_cleanup_time = 0
 
 
 def get_db():
@@ -56,6 +63,59 @@ def sign_response(data):
     return signature
 
 
+def verify_request_signature():
+    global _used_nonces, _nonce_cleanup_time
+
+    timestamp = request.headers.get("X-Timestamp", "")
+    nonce = request.headers.get("X-Nonce", "")
+    signature = request.headers.get("X-Signature", "")
+
+    if not timestamp or not nonce or not signature:
+        return False, "Missing authentication headers"
+
+    try:
+        ts = int(timestamp)
+    except ValueError:
+        return False, "Invalid timestamp"
+
+    now = int(time.time())
+    if abs(now - ts) > REQUEST_TIMESTAMP_TOLERANCE:
+        return False, "Request expired"
+
+    if nonce in _used_nonces:
+        return False, "Replay detected"
+
+    body = request.get_json(silent=True) or {}
+    body_json = json.dumps(body, sort_keys=True, separators=(',', ':'))
+    sign_payload = f"{timestamp}:{nonce}:{body_json}"
+    expected = hmac.new(
+        SHARED_SECRET.encode('utf-8'),
+        sign_payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, signature):
+        return False, "Invalid signature"
+
+    _used_nonces.add(nonce)
+    if now - _nonce_cleanup_time > 600:
+        _used_nonces = set()
+        _nonce_cleanup_time = now
+
+    return True, "OK"
+
+
+def require_signed_request(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        valid, msg = verify_request_signature()
+        if not valid:
+            resp = {"valid": False, "error": msg}
+            return jsonify({"data": resp, "signature": sign_response(resp)}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
 def generate_key():
     raw = uuid.uuid4().hex[:20].upper()
     return f"{raw[:5]}-{raw[5:10]}-{raw[10:15]}-{raw[15:20]}"
@@ -90,6 +150,7 @@ def is_online(last_heartbeat):
 
 
 @app.route("/api/validate", methods=["POST"])
+@require_signed_request
 def api_validate():
     data = request.get_json(silent=True)
     if not data or "key" not in data:
@@ -139,6 +200,7 @@ def api_validate():
 
 
 @app.route("/api/heartbeat", methods=["POST"])
+@require_signed_request
 def api_heartbeat():
     data = request.get_json(silent=True)
     if not data or "key" not in data:
@@ -188,8 +250,7 @@ def api_heartbeat():
 def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth = request.cookies.get("admin_auth")
-        if auth != hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest():
+        if not session.get("admin_logged_in"):
             return redirect(url_for("login_page"))
         return f(*args, **kwargs)
     return decorated
@@ -199,23 +260,19 @@ def require_admin(f):
 def login_page():
     if request.method == "POST":
         password = request.form.get("password", "")
-        if password == ADMIN_PASSWORD:
-            resp = redirect(url_for("dashboard"))
-            resp.set_cookie(
-                "admin_auth",
-                hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest(),
-                max_age=86400
-            )
-            return resp
+        if hmac.compare_digest(password, ADMIN_PASSWORD):
+            session.permanent = True
+            session["admin_logged_in"] = True
+            session["login_time"] = time.time()
+            return redirect(url_for("dashboard"))
         flash("Invalid password", "error")
     return render_template("login.html")
 
 
 @app.route("/logout")
 def logout():
-    resp = redirect(url_for("login_page"))
-    resp.delete_cookie("admin_auth")
-    return resp
+    session.clear()
+    return redirect(url_for("login_page"))
 
 
 @app.route("/")
