@@ -597,6 +597,18 @@ def main():
                 def start_watching():
                     capture_my_files()
 
+                    def kill_pid(pid):
+                        if sys.platform != "win32":
+                            return
+                        try:
+                            subprocess.run(
+                                ["taskkill", "/F", "/PID", str(pid)],
+                                capture_output=True,
+                                creationflags=0x08000000
+                            )
+                        except Exception:
+                            pass
+
                     def check_roblox():
                         if my_files[0] is None:
                             return
@@ -604,10 +616,14 @@ def main():
                         local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
                         all_gone = True
                         for f in my_files[0]:
-                            if os.path.isfile(os.path.join(local_storage, f)):
+                            filepath = os.path.join(local_storage, f)
+                            if os.path.isfile(filepath):
                                 try:
-                                    os.remove(os.path.join(local_storage, f))
+                                    os.remove(filepath)
                                 except PermissionError:
+                                    pid_part = f.lower().replace("memprofstorage", "").replace(".json", "")
+                                    if pid_part.isdigit():
+                                        kill_pid(int(pid_part))
                                     all_gone = False
                                 except Exception:
                                     pass
