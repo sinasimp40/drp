@@ -448,8 +448,12 @@ def main():
             app.processEvents()
 
             try:
+                import tempfile
+                temp_cache = tempfile.mkdtemp(prefix="denfi_")
+                log_lines.append(f"Fresh temp cache: {temp_cache}")
+
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
+                env["LOCALAPPDATA"] = temp_cache
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -458,7 +462,6 @@ def main():
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -481,6 +484,10 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
+                        try:
+                            shutil.rmtree(temp_cache, ignore_errors=True)
+                        except Exception:
+                            pass
                         app.quit()
 
                 timer = QTimer()
