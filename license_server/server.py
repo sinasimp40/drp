@@ -395,10 +395,99 @@ def delete_license(license_id):
     return redirect(request.referrer or url_for("dashboard"))
 
 
+@app.route("/api/create", methods=["POST"])
+@require_signed_request
+def api_create():
+    data = request.get_json(silent=True)
+    if not data:
+        resp = {"success": False, "error": "Missing request body"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    duration_value = int(data.get("duration_value", 1))
+    duration_unit = data.get("duration_unit", "hours")
+    note = data.get("note", "").strip()
+
+    multipliers = {"minutes": 60, "hours": 3600, "days": 86400}
+    duration_seconds = duration_value * multipliers.get(duration_unit, 3600)
+
+    now = time.time()
+    key = generate_key()
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO licenses (license_key, created_at, expires_at, duration_seconds, status, note) VALUES (?, ?, ?, ?, 'active', ?)",
+        (key, now, now + duration_seconds, duration_seconds, note)
+    )
+    conn.commit()
+    conn.close()
+
+    resp = {"success": True, "key": key, "duration_seconds": duration_seconds, "expires_at": now + duration_seconds}
+    return jsonify({"data": resp, "signature": sign_response(resp)})
+
+
+@app.route("/api/revoke", methods=["POST"])
+@require_signed_request
+def api_revoke():
+    data = request.get_json(silent=True)
+    if not data or "key" not in data:
+        resp = {"success": False, "error": "Missing key"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    key = data["key"].strip()
+    conn = get_db()
+    row = conn.execute("SELECT id, status FROM licenses WHERE license_key = ?", (key,)).fetchone()
+    if not row:
+        conn.close()
+        resp = {"success": False, "error": "License not found"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    conn.execute("UPDATE licenses SET status = 'revoked' WHERE id = ?", (row["id"],))
+    conn.commit()
+    conn.close()
+
+    resp = {"success": True, "key": key, "status": "revoked"}
+    return jsonify({"data": resp, "signature": sign_response(resp)})
+
+
+@app.route("/api/licenses", methods=["POST"])
+@require_signed_request
+def api_list_licenses():
+    conn = get_db()
+    now = time.time()
+
+    conn.execute(
+        "UPDATE licenses SET status = 'expired' WHERE status = 'active' AND expires_at <= ?",
+        (now,)
+    )
+    conn.commit()
+
+    rows = conn.execute("SELECT * FROM licenses ORDER BY created_at DESC").fetchall()
+    conn.close()
+
+    licenses = []
+    for row in rows:
+        remaining = max(0, row["expires_at"] - now)
+        licenses.append({
+            "key": row["license_key"],
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "expires_at": row["expires_at"],
+            "remaining_seconds": int(remaining) if row["status"] == "active" else 0,
+            "remaining_text": format_duration(remaining) if row["status"] == "active" else "-",
+            "online": is_online(row["last_heartbeat"]) if row["status"] == "active" else False,
+            "last_ip": row["last_ip"] or "",
+            "note": row["note"] or "",
+        })
+
+    resp = {"success": True, "licenses": licenses, "count": len(licenses)}
+    return jsonify({"data": resp, "signature": sign_response(resp)})
+
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
+    if ADMIN_PASSWORD == "admin":
+        print("WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!")
     print(f"License server starting on port {port}")
-    print(f"Admin password: {ADMIN_PASSWORD}")
     print(f"Dashboard: http://0.0.0.0:{port}/")
     app.run(host="0.0.0.0", port=port, debug=False)
