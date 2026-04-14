@@ -164,30 +164,19 @@ def grab_roblox_mutex():
 
 
 def clear_roblox_login():
-    cleared = 0
     if sys.platform != "win32":
-        return cleared
+        return "skipped"
     real_local = os.environ.get("LOCALAPPDATA", "")
     if not real_local:
-        return cleared
-    roblox_dir = os.path.join(real_local, "Roblox")
-    if not os.path.isdir(roblox_dir):
-        return cleared
-    skip_folders = {"versions"}
-    for item in os.listdir(roblox_dir):
-        if item.lower() in skip_folders:
-            continue
-        item_path = os.path.join(roblox_dir, item)
-        try:
-            if os.path.isfile(item_path):
-                os.remove(item_path)
-                cleared += 1
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path, ignore_errors=True)
-                cleared += 1
-        except Exception:
-            pass
-    return cleared
+        return "no_localappdata"
+    db_path = os.path.join(real_local, "Roblox", "rbx-storage.db")
+    if not os.path.isfile(db_path):
+        return "not_found"
+    try:
+        os.remove(db_path)
+        return "deleted"
+    except Exception:
+        return "error"
 
 
 class SplashScreen(QSplashScreen):
@@ -476,11 +465,8 @@ def main():
             splash.set_progress(80, "Clearing login data...")
             app.processEvents()
 
-            cleared = clear_roblox_login()
-            if cleared > 0:
-                log_lines.append(f"Cleared {cleared} login items from AppData\\Local\\Roblox")
-            else:
-                log_lines.append("No login data to clear")
+            login_result = clear_roblox_login()
+            log_lines.append(f"Login clear (rbx-storage.db): {login_result}")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
@@ -516,6 +502,7 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
+                        clear_roblox_login()
                         app.quit()
 
                 timer = QTimer()
