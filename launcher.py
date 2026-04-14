@@ -338,8 +338,6 @@ def main():
     if sys.platform != "win32":
         os.environ["QT_QPA_PLATFORM"] = "xcb"
 
-    grab_roblox_mutex()
-
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
@@ -444,16 +442,21 @@ def main():
                 QTimer.singleShot(5000, app.quit)
                 return
 
-            splash.set_progress(85, "Launching Roblox...")
+            splash.set_progress(80, "Preparing multi-client...")
             app.processEvents()
 
             try:
-                import tempfile
-                temp_cache = tempfile.mkdtemp(prefix="denfi_")
-                log_lines.append(f"Fresh temp cache: {temp_cache}")
+                mutex_ok = grab_roblox_mutex()
+                if mutex_ok:
+                    log_lines.append("Mutex acquired - multi-client enabled")
+                else:
+                    log_lines.append("Could not acquire mutex (non-Windows or error)")
+
+                splash.set_progress(85, "Launching Roblox...")
+                app.processEvents()
 
                 env = os.environ.copy()
-                env["LOCALAPPDATA"] = temp_cache
+                env["LOCALAPPDATA"] = os.path.abspath(paths["cache"])
 
                 process = subprocess.Popen(
                     [exe_path],
@@ -462,6 +465,7 @@ def main():
                 )
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
+                log_lines.append(f"Cache: {os.path.abspath(paths['cache'])}")
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -484,10 +488,6 @@ def main():
 
                 def check_roblox():
                     if process.poll() is not None:
-                        try:
-                            shutil.rmtree(temp_cache, ignore_errors=True)
-                        except Exception:
-                            pass
                         app.quit()
 
                 timer = QTimer()
