@@ -4,6 +4,7 @@ import subprocess
 import datetime
 import shutil
 import ctypes
+import json
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen
@@ -180,14 +181,34 @@ def clear_roblox_login():
             should_delete = True
         elif item_lower == "robloxcookies.dat":
             should_delete = True
-        elif item_lower == "appstorage.json":
-            should_delete = True
         if should_delete:
             try:
                 os.remove(os.path.join(local_storage, item))
                 cleared += 1
             except Exception:
                 pass
+    app_storage = os.path.join(local_storage, "appStorage.json")
+    if os.path.isfile(app_storage):
+        try:
+            with open(app_storage, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            login_keys = []
+            for key in data:
+                key_lower = key.lower()
+                if any(k in key_lower for k in [
+                    "displayname", "username", "userid",
+                    "name", "token", "auth", "cookie",
+                    "session", "login", "account",
+                ]):
+                    login_keys.append(key)
+            for key in login_keys:
+                data[key] = ""
+            with open(app_storage, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            if login_keys:
+                cleared += len(login_keys)
+        except Exception:
+            pass
     return f"cleared_{cleared}"
 
 
