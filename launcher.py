@@ -190,42 +190,30 @@ def clear_roblox_login():
     return f"cleared_{cleared}"
 
 
-def force_roblox_windowed():
+def ensure_windowed_mode():
     if sys.platform != "win32":
-        return
+        return False
+    real_local = os.environ.get("LOCALAPPDATA", "")
+    if not real_local:
+        return False
+    local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
+    os.makedirs(local_storage, exist_ok=True)
+    app_storage_file = os.path.join(local_storage, "appStorage.json")
+    data = {}
+    if os.path.isfile(app_storage_file):
+        try:
+            with open(app_storage_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+    data["IsFullscreen"] = False
+    data["InFullScreen"] = False
     try:
-        user32 = ctypes.windll.user32
-
-        EnumWindows = user32.EnumWindows
-        GetWindowTextW = user32.GetWindowTextW
-        ShowWindow = user32.ShowWindow
-        MoveWindow = user32.MoveWindow
-        IsWindowVisible = user32.IsWindowVisible
-
-        SW_RESTORE = 9
-
-        screen_w = user32.GetSystemMetrics(0)
-        screen_h = user32.GetSystemMetrics(1)
-        win_w = int(screen_w * 0.65)
-        win_h = int(screen_h * 0.75)
-        win_x = (screen_w - win_w) // 2
-        win_y = (screen_h - win_h) // 2
-
-        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
-
-        def enum_callback(hwnd, lParam):
-            if IsWindowVisible(hwnd):
-                buf = ctypes.create_unicode_buffer(256)
-                GetWindowTextW(hwnd, buf, 256)
-                title = buf.value
-                if title and "roblox" in title.lower():
-                    ShowWindow(hwnd, SW_RESTORE)
-                    MoveWindow(hwnd, win_x, win_y, win_w, win_h, True)
-            return True
-
-        EnumWindows(WNDENUMPROC(enum_callback), 0)
+        with open(app_storage_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        return True
     except Exception:
-        pass
+        return False
 
 
 def get_existing_memprof_files():
@@ -561,7 +549,8 @@ def main():
             login_result = clear_roblox_login()
             log_lines.append(f"Login clear (rbx-storage.db): {login_result}")
 
-            log_lines.append("Will force windowed mode after launch")
+            ensure_windowed_mode()
+            log_lines.append("Windowed mode settings applied")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
@@ -606,7 +595,6 @@ def main():
                         my_files[0] = current_files
 
                 def start_watching():
-                    force_roblox_windowed()
                     capture_my_files()
 
                     def check_roblox():
