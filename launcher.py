@@ -143,6 +143,24 @@ def sync_files(source_dir, roblox_dir):
     return count, removed
 
 
+def clear_roblox_login(cache_dir):
+    cleared = 0
+    roblox_cache = os.path.join(cache_dir, "Roblox")
+    if os.path.isdir(roblox_cache):
+        for item in os.listdir(roblox_cache):
+            item_path = os.path.join(roblox_cache, item)
+            try:
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                    cleared += 1
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path, ignore_errors=True)
+                    cleared += 1
+            except Exception:
+                pass
+    return cleared
+
+
 class SplashScreen(QSplashScreen):
     def __init__(self, pixmap):
         super().__init__(pixmap)
@@ -416,6 +434,15 @@ def main():
                 app.processEvents()
                 QTimer.singleShot(5000, app.quit)
                 return
+
+            splash.set_progress(80, "Clearing login data...")
+            app.processEvents()
+
+            cleared = clear_roblox_login(paths["cache"])
+            if cleared > 0:
+                log_lines.append(f"Cleared {cleared} cached login items")
+            else:
+                log_lines.append("No cached login data to clear")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
