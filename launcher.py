@@ -232,6 +232,67 @@ def get_existing_memprof_files():
     return files
 
 
+def parse_memprof_pid(filename):
+    pid_part = filename.lower().replace("memprofstorage", "").replace(".json", "")
+    if pid_part.isdigit():
+        return int(pid_part)
+    return None
+
+
+def pid_has_visible_window(pid):
+    if sys.platform != "win32":
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        EnumWindows = user32.EnumWindows
+        GetWindowThreadProcessId = user32.GetWindowThreadProcessId
+        IsWindowVisible = user32.IsWindowVisible
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool))
+        found = ctypes.c_bool(False)
+
+        def callback(hwnd, lparam):
+            if IsWindowVisible(hwnd):
+                win_pid = ctypes.c_ulong(0)
+                GetWindowThreadProcessId(hwnd, ctypes.byref(win_pid))
+                if win_pid.value == pid:
+                    lparam[0] = True
+                    return False
+            return True
+
+        EnumWindows(WNDENUMPROC(callback), ctypes.byref(found))
+        return found.value
+    except Exception:
+        return False
+
+
+def is_pid_alive(pid):
+    if sys.platform != "win32":
+        return False
+    try:
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+            capture_output=True, text=True,
+            creationflags=0x08000000
+        )
+        return str(pid) in result.stdout
+    except Exception:
+        return False
+
+
+def kill_pid_tree(pid):
+    if sys.platform != "win32":
+        return
+    try:
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(pid)],
+            capture_output=True,
+            creationflags=0x08000000
+        )
+    except Exception:
+        pass
+
+
 def clear_instance_login(my_files):
     if sys.platform != "win32":
         return "skipped"
@@ -584,59 +645,57 @@ def main():
 
             def hide_and_watch():
                 splash.hide()
-                my_files = [None]
+                state = {"phase": "WAIT_FILES", "my_files": set(), "my_pids": set(),
+                         "no_window_count": 0, "cleanup_attempts": 0}
 
-                def capture_my_files():
-                    current_files = get_existing_memprof_files()
-                    new_files = current_files - files_before
-                    if new_files:
-                        my_files[0] = new_files
-                    else:
-                        my_files[0] = current_files
+                def watcher_tick():
+                    if state["phase"] == "WAIT_FILES":
+                        current_files = get_existing_memprof_files()
+                        new_files = current_files - files_before
+                        if new_files:
+                            state["my_files"] = new_files
+                            state["my_pids"] = set()
+                            for f in new_files:
+                                pid = parse_memprof_pid(f)
+                                if pid:
+                                    state["my_pids"].add(pid)
+                            state["phase"] = "ACTIVE"
 
-                def start_watching():
-                    capture_my_files()
+                    elif state["phase"] == "ACTIVE":
+                        has_window = False
+                        for pid in state["my_pids"]:
+                            if pid_has_visible_window(pid):
+                                has_window = True
+                                break
+                        if has_window:
+                            state["no_window_count"] = 0
+                        else:
+                            state["no_window_count"] += 1
+                            if state["no_window_count"] >= 2:
+                                state["phase"] = "CLOSING"
 
-                    def kill_pid(pid):
-                        if sys.platform != "win32":
-                            return
-                        try:
-                            subprocess.run(
-                                ["taskkill", "/F", "/PID", str(pid)],
-                                capture_output=True,
-                                creationflags=0x08000000
-                            )
-                        except Exception:
-                            pass
+                    elif state["phase"] == "CLOSING":
+                        for pid in state["my_pids"]:
+                            if is_pid_alive(pid):
+                                kill_pid_tree(pid)
+                        state["phase"] = "CLEANUP"
 
-                    def check_roblox():
-                        if my_files[0] is None:
-                            return
+                    elif state["phase"] == "CLEANUP":
+                        state["cleanup_attempts"] += 1
+                        clear_instance_login(state["my_files"])
+                        remaining = False
                         real_local = os.environ.get("LOCALAPPDATA", "")
                         local_storage = os.path.join(real_local, "Roblox", "LocalStorage")
-                        all_gone = True
-                        for f in my_files[0]:
-                            filepath = os.path.join(local_storage, f)
-                            if os.path.isfile(filepath):
-                                try:
-                                    os.remove(filepath)
-                                except PermissionError:
-                                    pid_part = f.lower().replace("memprofstorage", "").replace(".json", "")
-                                    if pid_part.isdigit():
-                                        kill_pid(int(pid_part))
-                                    all_gone = False
-                                except Exception:
-                                    pass
-                        if all_gone:
-                            clear_instance_login(my_files[0])
+                        for f in state["my_files"]:
+                            if os.path.isfile(os.path.join(local_storage, f)):
+                                remaining = True
+                        if not remaining or state["cleanup_attempts"] >= 6:
                             app.quit()
 
-                    timer = QTimer()
-                    timer.timeout.connect(check_roblox)
-                    timer.start(5000)
-                    app._bg_timer = timer
-
-                QTimer.singleShot(5000, start_watching)
+                timer = QTimer()
+                timer.timeout.connect(watcher_tick)
+                timer.start(3000)
+                app._bg_timer = timer
 
             QTimer.singleShot(1500, hide_and_watch)
             return
