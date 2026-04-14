@@ -5,11 +5,15 @@ import datetime
 import shutil
 import ctypes
 import json
+import hmac
+import hashlib
+import threading
 
 from PyQt5.QtWidgets import (
-    QApplication, QSplashScreen
+    QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QPushButton, QWidget
 )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import (
     QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient,
     QRadialGradient, QPen, QPainterPath, QBrush
@@ -18,6 +22,9 @@ from PyQt5.QtGui import (
 APP_NAME = "DENFI ROBLOX"
 APP_VERSION = "1.0.0"
 HARDCODED_PATH = ""
+LICENSE_SERVER_URL = ""
+LICENSE_SHARED_SECRET = "DENFI_LICENSE_SECRET_KEY_2024"
+LICENSE_CHECK_INTERVAL = 150000
 
 def get_app_dir():
     if getattr(sys, 'frozen', False):
@@ -487,6 +494,249 @@ def create_splash_pixmap():
     return splash_pix
 
 
+def get_license_file():
+    return os.path.join(APP_DIR, ".license_key")
+
+
+def load_saved_license():
+    path = get_license_file()
+    if os.path.isfile(path):
+        try:
+            with open(path, "r") as f:
+                return f.read().strip()
+        except Exception:
+            pass
+    return ""
+
+
+def save_license_key(key):
+    path = get_license_file()
+    try:
+        with open(path, "w") as f:
+            f.write(key)
+    except Exception:
+        pass
+
+
+def verify_signature(data_dict, signature):
+    payload = json.dumps(data_dict, sort_keys=True, separators=(',', ':'))
+    expected = hmac.new(
+        LICENSE_SHARED_SECRET.encode('utf-8'),
+        payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def validate_license(key, endpoint="validate"):
+    if not LICENSE_SERVER_URL:
+        return {"valid": True, "remaining_text": "No server configured", "remaining_seconds": 999999}
+    try:
+        import urllib.request
+        url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
+        req_data = json.dumps({"key": key}).encode('utf-8')
+        req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"})
+        req.timeout = 10
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+
+        data = result.get("data", {})
+        sig = result.get("signature", "")
+
+        if not verify_signature(data, sig):
+            return {"valid": False, "error": "Invalid server signature"}
+
+        return data
+    except Exception as e:
+        return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
+
+
+class LicenseDialog(QDialog):
+    def __init__(self, parent=None, error_msg=""):
+        super().__init__(parent)
+        self.setWindowTitle(f"{APP_NAME} - License")
+        self.setFixedSize(420, 260)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.result_key = ""
+
+        self.setStyleSheet(f"""
+            QDialog {{ background: #0a0a0a; border: 1px solid #1e1e1e; }}
+            QLabel {{ color: #f0f0f0; background: transparent; }}
+            QLineEdit {{
+                background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
+                color: #ff8c33; padding: 10px 12px; font-size: 14px;
+                font-family: Consolas, monospace; letter-spacing: 1px;
+            }}
+            QLineEdit:focus {{ border-color: #ff6a00; }}
+            QPushButton {{
+                background: #ff6a00; color: white; border: none; border-radius: 6px;
+                padding: 10px 24px; font-size: 14px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background: #ff8c33; }}
+            QPushButton:disabled {{ background: #333; color: #666; }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(12)
+
+        title = QLabel(APP_NAME)
+        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setStyleSheet("color: #ff6a00;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        subtitle = QLabel("Enter your license key to continue")
+        subtitle.setFont(QFont("Segoe UI", 10))
+        subtitle.setStyleSheet("color: #666;")
+        subtitle.setAlignment(Qt.AlignCenter)
+        layout.addWidget(subtitle)
+
+        if error_msg:
+            err_label = QLabel(error_msg)
+            err_label.setFont(QFont("Segoe UI", 9))
+            err_label.setStyleSheet("color: #ff4444;")
+            err_label.setAlignment(Qt.AlignCenter)
+            err_label.setWordWrap(True)
+            layout.addWidget(err_label)
+
+        layout.addSpacing(8)
+
+        self.key_input = QLineEdit()
+        self.key_input.setPlaceholderText("XXXXX-XXXXX-XXXXX-XXXXX")
+        self.key_input.setMaxLength(23)
+        layout.addWidget(self.key_input)
+
+        btn_row = QHBoxLayout()
+        self.activate_btn = QPushButton("Activate")
+        self.activate_btn.clicked.connect(self.on_activate)
+        btn_row.addWidget(self.activate_btn)
+
+        quit_btn = QPushButton("Quit")
+        quit_btn.setStyleSheet("background: #1e1e1e; color: #888;")
+        quit_btn.clicked.connect(self.reject)
+        btn_row.addWidget(quit_btn)
+        layout.addLayout(btn_row)
+
+        self.status_label = QLabel("")
+        self.status_label.setFont(QFont("Segoe UI", 9))
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
+
+        self.key_input.returnPressed.connect(self.on_activate)
+
+    def on_activate(self):
+        key = self.key_input.text().strip()
+        if not key:
+            self.status_label.setStyleSheet("color: #ff4444;")
+            self.status_label.setText("Please enter a license key")
+            return
+
+        self.activate_btn.setEnabled(False)
+        self.status_label.setStyleSheet("color: #888;")
+        self.status_label.setText("Validating...")
+        QApplication.processEvents()
+
+        result = validate_license(key)
+        if result.get("valid"):
+            self.result_key = key
+            self.accept()
+        else:
+            self.activate_btn.setEnabled(True)
+            self.status_label.setStyleSheet("color: #ff4444;")
+            self.status_label.setText(result.get("error", "Validation failed"))
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPos() - self.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event):
+        if hasattr(self, '_drag_pos') and event.buttons() == Qt.LeftButton:
+            self.move(event.globalPos() - self._drag_pos)
+
+
+class LockScreen(QWidget):
+    def __init__(self, reason="License expired"):
+        super().__init__()
+        self.setWindowTitle(f"{APP_NAME} - Locked")
+        self.setFixedSize(400, 200)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setStyleSheet("background: #0a0a0a; border: 1px solid #1e1e1e;")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(16)
+
+        title = QLabel(APP_NAME)
+        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setStyleSheet("color: #ff4444;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        msg = QLabel(reason)
+        msg.setFont(QFont("Segoe UI", 11))
+        msg.setStyleSheet("color: #ccc;")
+        msg.setAlignment(Qt.AlignCenter)
+        msg.setWordWrap(True)
+        layout.addWidget(msg)
+
+        quit_btn = QPushButton("Close")
+        quit_btn.setStyleSheet("""
+            QPushButton { background: #ff4444; color: white; border: none;
+                         border-radius: 6px; padding: 10px 24px; font-size: 14px; font-weight: bold; }
+            QPushButton:hover { background: #ff6666; }
+        """)
+        quit_btn.clicked.connect(lambda: QApplication.instance().quit())
+        layout.addWidget(quit_btn)
+
+
+def check_license_or_prompt(app):
+    if not LICENSE_SERVER_URL:
+        return True
+
+    saved_key = load_saved_license()
+    error_msg = ""
+
+    if saved_key:
+        result = validate_license(saved_key)
+        if result.get("valid"):
+            return True
+        error_msg = result.get("error", "License invalid")
+
+    while True:
+        dialog = LicenseDialog(error_msg=error_msg)
+        if dialog.exec_() == QDialog.Accepted:
+            save_license_key(dialog.result_key)
+            return True
+        else:
+            return False
+
+
+def start_license_watchdog(app):
+    if not LICENSE_SERVER_URL:
+        return None
+
+    key = load_saved_license()
+    if not key:
+        return None
+
+    def check():
+        result = validate_license(key, "heartbeat")
+        if not result.get("valid"):
+            lock = LockScreen(result.get("error", "License expired or revoked"))
+            lock.show()
+            app._lock_screen = lock
+            if hasattr(app, '_license_timer'):
+                app._license_timer.stop()
+
+    timer = QTimer()
+    timer.timeout.connect(check)
+    timer.start(LICENSE_CHECK_INTERVAL)
+    app._license_timer = timer
+    return timer
+
+
 def main():
     if sys.platform != "win32":
         os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -498,6 +748,9 @@ def main():
     icon_path = os.path.join(APP_DIR, "icon.ico")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
+
+    if not check_license_or_prompt(app):
+        sys.exit(0)
 
     paths = get_paths()
 
@@ -641,6 +894,7 @@ def main():
             write_log(paths["logs"], "\n".join(log_lines))
 
             app.setQuitOnLastWindowClosed(False)
+            start_license_watchdog(app)
             files_before = get_existing_memprof_files()
 
             def hide_and_watch():

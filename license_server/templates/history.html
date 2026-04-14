@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}History - License Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>License History</h1>
+</div>
+
+<div class="card">
+    {% if licenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>License Key</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th>Created</th>
+                <th>Expires</th>
+                <th>Last IP</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lic in licenses %}
+            <tr>
+                <td><span class="key-text">{{ lic.key }}</span></td>
+                <td>
+                    {% if lic.status == 'active' %}
+                        {% if lic.online %}
+                        <span class="badge badge-online">Online</span>
+                        {% else %}
+                        <span class="badge badge-active">Active</span>
+                        {% endif %}
+                    {% elif lic.status == 'expired' %}
+                    <span class="badge badge-expired">Expired</span>
+                    {% elif lic.status == 'revoked' %}
+                    <span class="badge badge-revoked">Revoked</span>
+                    {% elif lic.status == 'deleted' %}
+                    <span class="badge badge-deleted">Deleted</span>
+                    {% endif %}
+                </td>
+                <td>{{ lic.duration_text }}</td>
+                <td>{{ lic.created }}</td>
+                <td>{{ lic.expires }}</td>
+                <td>{{ lic.last_ip }}</td>
+                <td>{{ lic.note }}</td>
+                <td class="actions-cell">
+                    {% if lic.status == 'active' %}
+                    <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                    </form>
+                    {% endif %}
+                    {% if lic.status != 'deleted' %}
+                    <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No license history yet</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

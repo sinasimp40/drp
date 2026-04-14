@@ -2,15 +2,16 @@
 
 ## Overview
 A zero-interaction portable Roblox launcher. Double-click the .exe and it does everything automatically:
-1. Shows custom-named splash screen (e.g. "DENFI ROBLOX PORTABLE")
-2. Auto-syncs Roblox files if an update is detected on the system
-3. Clears login data (rbx-storage.db) so each instance starts fresh
-4. Grabs the Roblox mutex to allow multiple instances
-5. Launches Roblox from the portable folder
-6. Stays running in background to hold the mutex, cleans up login on exit
+1. Validates license key with online server (if configured)
+2. Shows custom-named splash screen (e.g. "DENFI ROBLOX PORTABLE")
+3. Auto-syncs Roblox files if an update is detected on the system
+4. Clears login data (rbx-storage.db) so each instance starts fresh
+5. Grabs the Roblox mutex to allow multiple instances
+6. Launches Roblox from the portable folder
+7. Stays running in background to hold the mutex, cleans up login on exit
 
 ## How It Works
-- The build script asks for your Roblox files path AND launcher name, bakes both into the exe
+- The build script asks for your Roblox files path, launcher name, and license server URL — bakes all into the exe
 - The launcher checks `%LOCALAPPDATA%\Roblox\Versions\` for the latest Roblox version
 - Compares it against the files in the configured folder using fingerprinting
 - If there's a newer version (or first run), it syncs everything automatically
@@ -18,10 +19,19 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - Grabs `ROBLOX_singletonEvent` mutex (same as MultiRoblox) so multiple instances can coexist
 - Launcher stays running hidden in background to hold the mutex alive
 - When Roblox closes, deletes rbx-storage.db again and exits
-- No config files needed at runtime — path and name are hardcoded during build
+- No config files needed at runtime — path, name, and license server are hardcoded during build
+
+## License System
+- License server runs on your RDP (default: 144.31.48.238:3842)
+- Admin dashboard at the server URL — create keys, monitor online users, revoke access
+- Launcher prompts for license key on first run, saves it locally
+- Validates with server before launching, re-checks every 2.5 minutes
+- If license expires or is revoked, shows lock screen and stops
+- Server signs responses with HMAC to prevent tampering
+- Optional: leave license server URL blank during build to disable checking
 
 ## Multi-Instance Flow
-1. Run exe → clears rbx-storage.db → grabs mutex → launches Roblox (fresh, not logged in)
+1. Run exe → validates license → clears rbx-storage.db → grabs mutex → launches Roblox (fresh, not logged in)
 2. Log into Account A
 3. Run exe again → clears rbx-storage.db → grabs mutex → launches second Roblox (fresh)
 4. Log into Account B
@@ -34,14 +44,21 @@ YourChosenFolder\
   RobloxPlayerBeta.exe   <- Roblox files live here
   Cache\                 <- Portable Roblox data
   Logs\                  <- Launch logs
+
+license_server\          <- Deploy this to your RDP
+  server.py              <- Flask license server + admin dashboard
+  templates/             <- Dashboard HTML templates
+  licenses.db            <- SQLite database (auto-created)
+  DEPLOY.md              <- Deployment instructions
 ```
 
 ## Files
-- **launcher.py** — Main application (splash screen, auto-sync, login clear, mutex, auto-launch)
-- **build_exe.bat** — Windows build script (asks for name + path, converts icons, builds exe)
-- **build_config.py** — Helper that writes path and app name into launcher.py during build
+- **launcher.py** — Main application (license check, splash screen, auto-sync, login clear, mutex, auto-launch)
+- **build_exe.bat** — Windows build script (asks for name + path + license URL, converts icons, builds exe)
+- **build_config.py** — Helper that writes path, app name, and license URL into launcher.py during build
 - **convert_icon.py** — Auto-converts PNG/JPG/BMP/etc to icon.ico for the build
 - **requirements.txt** — Python dependencies (PyQt5, Pillow, PyInstaller)
+- **license_server/** — License server directory (deploy to RDP separately)
 
 ## Building
 1. Install Python from python.org (check "Add to PATH")
@@ -50,7 +67,12 @@ YourChosenFolder\
 4. Run `build_exe.bat`
 5. Enter the launcher name when prompted (e.g. "DENFI ROBLOX", "MY LAUNCHER")
 6. Enter the path to your Roblox files when prompted
-7. Get `{YourName}.exe` from `dist\` folder
+7. Enter the license server URL (e.g. http://144.31.48.238:3842) or press Enter to skip
+8. Get `{YourName}.exe` from `dist\` folder
+
+## License Server Setup
+See `license_server/DEPLOY.md` for full instructions.
+Quick: copy `license_server/` to your RDP, `pip install flask`, `python server.py`
 
 ## Theme
 - Background: black (#0a0a0a)
@@ -59,3 +81,5 @@ YourChosenFolder\
 
 ## Tech Stack
 - Python 3.11, PyQt5, Pillow, PyInstaller, ctypes (Windows mutex)
+- Flask, SQLite (license server)
+- HMAC-SHA256 (signed API responses)

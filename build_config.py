@@ -23,6 +23,10 @@ def main():
     if len(sys.argv) >= 3:
         app_name = sys.argv[2].strip().strip('"').strip("'")
 
+    license_url = ""
+    if len(sys.argv) >= 4:
+        license_url = sys.argv[3].strip().strip('"').strip("'")
+
     with open("launcher.py", "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -44,6 +48,15 @@ def main():
             print("[ERROR] Could not find APP_NAME in launcher.py")
             sys.exit(1)
 
+    if license_url:
+        url_pattern = r'LICENSE_SERVER_URL = ".*?"'
+        url_replacement = f'LICENSE_SERVER_URL = "{license_url}"'
+        if re.search(url_pattern, content):
+            content = re.sub(url_pattern, url_replacement, content)
+        else:
+            print("[ERROR] Could not find LICENSE_SERVER_URL in launcher.py")
+            sys.exit(1)
+
     with open("launcher.py", "w", encoding="utf-8") as f:
         f.write(content)
 
@@ -54,6 +67,8 @@ def main():
         print(f"EXE_NAME={exe_name}")
     else:
         print(f"EXE_NAME=DenfiRoblox")
+    if license_url:
+        print(f"[OK] License server: {license_url}")
 
 
 if __name__ == "__main__":

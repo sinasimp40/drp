@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - License Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Active Licenses</h1>
+    <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
+</div>
+
+<div class="card">
+    {% if licenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>License Key</th>
+                <th>Status</th>
+                <th>Time Remaining</th>
+                <th>Last IP</th>
+                <th>Last Seen</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lic in licenses %}
+            <tr>
+                <td><span class="key-text">{{ lic.key }}</span></td>
+                <td>
+                    {% if lic.online %}
+                    <span class="badge badge-online">Online</span>
+                    {% else %}
+                    <span class="badge badge-offline">Offline</span>
+                    {% endif %}
+                </td>
+                <td class="time-remaining">{{ lic.remaining }}</td>
+                <td>{{ lic.last_ip }}</td>
+                <td>{{ lic.last_heartbeat }}</td>
+                <td>{{ lic.note }}</td>
+                <td class="actions-cell">
+                    <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No active licenses</p>
+        <a href="{{ url_for('create_license') }}" class="btn btn-primary">Create your first key</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    setTimeout(function() { location.reload(); }, 30000);
+</script>
+{% endblock %}
