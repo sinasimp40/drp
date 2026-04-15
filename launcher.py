@@ -886,14 +886,12 @@ def start_license_watchdog(app):
                     return
             app._license_fail_count = 0
 
-            is_in_use = "already activated" in error_msg.lower()
-
             if hasattr(app, '_license_timer'):
                 app._license_timer.stop()
             kill_all_roblox_pids(app)
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
-            if not is_in_use and not EMBEDDED_LICENSE_KEY:
+            if not EMBEDDED_LICENSE_KEY:
                 delete_license_files()
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()

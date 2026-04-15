@@ -54,6 +54,11 @@
                     <td>{{ lic.last_heartbeat }}</td>
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
+                        {% if lic.status == 'active' %}
+                        <form method="POST" action="{{ url_for('reset_license', license_id=lic.id) }}" onsubmit="return confirm('Reset this license back to Pending? It can be activated again.')">
+                            <button type="submit" class="btn btn-warning btn-sm">Reset</button>
+                        </form>
+                        {% endif %}
                         <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
                             <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
                         </form>
@@ -100,6 +105,7 @@
     var POLL_INTERVAL = 5000;
     var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
     var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
+    var resetUrl = "{{ url_for('reset_license', license_id=0) }}".replace('/0', '');
 
     function formatDuration(seconds) {
         if (seconds <= 0) return "Expired";
@@ -134,6 +140,14 @@
             ? lic.remaining + ' <span style="color: #666; font-size: 11px;">(waiting)</span>'
             : lic.remaining;
 
+        var resetBtn = '';
+        if (lic.status === 'active') {
+            resetBtn =
+                '<form method="POST" action="' + resetUrl + '/' + lic.id + '" onsubmit="return confirm(\'Reset this license back to Pending? It can be activated again.\')">' +
+                    '<button type="submit" class="btn btn-warning btn-sm">Reset</button>' +
+                '</form>';
+        }
+
         tr.innerHTML =
             '<td><span class="key-text">' + lic.key + '</span></td>' +
             '<td>' + statusBadge(lic) + '</td>' +
@@ -143,6 +157,7 @@
             '<td>' + lic.last_heartbeat + '</td>' +
             '<td>' + (lic.note || '') + '</td>' +
             '<td class="actions-cell">' +
+                resetBtn +
                 '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
                     '<button type="submit" class="btn btn-danger btn-sm">Revoke</button>' +
                 '</form>' +

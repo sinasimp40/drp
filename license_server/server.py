@@ -181,13 +181,6 @@ def expire_active_licenses(conn):
     conn.commit()
 
 
-def check_session_lock(row, client_ip):
-    if not row["last_ip"] or not row["last_heartbeat"]:
-        return True, ""
-    if row["last_ip"] == client_ip:
-        return True, ""
-    return False, "License already activated on another device"
-
 
 @app.route("/api/validate", methods=["POST"])
 @require_signed_request
@@ -241,43 +234,13 @@ def api_validate():
         }
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
-    if row["status"] != "active":
+    if row["status"] == "active":
         conn.close()
-        resp = {"valid": False, "error": f"License {row['status']}"}
+        resp = {"valid": False, "error": "License already activated"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
-    now = time.time()
-    remaining = row["expires_at"] - now
-
-    if remaining <= 0:
-        conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
-        conn.commit()
-        conn.close()
-        resp = {"valid": False, "error": "License has expired"}
-        return jsonify({"data": resp, "signature": sign_response(resp)})
-
-    client_ip = request.remote_addr
-    allowed, lock_msg = check_session_lock(row, client_ip)
-    if not allowed:
-        conn.close()
-        resp = {"valid": False, "error": lock_msg}
-        return jsonify({"data": resp, "signature": sign_response(resp)})
-
-    conn.execute(
-        "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
-        (now, client_ip, row["id"])
-    )
-    conn.commit()
     conn.close()
-
-    resp = {
-        "valid": True,
-        "status": "active",
-        "remaining_seconds": int(remaining),
-        "remaining_text": format_duration(remaining),
-        "expires_at": row["expires_at"],
-        "key": key,
-    }
+    resp = {"valid": False, "error": f"License {row['status']}"}
     return jsonify({"data": resp, "signature": sign_response(resp)})
 
 
@@ -334,12 +297,6 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
-    allowed, lock_msg = check_session_lock(row, client_ip)
-    if not allowed:
-        conn.close()
-        resp = {"valid": False, "error": lock_msg}
-        return jsonify({"data": resp, "signature": sign_response(resp)})
-
     conn.execute(
         "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
         (now, client_ip, row["id"])
@@ -510,6 +467,29 @@ def delete_license(license_id):
     conn.commit()
     conn.close()
     flash("License deleted", "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/reset/<int:license_id>", methods=["POST"])
+@require_admin
+def reset_license(license_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM licenses WHERE id = ?", (license_id,)).fetchone()
+    if row and row["status"] == "active" and row["expires_at"]:
+        remaining = row["expires_at"] - time.time()
+        if remaining > 0:
+            conn.execute(
+                "UPDATE licenses SET status = 'pending', activated_at = NULL, "
+                "last_ip = NULL, last_heartbeat = NULL WHERE id = ?",
+                (license_id,),
+            )
+            conn.commit()
+            flash("License reset to Pending — can be activated again", "success")
+        else:
+            flash("Cannot reset — license has already expired", "warning")
+    else:
+        flash("Cannot reset — license is not active", "warning")
+    conn.close()
     return redirect(request.referrer or url_for("dashboard"))
 
 
