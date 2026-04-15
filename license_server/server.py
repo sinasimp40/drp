@@ -470,28 +470,6 @@ def delete_license(license_id):
     return redirect(request.referrer or url_for("dashboard"))
 
 
-@app.route("/reset/<int:license_id>", methods=["POST"])
-@require_admin
-def reset_license(license_id):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM licenses WHERE id = ?", (license_id,)).fetchone()
-    if row and row["status"] == "active" and row["expires_at"]:
-        remaining = row["expires_at"] - time.time()
-        if remaining > 0:
-            conn.execute(
-                "UPDATE licenses SET status = 'pending', activated_at = NULL, "
-                "last_ip = NULL, last_heartbeat = NULL WHERE id = ?",
-                (license_id,),
-            )
-            conn.commit()
-            flash("License reset to Pending — can be activated again", "success")
-        else:
-            flash("Cannot reset — license has already expired", "warning")
-    else:
-        flash("Cannot reset — license is not active", "warning")
-    conn.close()
-    return redirect(request.referrer or url_for("dashboard"))
-
 
 def require_admin_api(f):
     @wraps(f)
