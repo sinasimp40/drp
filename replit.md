@@ -28,13 +28,13 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - New keys start as **Pending** — countdown only begins when someone actually activates the key
 - Launcher prompts for license key on first run, saves encrypted `.license_key` file next to the EXE
 - **Embedded key mode**: bake a license key into the EXE at build time — perfect for diskless setups
-- Key file is **encrypted** (XOR + base64) — cannot be read in a text editor, only the launcher can decrypt it
+- Key file is **encrypted** (XOR with app-derived key) — raw binary, cannot be read in a text editor, only the launcher can decrypt it
 - Key file saved **only** next to the EXE — no ProgramData/AppData fallbacks (diskless-friendly: all clients share one file)
 - Validates with server before launching, re-checks every 15 seconds for near-instant revocation
-- Server returns clear status: "License has expired", "License has been revoked", "License already in use on another device", etc.
+- Server returns clear status: "License has expired", "License has been revoked", "License already activated on another device", etc.
 - Single-session enforcement: license can only be active on one IP at a time (releases after 5 min heartbeat timeout)
 - If license expires or is revoked: shows lock screen, kills Roblox, auto-deletes `.license_key` file
-- "Already in use" error: shows lock screen but keeps `.license_key` so user can retry later
+- "Already activated" error: shows lock screen but keeps `.license_key` so user can retry later
 - Offline grace: 3 consecutive server failures tolerated before locking (prevents brief network blips from killing sessions)
 - Server signs responses with HMAC to prevent tampering
 - Optional: leave license server URL blank during build to disable checking
