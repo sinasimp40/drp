@@ -59,7 +59,7 @@
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
                         {% if lic.status == 'suspended' %}
-                        <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate from a new IP.')">
+                        <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate.')">
                             <button type="submit" class="btn btn-success btn-sm">Unsuspend</button>
                         </form>
                         {% endif %}

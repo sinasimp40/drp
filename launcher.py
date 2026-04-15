@@ -875,7 +875,7 @@ class LockScreen(QWidget):
 def _show_suspended_and_exit(app, splash=None):
     if splash:
         splash.hide()
-    lock = LockScreen("License suspended — IP changed.\nContact the developer to unsuspend.")
+    lock = LockScreen("License suspended.\nContact the developer.")
     lock.show()
     app._lock_screen = lock
     QTimer.singleShot(15000, app.quit)
@@ -1003,7 +1003,7 @@ def start_license_watchdog(app):
                 app._bg_timer.stop()
 
             if is_suspended:
-                lock = LockScreen("License suspended — IP changed.\nContact the developer to unsuspend.")
+                lock = LockScreen("License suspended.\nContact the developer.")
             elif not EMBEDDED_LICENSE_KEY:
                 delete_license_files()
                 lock = LockScreen(result.get("error", "License expired or revoked"))

@@ -218,7 +218,7 @@ def api_validate():
 
     if row["status"] == "suspended":
         conn.close()
-        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        resp = {"valid": False, "error": "License suspended. Contact the developer."}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "expired":
@@ -257,7 +257,7 @@ def api_validate():
             conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
             conn.commit()
             conn.close()
-            resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+            resp = {"valid": False, "error": "License suspended. Contact the developer."}
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
         conn.execute(
@@ -314,7 +314,7 @@ def api_heartbeat():
 
     if row["status"] == "suspended":
         conn.close()
-        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        resp = {"valid": False, "error": "License suspended. Contact the developer."}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "expired":
@@ -342,7 +342,7 @@ def api_heartbeat():
         conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
         conn.commit()
         conn.close()
-        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        resp = {"valid": False, "error": "License suspended. Contact the developer."}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     conn.execute(
@@ -549,7 +549,7 @@ def unsuspend_license(license_id):
             (int(remaining), license_id)
         )
         remaining_text = format_duration(remaining)
-        flash(f"License unsuspended — {remaining_text} remaining. User can re-activate from a new IP.", "success")
+        flash(f"License unsuspended — {remaining_text} remaining. User can re-activate.", "success")
     else:
         conn.execute(
             "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL WHERE id = ?",
