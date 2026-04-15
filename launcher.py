@@ -872,7 +872,9 @@ class LockScreen(QWidget):
         layout.addWidget(quit_btn)
 
 
-def _show_suspended_and_exit(app):
+def _show_suspended_and_exit(app, splash=None):
+    if splash:
+        splash.hide()
     lock = LockScreen("License suspended — IP changed.\nContact the developer to unsuspend.")
     lock.show()
     app._lock_screen = lock
@@ -880,7 +882,7 @@ def _show_suspended_and_exit(app):
     sys.exit(app.exec_())
 
 
-def check_license_or_prompt(app):
+def check_license_or_prompt(app, splash=None):
     if not LICENSE_SERVER_URL:
         return True
 
@@ -888,13 +890,17 @@ def check_license_or_prompt(app):
     error_msg = ""
 
     if saved_key:
+        if splash:
+            splash.set_progress(5, "Checking license...")
+            app.processEvents()
+
         result = validate_license(saved_key)
         if result.get("valid"):
             return True
         error_msg = result.get("error", "License invalid")
 
         if _is_suspended_error(error_msg):
-            _show_suspended_and_exit(app)
+            _show_suspended_and_exit(app, splash)
 
         if error_msg == "License already activated":
             hb = validate_license(saved_key, "heartbeat")
@@ -902,13 +908,16 @@ def check_license_or_prompt(app):
                 return True
             error_msg = hb.get("error", "License invalid")
             if _is_suspended_error(error_msg):
-                _show_suspended_and_exit(app)
+                _show_suspended_and_exit(app, splash)
 
         if EMBEDDED_LICENSE_KEY:
             return False
 
     if EMBEDDED_LICENSE_KEY:
         return False
+
+    if splash:
+        splash.hide()
 
     while True:
         dialog = LicenseDialog(error_msg=error_msg)
@@ -927,6 +936,8 @@ def check_license_or_prompt(app):
                                   "border-radius: 4px; padding: 6px 16px; }"
                                   "QPushButton:hover { background: #ff8c33; }")
                 msg.exec_()
+            if splash:
+                splash.show()
             return True
         else:
             return False
@@ -1025,27 +1036,30 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
+    splash_pix = create_splash_pixmap()
+    splash = SplashScreen(splash_pix)
+    splash.set_progress(0, "Starting...")
+    splash.show()
+    app.processEvents()
+
     if not acquire_launcher_lock():
         saved_key = load_saved_license()
         if saved_key and LICENSE_SERVER_URL:
+            splash.set_progress(5, "Checking license...")
+            app.processEvents()
             hb = validate_license(saved_key, "heartbeat")
             if hb.get("valid"):
                 pass
             else:
                 error_msg = hb.get("error", "")
                 if _is_suspended_error(error_msg):
-                    _show_suspended_and_exit(app)
+                    _show_suspended_and_exit(app, splash)
 
-    if not check_license_or_prompt(app):
+    if not check_license_or_prompt(app, splash):
         release_launcher_lock()
         sys.exit(0)
 
     paths = get_paths()
-
-    splash_pix = create_splash_pixmap()
-    splash = SplashScreen(splash_pix)
-    splash.show()
-    app.processEvents()
 
     log_lines = []
     log_lines.append(f"Launcher: {APP_NAME} v{APP_VERSION}")
