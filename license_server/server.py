@@ -537,13 +537,28 @@ def unsuspend_license(license_id):
         conn.close()
         flash("License not found or not suspended", "error")
         return redirect(request.referrer or url_for("dashboard"))
-    conn.execute(
-        "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL WHERE id = ?",
-        (license_id,)
-    )
+
+    now = time.time()
+    remaining = 0
+    if row["expires_at"]:
+        remaining = max(0, row["expires_at"] - now)
+
+    if remaining > 0:
+        conn.execute(
+            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ? WHERE id = ?",
+            (int(remaining), license_id)
+        )
+        remaining_text = format_duration(remaining)
+        flash(f"License unsuspended — {remaining_text} remaining. User can re-activate from a new IP.", "success")
+    else:
+        conn.execute(
+            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL WHERE id = ?",
+            (license_id,)
+        )
+        flash("License unsuspended but had no time remaining — marked as expired.", "warning")
+
     conn.commit()
     conn.close()
-    flash("License unsuspended — user can re-activate from a new IP", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 
