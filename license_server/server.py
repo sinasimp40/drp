@@ -26,7 +26,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db")
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
-HEARTBEAT_TIMEOUT = 300
+HEARTBEAT_TIMEOUT = 60
 REQUEST_TIMESTAMP_TOLERANCE = 300
 _used_nonces = set()
 _nonce_cleanup_time = 0
@@ -1283,6 +1283,71 @@ def delete_build_config(config_id):
     return redirect(url_for("builds_page"))
 
 
+@app.route("/api/upload_launcher", methods=["POST"])
+@require_admin
+def api_upload_launcher():
+    launcher_file = request.files.get("launcher_file")
+    if not launcher_file or not launcher_file.filename:
+        flash("No file selected", "error")
+        return redirect(url_for("builds_page"))
+
+    content = launcher_file.read().decode("utf-8", errors="replace")
+    if "APP_VERSION" not in content or "QApplication" not in content:
+        flash("Invalid launcher.py — missing expected launcher code", "error")
+        return redirect(url_for("builds_page"))
+
+    dest_path = os.path.join(SOURCE_DIR, "launcher.py")
+    alt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher.py")
+
+    saved_to = None
+    try:
+        with open(dest_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        saved_to = dest_path
+    except Exception:
+        try:
+            with open(alt_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            saved_to = alt_path
+        except Exception as e:
+            flash(f"Failed to save launcher.py: {e}", "error")
+            return redirect(url_for("builds_page"))
+
+    ver_match = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', content)
+    detected_ver = ver_match.group(1) if ver_match else "unknown"
+
+    flash(f"Launcher uploaded successfully! Detected version: {detected_ver}. Saved to: {os.path.basename(os.path.dirname(saved_to))}/{os.path.basename(saved_to)}", "success")
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/api/launcher_info")
+@require_admin
+def api_launcher_info():
+    launcher_src = os.path.join(SOURCE_DIR, "launcher.py")
+    if not os.path.isfile(launcher_src):
+        launcher_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher.py")
+    if not os.path.isfile(launcher_src):
+        return jsonify({"found": False})
+
+    try:
+        with open(launcher_src, "r", encoding="utf-8") as f:
+            content = f.read()
+        ver_match = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', content)
+        name_match = re.search(r'APP_NAME\s*=\s*"([^"]+)"', content)
+        size = os.path.getsize(launcher_src)
+        mtime = os.path.getmtime(launcher_src)
+        return jsonify({
+            "found": True,
+            "version": ver_match.group(1) if ver_match else "unknown",
+            "app_name": name_match.group(1) if name_match else "unknown",
+            "size": size,
+            "modified": mtime,
+            "path": launcher_src,
+        })
+    except Exception as e:
+        return jsonify({"found": False, "error": str(e)})
+
+
 @app.route("/api/trigger_build", methods=["POST"])
 @require_admin
 def api_trigger_build():
@@ -1585,28 +1650,40 @@ def api_report_download_progress():
 def api_ota_status():
     conn = get_db()
     configs = conn.execute("""
-        SELECT bc.id, bc.app_name, bc.license_id, l.license_key, l.launcher_version
+        SELECT bc.id, bc.app_name, bc.license_id, bc.embedded_key,
+               l.license_key, l.launcher_version
         FROM build_configs bc LEFT JOIN licenses l ON bc.license_id = l.id
     """).fetchall()
 
     latest_version = conn.execute("""
         SELECT version FROM builds WHERE status='completed' ORDER BY created_at DESC LIMIT 1
     """).fetchone()
-    conn.close()
 
     latest_ver = latest_version["version"] if latest_version else None
     result = []
     now = time.time()
     for c in configs:
+        launcher_ver = c["launcher_version"] or ""
         key = c["license_key"] or ""
+
+        if not launcher_ver and c["embedded_key"]:
+            ek_row = conn.execute(
+                "SELECT license_key, launcher_version FROM licenses WHERE license_key = ?",
+                (c["embedded_key"],)
+            ).fetchone()
+            if ek_row:
+                launcher_ver = ek_row["launcher_version"] or ""
+                if not key:
+                    key = ek_row["license_key"] or ""
+
         dl_info = _download_progress.get(key, {})
         dl_age = now - dl_info.get("updated_at", 0) if dl_info else 999999
 
-        if c["launcher_version"] and latest_ver and c["launcher_version"] == latest_ver:
+        if launcher_ver and latest_ver and launcher_ver == latest_ver:
             ota_state = "updated"
         elif dl_info and dl_info.get("status") == "downloading" and dl_age < 300:
             ota_state = "downloading"
-        elif latest_ver and (not c["launcher_version"] or c["launcher_version"] != latest_ver):
+        elif latest_ver and (not launcher_ver or launcher_ver != latest_ver):
             ota_state = "outdated"
         else:
             ota_state = "unknown"
@@ -1615,12 +1692,13 @@ def api_ota_status():
             "config_id": c["id"],
             "app_name": c["app_name"],
             "license_key": key[:8] + "..." if key else "",
-            "current_version": c["launcher_version"] or "—",
+            "current_version": launcher_ver or "—",
             "latest_version": latest_ver or "—",
             "ota_state": ota_state,
             "download_progress": dl_info.get("progress", 0) if ota_state == "downloading" else None,
         })
 
+    conn.close()
     return jsonify({"users": result, "latest_version": latest_ver})
 
 

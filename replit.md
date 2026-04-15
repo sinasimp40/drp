@@ -31,7 +31,7 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - **Embedded key mode**: bake a license key into the EXE at build time — perfect for diskless setups
 - Key file is **encrypted** (XOR with app-derived key) — raw binary, cannot be read in a text editor, only the launcher can decrypt it
 - Key file saved **only** next to the EXE — no ProgramData/AppData fallbacks (diskless-friendly: all clients share one file)
-- Validates with server before launching, re-checks every 15 seconds for near-instant revocation
+- Validates with server before launching, re-checks every 10 seconds for near-instant revocation
 - Server returns clear status: "License has expired", "License has been revoked", "License suspended", etc.
 - One-time activation: once a key is activated (pending → active), it cannot be activated again
 - **IP binding**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check against it. If IP changes, license is auto-suspended.
@@ -75,7 +75,9 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - `GET /api/build_status_all` (admin) — check if any active build
 - `GET /api/download_artifact/<build_id>/<config_id>` (admin) — download built .exe
 - `POST /api/report_download_progress` — launcher reports download % back to server
-- `GET /api/ota_status` (admin) — per-user OTA state (outdated/downloading/updated)
+- `GET /api/ota_status` (admin) — per-user OTA state (outdated/downloading/updated), resolves version via embedded_key fallback
+- `POST /api/upload_launcher` (admin) — upload launcher.py source file for builds
+- `GET /api/launcher_info` (admin) — returns detected version, app name, size, modified time of current launcher.py
 
 ### Build File Storage
 - Built .exe files stored at: `license_server/builds/<version>/<config_id>/<ExeName>.exe`

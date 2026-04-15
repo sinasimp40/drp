@@ -8,6 +8,24 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+        <h2 style="font-size: 16px; color: #f0f0f0;">Launcher Source</h2>
+    </div>
+    <div style="padding: 16px;">
+        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
+            <span style="color: #555;">Loading launcher info...</span>
+        </div>
+        <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                <label>Upload launcher.py</label>
+                <input type="file" name="launcher_file" accept=".py" style="color: #888;" required>
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
     <div style="padding: 16px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between;">
         <h2 style="font-size: 16px; color: #f0f0f0;">Trigger Build</h2>
     </div>
@@ -15,7 +33,7 @@
         <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
             <div class="form-group" style="margin-bottom: 0; flex: 0 0 200px;">
                 <label>Version</label>
-                <input type="text" name="version" placeholder="1.1.0" pattern="\d+\.\d+\.\d+" required>
+                <input type="text" name="version" id="build-version-input" placeholder="1.1.0" pattern="\d+\.\d+\.\d+" required>
             </div>
             <button type="submit" class="btn btn-primary" onclick="return confirm('Start building for all configs?')">Build All</button>
         </form>
@@ -324,10 +342,38 @@
             .catch(function() {});
     }
 
+    function loadLauncherInfo() {
+        fetch("/api/launcher_info", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var el = document.getElementById("launcher-info");
+                if (!data.found) {
+                    el.innerHTML = '<span style="color: #cc4444; font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
+                    return;
+                }
+                var modified = new Date(data.modified * 1000);
+                var dateStr = modified.toLocaleString();
+                var sizeKB = (data.size / 1024).toFixed(1);
+                el.innerHTML =
+                    '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
+                    '<div><span style="color: #888;">Version:</span> <span style="color: #ff8c33; font-weight: 600;">' + data.version + '</span></div>' +
+                    '<div><span style="color: #888;">App Name:</span> <span style="color: #f0f0f0;">' + data.app_name + '</span></div>' +
+                    '<div><span style="color: #888;">Size:</span> <span style="color: #f0f0f0;">' + sizeKB + ' KB</span></div>' +
+                    '<div><span style="color: #888;">Modified:</span> <span style="color: #f0f0f0;">' + dateStr + '</span></div>' +
+                    '</div>';
+                var versionInput = document.getElementById("build-version-input");
+                if (versionInput && !versionInput.value) {
+                    versionInput.value = data.version;
+                }
+            })
+            .catch(function() {});
+    }
+
     initSocket();
     checkActiveBuild();
+    loadLauncherInfo();
     loadOtaStatus();
-    setInterval(loadOtaStatus, 15000);
+    setInterval(loadOtaStatus, 5000);
 })();
 </script>
 {% endblock %}
