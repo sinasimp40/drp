@@ -804,7 +804,7 @@ def download_update(update_info, progress_callback=None):
                     pct = min(100, int(downloaded * 100 / total_size))
                     if progress_callback:
                         progress_callback(pct, downloaded, total_size)
-                    if pct - last_reported >= 10:
+                    if pct - last_reported >= 5:
                         last_reported = pct
                         _report_download_progress(pct, version, "downloading")
 

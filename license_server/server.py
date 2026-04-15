@@ -973,15 +973,8 @@ def _run_single_build(build_id, config, version):
             with _build_lock:
                 if build_id in _build_progress:
                     _build_progress[build_id]["artifacts"][config_id]["progress"] = estimated
-            if estimated - last_emitted >= 5:
+            if estimated != last_emitted:
                 last_emitted = estimated
-                conn = get_db()
-                conn.execute(
-                    "UPDATE build_artifacts SET progress=? WHERE build_id=? AND build_config_id=?",
-                    (estimated, build_id, config_id)
-                )
-                conn.commit()
-                conn.close()
                 try:
                     socketio.emit('build_progress', {
                         'build_id': build_id, 'config_id': config_id,
@@ -990,6 +983,14 @@ def _run_single_build(build_id, config, version):
                     }, namespace='/')
                 except Exception:
                     pass
+                if estimated % 5 == 0:
+                    conn = get_db()
+                    conn.execute(
+                        "UPDATE build_artifacts SET progress=? WHERE build_id=? AND build_config_id=?",
+                        (estimated, build_id, config_id)
+                    )
+                    conn.commit()
+                    conn.close()
 
         process.wait()
         if process.returncode != 0:
