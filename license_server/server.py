@@ -235,8 +235,37 @@ def api_validate():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "active":
+        now = time.time()
+        remaining = row["expires_at"] - now
+
+        if remaining <= 0:
+            conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
+            conn.commit()
+            conn.close()
+            resp = {"valid": False, "error": "License has expired"}
+            return jsonify({"data": resp, "signature": sign_response(resp)})
+
+        client_ip = request.remote_addr
+        if row["last_ip"] and row["last_ip"] != client_ip:
+            conn.close()
+            resp = {"valid": False, "error": "License already activated"}
+            return jsonify({"data": resp, "signature": sign_response(resp)})
+
+        conn.execute(
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
+            (now, client_ip, row["id"])
+        )
+        conn.commit()
         conn.close()
-        resp = {"valid": False, "error": "License already activated"}
+
+        resp = {
+            "valid": True,
+            "status": "active",
+            "remaining_seconds": int(remaining),
+            "remaining_text": format_duration(remaining),
+            "expires_at": row["expires_at"],
+            "key": key,
+        }
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     conn.close()
