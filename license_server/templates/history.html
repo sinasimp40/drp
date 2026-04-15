@@ -19,6 +19,7 @@
                     <th>Activated</th>
                     <th>Expires</th>
                     <th>IP (Registered)</th>
+                    <th>Version</th>
                     <th>Note</th>
                     <th>Actions</th>
                 </tr>
@@ -56,6 +57,7 @@
                         <div class="ip-info">Registered: {{ lic.registered_ip }}</div>
                         {% endif %}
                     </td>
+                    <td><span style="color: {% if lic.version %}#ff8c33{% else %}#555{% endif %}; font-size: 12px;">{{ lic.version or '-' }}</span></td>
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
                         {% if lic.status == 'suspended' %}
@@ -155,7 +157,7 @@
                     table = document.createElement("table");
                     table.innerHTML =
                         '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
-                        '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Note</th><th>Actions</th></tr></thead>' +
+                        '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Version</th><th>Note</th><th>Actions</th></tr></thead>' +
                         '<tbody id="history-tbody"></tbody>';
                     container.innerHTML = "";
                     container.appendChild(table);
@@ -177,6 +179,7 @@
                         '<td>' + lic.activated + '</td>' +
                         '<td>' + lic.expires + '</td>' +
                         '<td>' + ipText + '</td>' +
+                        '<td><span style="color: ' + (lic.version ? '#ff8c33' : '#555') + '; font-size: 12px;">' + (lic.version || '-') + '</span></td>' +
                         '<td>' + (lic.note || '') + '</td>' +
                         '<td class="actions-cell">' + buildActions(lic) + '</td>';
                     tbody.appendChild(tr);

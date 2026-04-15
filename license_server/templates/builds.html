@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Builds - License Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Build Management</h1>
+    <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">+ New Config</a>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between;">
+        <h2 style="font-size: 16px; color: #f0f0f0;">Trigger Build</h2>
+    </div>
+    <div style="padding: 16px;">
+        <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0; flex: 0 0 200px;">
+                <label>Version</label>
+                <input type="text" name="version" placeholder="1.1.0" pattern="\d+\.\d+\.\d+" required>
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Start building for all configs?')">Build All</button>
+        </form>
+    </div>
+</div>
+
+<div id="build-progress-area" style="margin-bottom: 24px; display: none;">
+    <div class="card">
+        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+            <h2 style="font-size: 16px; color: #f0f0f0;">
+                Build Progress <span id="build-version-label" style="color: #ff6a00;"></span>
+                <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
+            </h2>
+        </div>
+        <div id="build-artifacts-list" style="padding: 16px;"></div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+        <h2 style="font-size: 16px; color: #f0f0f0;">Build Configs ({{ configs|length }})</h2>
+    </div>
+    {% if configs %}
+    <table>
+        <thead>
+            <tr>
+                <th>App Name</th>
+                <th>License</th>
+                <th>Path</th>
+                <th>Icon</th>
+                <th>Server URL</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in configs %}
+            <tr>
+                <td style="font-weight: 600; color: #ff8c33;">{{ c.app_name }}</td>
+                <td>
+                    <span class="key-text" style="font-size: 11px;">{{ c.license_key }}</span>
+                    {% if c.license_note %}
+                    <div class="ip-info">{{ c.license_note }}</div>
+                    {% endif %}
+                </td>
+                <td style="font-size: 12px; color: #888;">{{ c.hardcoded_path or 'Not set' }}</td>
+                <td>
+                    {% if c.has_icon %}
+                    <span style="color: #44cc44;">Yes</span>
+                    {% else %}
+                    <span style="color: #555;">No</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 12px; color: #888;">{{ c.license_server_url or 'Not set' }}</td>
+                <td class="actions-cell">
+                    <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_build_config', config_id=c.id) }}" onsubmit="return confirm('Delete this build config?')" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No build configs yet</p>
+        <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">Create your first config</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+        <h2 style="font-size: 16px; color: #f0f0f0;">Build History</h2>
+    </div>
+    {% if builds %}
+    <table>
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in builds %}
+            <tr data-build-id="{{ b.id }}">
+                <td style="font-weight: 600; color: #ff8c33;">v{{ b.version }}</td>
+                <td>
+                    {% if b.status == 'completed' %}
+                    <span class="badge badge-online">Completed</span>
+                    {% elif b.status == 'building' %}
+                    <span class="badge badge-pending">Building</span>
+                    {% elif b.status == 'failed' %}
+                    <span class="badge badge-revoked">Failed</span>
+                    {% else %}
+                    <span class="badge badge-offline">{{ b.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ b.completed }}/{{ b.total }}</td>
+                <td>{{ b.started }}</td>
+                <td>{{ b.finished }}</td>
+                <td style="color: #cc4444; font-size: 12px;">{{ b.error }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No builds yet</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .progress-bar-container {
+        background: #1e1e1e;
+        border-radius: 4px;
+        height: 20px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 8px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    .progress-bar-fill.building { background: linear-gradient(90deg, #ff6a00, #ff9d4d); }
+    .progress-bar-fill.completed { background: #44cc44; }
+    .progress-bar-fill.failed { background: #cc4444; }
+    .artifact-item {
+        padding: 12px;
+        border-bottom: 1px solid #1a1a1a;
+    }
+    .artifact-item:last-child { border-bottom: none; }
+    .artifact-name { font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
+    .artifact-status { font-size: 12px; color: #888; }
+</style>
+<script>
+(function() {
+    var pollInterval = null;
+
+    function checkActiveBuild() {
+        fetch("/api/build_status_all", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.active_build) {
+                    startPolling(data.active_build);
+                }
+            })
+            .catch(function() {});
+    }
+
+    function startPolling(buildId) {
+        var area = document.getElementById("build-progress-area");
+        area.style.display = "block";
+
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(function() { pollBuild(buildId); }, 2000);
+        pollBuild(buildId);
+    }
+
+    function pollBuild(buildId) {
+        fetch("/api/build_status/" + buildId, { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                renderProgress(data);
+                if (data.status === "completed" || data.status === "failed") {
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    setTimeout(function() { location.reload(); }, 3000);
+                }
+            })
+            .catch(function() {});
+    }
+
+    function renderProgress(data) {
+        document.getElementById("build-version-label").textContent = "v" + (data.version || "");
+        var badge = document.getElementById("build-status-badge");
+        if (data.status === "building") {
+            badge.className = "badge badge-pending";
+            badge.textContent = "Building";
+        } else if (data.status === "completed") {
+            badge.className = "badge badge-online";
+            badge.textContent = "Completed";
+        } else if (data.status === "failed") {
+            badge.className = "badge badge-revoked";
+            badge.textContent = "Failed";
+        } else {
+            badge.className = "badge badge-offline";
+            badge.textContent = data.status || "Pending";
+        }
+
+        var list = document.getElementById("build-artifacts-list");
+        var html = "";
+        if (data.artifacts) {
+            var keys = Object.keys(data.artifacts);
+            for (var i = 0; i < keys.length; i++) {
+                var art = data.artifacts[keys[i]];
+                var statusClass = art.status || "building";
+                var pct = art.progress || 0;
+                html += '<div class="artifact-item">';
+                html += '<div class="artifact-name">' + (art.name || "Config #" + keys[i]) + '</div>';
+                html += '<div class="progress-bar-container">';
+                html += '<div class="progress-bar-fill ' + statusClass + '" style="width: ' + pct + '%;"></div>';
+                html += '</div>';
+                html += '<div class="artifact-status">';
+                if (art.status === "completed") {
+                    html += '<span style="color: #44cc44;">Completed</span>';
+                    if (art.filename) html += ' — ' + art.filename;
+                    if (art.size) html += ' (' + (art.size / 1024 / 1024).toFixed(1) + ' MB)';
+                } else if (art.status === "failed") {
+                    html += '<span style="color: #cc4444;">Failed: ' + (art.error || "Unknown error") + '</span>';
+                } else {
+                    html += 'Building... ' + pct + '%';
+                }
+                html += '</div></div>';
+            }
+        }
+        if (data.error) {
+            html += '<div style="padding: 12px; color: #cc4444;">' + data.error + '</div>';
+        }
+        list.innerHTML = html || '<div style="padding: 12px; color: #555;">Waiting...</div>';
+    }
+
+    checkActiveBuild();
+})();
+</script>
+{% endblock %}

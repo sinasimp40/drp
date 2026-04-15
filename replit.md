@@ -3,12 +3,13 @@
 ## Overview
 A zero-interaction portable Roblox launcher. Double-click the .exe and it does everything automatically:
 1. Validates license key with online server (if configured)
-2. Shows custom-named splash screen (e.g. "DENFI ROBLOX PORTABLE")
-3. Auto-syncs Roblox files if an update is detected on the system
-4. Clears login data (rbx-storage.db) so each instance starts fresh
-5. Grabs the Roblox mutex to allow multiple instances
-6. Launches Roblox from the portable folder
-7. Stays running in background to hold the mutex, cleans up login on exit
+2. Checks for OTA updates and auto-updates if available
+3. Shows custom-named splash screen (e.g. "DENFI ROBLOX PORTABLE")
+4. Auto-syncs Roblox files if an update is detected on the system
+5. Clears login data (rbx-storage.db) so each instance starts fresh
+6. Grabs the Roblox mutex to allow multiple instances
+7. Launches Roblox from the portable folder
+8. Stays running in background to hold the mutex, cleans up login on exit
 
 ## How It Works
 - The build script asks for your Roblox files path, launcher name, and license server URL — bakes all into the exe
@@ -35,8 +36,8 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - One-time activation: once a key is activated (pending → active), it cannot be activated again
 - **IP binding**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check against it. If IP changes, license is auto-suspended.
 - **Suspended state**: suspended licenses block usage until an admin unsuspends them. Unsuspending resets the license to pending with cleared IP, allowing re-activation from a new IP.
-- Heartbeats keep the running session alive
-- Dashboard shows registered IP alongside last-seen IP for each license
+- Heartbeats keep the running session alive and report launcher version
+- Dashboard shows registered IP alongside last-seen IP and launcher version for each license
 - **Unsuspend button**: admin can unsuspend a suspended license from the dashboard or history page
 - If license expires, is revoked, or is suspended: shows lock screen, kills Roblox
 - Suspended licenses do NOT delete the `.license_key` file (so user can reconnect after unsuspend)
@@ -45,8 +46,39 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - Server signs responses with HMAC to prevent tampering
 - Optional: leave license server URL blank during build to disable checking
 
+## OTA Update System
+- **Server-side builds**: Admin configures per-user build configs (app name, icon, Roblox path, license key embedded)
+- **Build configs**: Each config links to a license — the license key gets baked into the .exe as EMBEDDED_LICENSE_KEY
+- **Build engine**: Server runs PyInstaller per config, patches launcher.py source with config values, produces personalized .exe files
+- **Version management**: Admin enters version number (X.Y.Z format) and triggers "Build All" — builds every config
+- **Build progress**: Real-time progress tracking via polling — admin sees per-config progress bars on the Builds page
+- **Launcher OTA**: After license check, launcher calls `/api/update_check` with current version. If update available, downloads new .exe with progress shown on splash screen
+- **Self-replace**: On Windows, launcher writes a .bat script that waits for process exit, swaps old/new exe, relaunches
+- **Download tokens**: Update check returns a short-lived token (10 min) for downloading, no signing needed on the download request
+- **Admin download**: Admin can download built artifacts directly from the Builds page
+- **Version display**: Dashboard and History pages show each user's current launcher version
+
+### OTA Database Tables
+- `build_configs` — per-user build configuration (app_name, hardcoded_path, icon, license_server_url, license_secret, linked license_id)
+- `builds` — build runs (version, status, progress, timestamps)
+- `build_artifacts` — per-config results within a build (exe filename, file size, status, progress)
+- `licenses.launcher_version` — tracks each launcher's reported version from heartbeats
+
+### OTA API Endpoints
+- `POST /api/update_check` (signed) — launcher checks for updates
+- `GET /api/download_update/<token>` — launcher downloads new .exe
+- `POST /api/trigger_build` (admin) — triggers build for all configs
+- `GET /api/build_status/<build_id>` (admin) — poll build progress
+- `GET /api/build_status_all` (admin) — check if any active build
+- `GET /api/download_artifact/<build_id>/<config_id>` (admin) — download built .exe
+
+### Build File Storage
+- Built .exe files stored at: `license_server/builds/<version>/<config_id>/<ExeName>.exe`
+- Icons stored at: `license_server/build_icons/<filename>.ico`
+- Temp work directories cleaned up after each build
+
 ## Multi-Instance Flow
-1. Run exe → validates license → clears rbx-storage.db → grabs mutex → launches Roblox (fresh, not logged in)
+1. Run exe → validates license → checks for updates → clears rbx-storage.db → grabs mutex → launches Roblox (fresh, not logged in)
 2. Log into Account A
 3. Run exe again → clears rbx-storage.db → grabs mutex → launches second Roblox (fresh)
 4. Log into Account B
@@ -66,14 +98,16 @@ YourChosenFolder\
   Logs\                  <- Launch logs
 
 license_server\          <- Deploy this to your RDP
-  server.py              <- Flask license server + admin dashboard
-  templates/             <- Dashboard HTML templates
+  server.py              <- Flask license server + admin dashboard + OTA build engine
+  templates/             <- Dashboard, History, Builds HTML templates
   licenses.db            <- SQLite database (auto-created)
+  builds/                <- Built .exe artifacts (auto-created)
+  build_icons/           <- Uploaded icons (auto-created)
   DEPLOY.md              <- Deployment instructions
 ```
 
 ## Files
-- **launcher.py** — Main application (license check, splash screen, auto-sync, login clear, mutex, auto-launch, lock file)
+- **launcher.py** — Main application (license check, OTA update, splash screen, auto-sync, login clear, mutex, auto-launch, lock file)
 - **build_exe.bat** — Windows build script (asks for name + path + license URL, converts icons, builds exe)
 - **build_config.py** — Helper that writes path, app name, and license URL into launcher.py during build
 - **convert_icon.py** — Auto-converts PNG/JPG/BMP/etc to icon.ico for the build
@@ -94,7 +128,7 @@ license_server\          <- Deploy this to your RDP
 
 ## License Server Setup
 See `license_server/DEPLOY.md` for full instructions.
-Quick: copy `license_server/` to your RDP, `pip install flask`, `python server.py`
+Quick: copy `license_server/` to your RDP, `pip install flask Pillow`, `python server.py`
 
 ## Theme
 - Background: black (#0a0a0a)

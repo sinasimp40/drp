@@ -699,7 +699,7 @@ def validate_license(key, endpoint="validate"):
     try:
         import urllib.request
         url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
-        body = {"key": key}
+        body = {"key": key, "version": APP_VERSION}
         timestamp, nonce, req_sig = sign_request(body)
         req_data = json.dumps(body).encode('utf-8')
         req = urllib.request.Request(url, data=req_data, headers={
@@ -720,6 +720,120 @@ def validate_license(key, endpoint="validate"):
         return data
     except Exception as e:
         return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
+
+
+def check_for_update(key):
+    if not LICENSE_SERVER_URL:
+        return None
+    try:
+        import urllib.request
+        url = LICENSE_SERVER_URL.rstrip("/") + "/api/update_check"
+        body = {"key": key, "version": APP_VERSION}
+        timestamp, nonce, req_sig = sign_request(body)
+        req_data = json.dumps(body).encode('utf-8')
+        req = urllib.request.Request(url, data=req_data, headers={
+            "Content-Type": "application/json",
+            "X-Timestamp": timestamp,
+            "X-Nonce": nonce,
+            "X-Signature": req_sig,
+        })
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+        data = result.get("data", {})
+        sig = result.get("signature", "")
+        if not verify_signature(data, sig):
+            return None
+        if data.get("update_available"):
+            return data
+        return None
+    except Exception:
+        return None
+
+
+def download_update(update_info, progress_callback=None):
+    if not LICENSE_SERVER_URL:
+        return None
+    try:
+        import urllib.request
+        token = update_info.get("download_token", "")
+        if not token:
+            return None
+        url = LICENSE_SERVER_URL.rstrip("/") + f"/api/download_update/{token}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            total_size = update_info.get("file_size", 0)
+            data = bytearray()
+            block_size = 65536
+            downloaded = 0
+            while True:
+                chunk = resp.read(block_size)
+                if not chunk:
+                    break
+                data.extend(chunk)
+                downloaded += len(chunk)
+                if progress_callback and total_size > 0:
+                    pct = min(100, int(downloaded * 100 / total_size))
+                    progress_callback(pct, downloaded, total_size)
+
+        if len(data) < 1024:
+            return None
+
+        expected_hash = update_info.get("sha256", "")
+        if expected_hash:
+            actual_hash = hashlib.sha256(data).hexdigest()
+            if actual_hash != expected_hash:
+                return None
+
+        if total_size > 0 and len(data) != total_size:
+            return None
+
+        temp_dir = os.path.join(APP_DIR, "_update")
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, f"update_{update_info.get('latest_version', 'new')}.exe")
+        with open(temp_path, "wb") as f:
+            f.write(data)
+        return temp_path
+    except Exception:
+        return None
+
+
+def apply_update_and_restart(new_exe_path):
+    if sys.platform != "win32":
+        return False
+    if not getattr(sys, 'frozen', False):
+        return False
+    try:
+        current_exe = sys.executable
+        backup_path = current_exe + ".bak"
+        bat_path = os.path.join(APP_DIR, "_update_swap.bat")
+        bat_content = f'''@echo off
+timeout /t 2 /nobreak >nul
+copy "{current_exe}" "{backup_path}" >nul 2>&1
+move /y "{new_exe_path}" "{current_exe}" >nul 2>&1
+if errorlevel 1 (
+    copy /y "{new_exe_path}" "{current_exe}" >nul 2>&1
+    if errorlevel 1 (
+        copy /y "{backup_path}" "{current_exe}" >nul 2>&1
+        del "{backup_path}" >nul 2>&1
+        start "" "{current_exe}"
+        del "%~f0" >nul 2>&1
+        exit /b 1
+    )
+)
+del "{backup_path}" >nul 2>&1
+start "" "{current_exe}"
+del "%~f0" >nul 2>&1
+'''
+        with open(bat_path, "w") as f:
+            f.write(bat_content)
+        subprocess.Popen(
+            ["cmd", "/c", bat_path],
+            creationflags=0x08000000,
+            close_fds=True
+        )
+        return True
+    except Exception:
+        return False
 
 
 def _is_suspended_error(error_msg):
@@ -1058,6 +1172,39 @@ def main():
     if not check_license_or_prompt(app, splash):
         release_launcher_lock()
         sys.exit(0)
+
+    saved_key_for_update = load_saved_license()
+    if saved_key_for_update and LICENSE_SERVER_URL:
+        splash.set_progress(8, "Checking for updates...")
+        app.processEvents()
+        update_info = check_for_update(saved_key_for_update)
+        if update_info:
+            new_version = update_info.get("latest_version", "?")
+            file_size = update_info.get("file_size", 0)
+            size_mb = file_size / 1024 / 1024 if file_size else 0
+
+            def on_download_progress(pct, downloaded, total):
+                dl_mb = downloaded / 1024 / 1024
+                splash.set_progress(8 + int(pct * 0.85), f"Downloading v{new_version}... {dl_mb:.1f}/{size_mb:.1f} MB")
+                app.processEvents()
+
+            splash.set_progress(8, f"Update v{new_version} found ({size_mb:.1f} MB)...")
+            app.processEvents()
+
+            new_exe = download_update(update_info, on_download_progress)
+            if new_exe:
+                splash.set_progress(95, f"Installing v{new_version}...")
+                app.processEvents()
+                if apply_update_and_restart(new_exe):
+                    splash.set_progress(100, "Restarting...")
+                    app.processEvents()
+                    import time as _t_update
+                    _t_update.sleep(1)
+                    release_launcher_lock()
+                    sys.exit(0)
+                else:
+                    splash.set_progress(8, "Update failed, continuing...")
+                    app.processEvents()
 
     paths = get_paths()
 

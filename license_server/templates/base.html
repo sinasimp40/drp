@@ -237,6 +237,7 @@
             <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
             <a href="{{ url_for('create_license') }}" class="{% if request.endpoint == 'create_license' %}active{% endif %}">Create Key</a>
             <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">History</a>
+            <a href="{{ url_for('builds_page') }}" class="{% if request.endpoint in ('builds_page', 'create_build_config', 'edit_build_config') %}active{% endif %}">Builds</a>
         </div>
         <div class="spacer"></div>
         <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
