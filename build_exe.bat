@@ -118,28 +118,7 @@ echo.
 
 :skip_secret
 
-set EMBEDDED_KEY=
-if not "%LICENSE_URL%"=="" (
-    echo.
-    echo   [OPTIONAL] Embed a license key into the EXE?
-    echo.
-    echo   For DISKLESS setups (game cafes, shared servers),
-    echo   you can bake a license key directly into the EXE
-    echo   so clients never need to enter it manually.
-    echo.
-    echo   Leave blank if each user enters their own key.
-    echo.
-    set /p EMBEDDED_KEY="   Enter license key to embed (or press Enter to skip): "
-)
-
-if not "%EMBEDDED_KEY%"=="" (
-    echo   [*] Embedding license key: %EMBEDDED_KEY%
-) else (
-    echo   [*] No embedded key - users will enter manually
-)
-echo.
-
-python build_config.py "%ROBLOX_PATH%" "%APP_NAME_INPUT%" "%LICENSE_URL%" "%LICENSE_SECRET%" "%EMBEDDED_KEY%" > _build_output.tmp 2>&1
+python build_config.py "%ROBLOX_PATH%" "%APP_NAME_INPUT%" "%LICENSE_URL%" "%LICENSE_SECRET%" > _build_output.tmp 2>&1
 if errorlevel 1 (
     type _build_output.tmp
     del _build_output.tmp >nul 2>&1
