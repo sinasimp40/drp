@@ -820,6 +820,11 @@ def check_license_or_prompt(app):
         if result.get("valid"):
             return True
         error_msg = result.get("error", "License invalid")
+        if error_msg == "License already activated":
+            hb = validate_license(saved_key, "heartbeat")
+            if hb.get("valid"):
+                return True
+            error_msg = hb.get("error", "License invalid")
         if EMBEDDED_LICENSE_KEY:
             return False
 
