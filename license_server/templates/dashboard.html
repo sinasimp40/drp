@@ -17,7 +17,7 @@
                     <th>Status</th>
                     <th>Activated</th>
                     <th>Time Remaining</th>
-                    <th>Last IP</th>
+                    <th>IP (Registered)</th>
                     <th>Last Seen</th>
                     <th>Note</th>
                     <th>Actions</th>
@@ -30,6 +30,8 @@
                     <td>
                         {% if lic.status == 'pending' %}
                         <span class="badge badge-pending">Pending</span>
+                        {% elif lic.status == 'suspended' %}
+                        <span class="badge badge-suspended">Suspended</span>
                         {% elif lic.online %}
                         <span class="badge badge-online">Online</span>
                         {% else %}
@@ -50,10 +52,20 @@
                         {{ lic.remaining }}
                         {% endif %}
                     </td>
-                    <td>{{ lic.last_ip }}</td>
+                    <td>
+                        {{ lic.last_ip }}
+                        {% if lic.registered_ip != 'N/A' %}
+                        <div class="ip-info">Registered: {{ lic.registered_ip }}</div>
+                        {% endif %}
+                    </td>
                     <td>{{ lic.last_heartbeat }}</td>
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
+                        {% if lic.status == 'suspended' %}
+                        <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate from a new IP.')">
+                            <button type="submit" class="btn btn-success btn-sm">Unsuspend</button>
+                        </form>
+                        {% endif %}
                         <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
                             <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
                         </form>
@@ -93,13 +105,13 @@
     }
     .fade-update { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
-    .badge-pending { background: #1a1a2a; color: #6688cc; }
 </style>
 <script>
 (function() {
     var POLL_INTERVAL = 5000;
     var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
     var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
+    var unsuspendUrl = "{{ url_for('unsuspend_license', license_id=0) }}".replace('/0', '');
 
     function formatDuration(seconds) {
         if (seconds <= 0) return "Expired";
@@ -117,6 +129,7 @@
 
     function statusBadge(lic) {
         if (lic.status === 'pending') return '<span class="badge badge-pending">Pending</span>';
+        if (lic.status === 'suspended') return '<span class="badge badge-suspended">Suspended</span>';
         if (lic.online) return '<span class="badge badge-online">Online</span>';
         return '<span class="badge badge-offline">Offline</span>';
     }
@@ -134,22 +147,30 @@
             ? lic.remaining + ' <span style="color: #666; font-size: 11px;">(waiting)</span>'
             : lic.remaining;
 
+        var ipText = lic.last_ip;
+        if (lic.registered_ip && lic.registered_ip !== 'N/A') {
+            ipText += '<div class="ip-info">Registered: ' + lic.registered_ip + '</div>';
+        }
+
+        var actionsHtml = '';
+        if (lic.status === 'suspended') {
+            actionsHtml += '<form method="POST" action="' + unsuspendUrl + '/' + lic.id + '" onsubmit="return confirm(\'Unsuspend this license? The user will need to re-activate from a new IP.\')">' +
+                '<button type="submit" class="btn btn-success btn-sm">Unsuspend</button></form>';
+        }
+        actionsHtml += '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
+            '<button type="submit" class="btn btn-danger btn-sm">Revoke</button></form>';
+        actionsHtml += '<form method="POST" action="' + deleteUrl + '/' + lic.id + '" onsubmit="return confirm(\'Delete this license?\')">' +
+            '<button type="submit" class="btn btn-danger btn-sm">Delete</button></form>';
+
         tr.innerHTML =
             '<td><span class="key-text">' + lic.key + '</span></td>' +
             '<td>' + statusBadge(lic) + '</td>' +
             '<td>' + activatedText + '</td>' +
             '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '" data-status="' + lic.status + '">' + remainingText + '</td>' +
-            '<td>' + lic.last_ip + '</td>' +
+            '<td>' + ipText + '</td>' +
             '<td>' + lic.last_heartbeat + '</td>' +
             '<td>' + (lic.note || '') + '</td>' +
-            '<td class="actions-cell">' +
-                '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
-                    '<button type="submit" class="btn btn-danger btn-sm">Revoke</button>' +
-                '</form>' +
-                '<form method="POST" action="' + deleteUrl + '/' + lic.id + '" onsubmit="return confirm(\'Delete this license?\')">' +
-                    '<button type="submit" class="btn btn-danger btn-sm">Delete</button>' +
-                '</form>' +
-            '</td>';
+            '<td class="actions-cell">' + actionsHtml + '</td>';
         return tr;
     }
 
@@ -173,7 +194,7 @@
                     table.innerHTML =
                         '<thead><tr>' +
                             '<th>License Key</th><th>Status</th><th>Activated</th><th>Time Remaining</th>' +
-                            '<th>Last IP</th><th>Last Seen</th><th>Note</th><th>Actions</th>' +
+                            '<th>IP (Registered)</th><th>Last Seen</th><th>Note</th><th>Actions</th>' +
                         '</tr></thead><tbody id="license-tbody"></tbody>';
                     container.innerHTML = "";
                     container.appendChild(table);
@@ -194,7 +215,7 @@
         var cells = document.querySelectorAll(".time-remaining[data-seconds]");
         cells.forEach(function(cell) {
             var status = cell.getAttribute("data-status");
-            if (status === "pending") return;
+            if (status === "pending" || status === "suspended") return;
             var s = parseInt(cell.getAttribute("data-seconds"), 10);
             if (s > 0) {
                 s--;

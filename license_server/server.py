@@ -47,7 +47,8 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'pending',
             last_heartbeat REAL,
             last_ip TEXT,
-            note TEXT DEFAULT ''
+            note TEXT DEFAULT '',
+            registered_ip TEXT
         );
     """)
     try:
@@ -56,6 +57,12 @@ def init_db():
         conn.execute("ALTER TABLE licenses ADD COLUMN activated_at REAL")
         conn.execute("UPDATE licenses SET activated_at = created_at WHERE status = 'active'")
         conn.execute("UPDATE licenses SET status = 'pending' WHERE status = 'active' AND last_heartbeat IS NULL AND activated_at IS NULL")
+        conn.commit()
+    try:
+        conn.execute("SELECT registered_ip FROM licenses LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE licenses ADD COLUMN registered_ip TEXT")
+        conn.execute("UPDATE licenses SET registered_ip = last_ip WHERE status = 'active' AND last_ip IS NOT NULL")
         conn.commit()
     try:
         existing = conn.execute("SELECT expires_at FROM licenses WHERE expires_at IS NOT NULL LIMIT 1").fetchone()
@@ -161,12 +168,12 @@ def is_online(last_heartbeat):
     return (time.time() - last_heartbeat) < HEARTBEAT_TIMEOUT
 
 
-def activate_license(conn, row):
+def activate_license(conn, row, client_ip):
     now = time.time()
     expires_at = now + row["duration_seconds"]
     conn.execute(
-        "UPDATE licenses SET status = 'active', activated_at = ?, expires_at = ? WHERE id = ?",
-        (now, expires_at, row["id"])
+        "UPDATE licenses SET status = 'active', activated_at = ?, expires_at = ?, registered_ip = ?, last_heartbeat = ?, last_ip = ? WHERE id = ?",
+        (now, expires_at, client_ip, now, client_ip, row["id"])
     )
     conn.commit()
     return expires_at
@@ -209,20 +216,20 @@ def api_validate():
         resp = {"valid": False, "error": "License has been deleted"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
+    if row["status"] == "suspended":
+        conn.close()
+        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     if row["status"] == "expired":
         conn.close()
         resp = {"valid": False, "error": "License has expired"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "pending":
-        expires_at = activate_license(conn, row)
-        remaining = expires_at - time.time()
         client_ip = request.remote_addr
-        conn.execute(
-            "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
-            (time.time(), client_ip, row["id"])
-        )
-        conn.commit()
+        expires_at = activate_license(conn, row, client_ip)
+        remaining = expires_at - time.time()
         conn.close()
         resp = {
             "valid": True,
@@ -235,8 +242,37 @@ def api_validate():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "active":
+        now = time.time()
+        remaining = row["expires_at"] - now
+
+        if remaining <= 0:
+            conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
+            conn.commit()
+            conn.close()
+            resp = {"valid": False, "error": "License has expired"}
+            return jsonify({"data": resp, "signature": sign_response(resp)})
+
+        client_ip = request.remote_addr
+        if row["registered_ip"] and client_ip != row["registered_ip"]:
+            conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
+            conn.commit()
+            conn.close()
+            resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+            return jsonify({"data": resp, "signature": sign_response(resp)})
+
+        conn.execute(
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
+            (now, client_ip, row["id"])
+        )
+        conn.commit()
         conn.close()
-        resp = {"valid": False, "error": "License already activated"}
+        resp = {
+            "valid": True,
+            "status": "active",
+            "remaining_seconds": int(remaining),
+            "remaining_text": format_duration(remaining),
+            "key": key,
+        }
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     conn.close()
@@ -276,6 +312,11 @@ def api_heartbeat():
         resp = {"valid": False, "error": "License has been deleted"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
+    if row["status"] == "suspended":
+        conn.close()
+        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     if row["status"] == "expired":
         conn.close()
         resp = {"valid": False, "error": "License has expired"}
@@ -297,6 +338,13 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
+    if row["registered_ip"] and client_ip != row["registered_ip"]:
+        conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
+        conn.commit()
+        conn.close()
+        resp = {"valid": False, "error": "License suspended — IP changed. Contact the developer."}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     conn.execute(
         "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
         (now, client_ip, row["id"])
@@ -348,7 +396,7 @@ def dashboard():
     expire_active_licenses(conn)
 
     rows = conn.execute(
-        "SELECT * FROM licenses WHERE status IN ('active', 'pending') ORDER BY created_at DESC"
+        "SELECT * FROM licenses WHERE status IN ('active', 'pending', 'suspended') ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
 
@@ -357,6 +405,10 @@ def dashboard():
         if row["status"] == "active":
             remaining = row["expires_at"] - now
             remaining_text = format_duration(remaining)
+            remaining_seconds = int(remaining)
+        elif row["status"] == "suspended" and row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
+            remaining_text = format_duration(remaining) + " (suspended)"
             remaining_seconds = int(remaining)
         else:
             remaining_text = format_duration(row["duration_seconds"])
@@ -372,6 +424,7 @@ def dashboard():
             "online": is_online(row["last_heartbeat"]),
             "last_heartbeat": format_time(row["last_heartbeat"]),
             "last_ip": row["last_ip"] or "N/A",
+            "registered_ip": row["registered_ip"] or "N/A",
             "note": row["note"] or "",
             "status": row["status"],
         })
@@ -395,6 +448,10 @@ def history():
             remaining = max(0, row["expires_at"] - now)
             remaining_text = format_duration(remaining)
             remaining_seconds = int(remaining)
+        elif row["status"] == "suspended" and row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
+            remaining_text = format_duration(remaining) + " (suspended)"
+            remaining_seconds = int(remaining)
         elif row["status"] == "pending":
             remaining_text = format_duration(row["duration_seconds"]) + " (pending)"
             remaining_seconds = row["duration_seconds"]
@@ -412,6 +469,7 @@ def history():
             "remaining_seconds": remaining_seconds,
             "online": is_online(row["last_heartbeat"]) if row["status"] == "active" else False,
             "last_ip": row["last_ip"] or "N/A",
+            "registered_ip": row["registered_ip"] or "N/A",
             "note": row["note"] or "",
             "status": row["status"],
             "duration_text": format_duration(row["duration_seconds"]),
@@ -469,6 +527,24 @@ def delete_license(license_id):
     flash("License deleted", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
+
+@app.route("/unsuspend/<int:license_id>", methods=["POST"])
+@require_admin
+def unsuspend_license(license_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM licenses WHERE id = ? AND status = 'suspended'", (license_id,)).fetchone()
+    if not row:
+        conn.close()
+        flash("License not found or not suspended", "error")
+        return redirect(request.referrer or url_for("dashboard"))
+    conn.execute(
+        "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL WHERE id = ?",
+        (license_id,)
+    )
+    conn.commit()
+    conn.close()
+    flash("License unsuspended — user can re-activate from a new IP", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 def require_admin_api(f):
@@ -552,6 +628,8 @@ def api_list_licenses():
     for row in rows:
         if row["status"] == "active" and row["expires_at"]:
             remaining = max(0, row["expires_at"] - now)
+        elif row["status"] == "suspended" and row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
         elif row["status"] == "pending":
             remaining = row["duration_seconds"]
         else:
@@ -563,9 +641,10 @@ def api_list_licenses():
             "activated_at": row["activated_at"],
             "expires_at": row["expires_at"],
             "remaining_seconds": int(remaining),
-            "remaining_text": format_duration(remaining) if row["status"] in ("active", "pending") else "-",
+            "remaining_text": format_duration(remaining) if row["status"] in ("active", "pending", "suspended") else "-",
             "online": is_online(row["last_heartbeat"]) if row["status"] == "active" else False,
             "last_ip": row["last_ip"] or "",
+            "registered_ip": row["registered_ip"] or "",
             "note": row["note"] or "",
         })
 
@@ -581,7 +660,7 @@ def api_dashboard_data():
     expire_active_licenses(conn)
 
     rows = conn.execute(
-        "SELECT * FROM licenses WHERE status IN ('active', 'pending') ORDER BY created_at DESC"
+        "SELECT * FROM licenses WHERE status IN ('active', 'pending', 'suspended') ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
 
@@ -590,6 +669,10 @@ def api_dashboard_data():
         if row["status"] == "active":
             remaining = row["expires_at"] - now
             remaining_text = format_duration(remaining)
+            remaining_seconds = int(remaining)
+        elif row["status"] == "suspended" and row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
+            remaining_text = format_duration(remaining) + " (suspended)"
             remaining_seconds = int(remaining)
         else:
             remaining_text = format_duration(row["duration_seconds"])
@@ -605,6 +688,7 @@ def api_dashboard_data():
             "online": is_online(row["last_heartbeat"]),
             "last_heartbeat": format_time(row["last_heartbeat"]),
             "last_ip": row["last_ip"] or "N/A",
+            "registered_ip": row["registered_ip"] or "N/A",
             "note": row["note"] or "",
             "status": row["status"],
         })
@@ -628,6 +712,10 @@ def api_history_data():
             remaining = max(0, row["expires_at"] - now)
             remaining_text = format_duration(remaining)
             remaining_seconds = int(remaining)
+        elif row["status"] == "suspended" and row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
+            remaining_text = format_duration(remaining) + " (suspended)"
+            remaining_seconds = int(remaining)
         elif row["status"] == "pending":
             remaining_text = format_duration(row["duration_seconds"]) + " (pending)"
             remaining_seconds = row["duration_seconds"]
@@ -645,6 +733,7 @@ def api_history_data():
             "remaining_seconds": remaining_seconds,
             "online": is_online(row["last_heartbeat"]) if row["status"] == "active" else False,
             "last_ip": row["last_ip"] or "N/A",
+            "registered_ip": row["registered_ip"] or "N/A",
             "note": row["note"] or "",
             "status": row["status"],
             "duration_text": format_duration(row["duration_seconds"]),

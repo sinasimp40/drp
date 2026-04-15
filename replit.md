@@ -31,12 +31,17 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - Key file is **encrypted** (XOR with app-derived key) — raw binary, cannot be read in a text editor, only the launcher can decrypt it
 - Key file saved **only** next to the EXE — no ProgramData/AppData fallbacks (diskless-friendly: all clients share one file)
 - Validates with server before launching, re-checks every 15 seconds for near-instant revocation
-- Server returns clear status: "License has expired", "License has been revoked", "License already activated", etc.
-- One-time activation: once a key is activated (pending → active), it cannot be activated again — purely status-based, no IP checks
-- Heartbeats keep the running session alive; if the launcher restarts, it needs a new key (or admin can Reset)
-- Dashboard **Reset** button: puts an active key back to Pending so it can be activated again
-- If license expires, is revoked, or is already activated: shows lock screen, kills Roblox, auto-deletes `.license_key` file
+- Server returns clear status: "License has expired", "License has been revoked", "License suspended", etc.
+- One-time activation: once a key is activated (pending → active), it cannot be activated again
+- **IP binding**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check against it. If IP changes, license is auto-suspended.
+- **Suspended state**: suspended licenses block usage until an admin unsuspends them. Unsuspending resets the license to pending with cleared IP, allowing re-activation from a new IP.
+- Heartbeats keep the running session alive
+- Dashboard shows registered IP alongside last-seen IP for each license
+- **Unsuspend button**: admin can unsuspend a suspended license from the dashboard or history page
+- If license expires, is revoked, or is suspended: shows lock screen, kills Roblox
+- Suspended licenses do NOT delete the `.license_key` file (so user can reconnect after unsuspend)
 - Offline grace: 3 consecutive server failures tolerated before locking (prevents brief network blips from killing sessions)
+- Fatal error grace: 3 consecutive fatal/suspended errors required before locking (prevents single-request glitches from killing sessions)
 - Server signs responses with HMAC to prevent tampering
 - Optional: leave license server URL blank during build to disable checking
 
@@ -47,6 +52,11 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 4. Log into Account B
 5. Both stay open because both launchers hold the mutex in background
 6. Close Roblox → launcher detects it → clears rbx-storage.db → exits
+
+### Lock File (Multi-Instance Race Condition Fix)
+- A `.launcher_lock` file prevents race conditions when two launcher instances start within seconds
+- The lock contains PID and timestamp; if the lock is < 10 seconds old and the PID is alive, the second instance skips re-prompting for a license
+- Lock is released after Roblox launches successfully
 
 ## Folder Structure
 ```
@@ -63,7 +73,7 @@ license_server\          <- Deploy this to your RDP
 ```
 
 ## Files
-- **launcher.py** — Main application (license check, splash screen, auto-sync, login clear, mutex, auto-launch)
+- **launcher.py** — Main application (license check, splash screen, auto-sync, login clear, mutex, auto-launch, lock file)
 - **build_exe.bat** — Windows build script (asks for name + path + license URL, converts icons, builds exe)
 - **build_config.py** — Helper that writes path, app name, and license URL into launcher.py during build
 - **convert_icon.py** — Auto-converts PNG/JPG/BMP/etc to icon.ico for the build
@@ -95,3 +105,11 @@ Quick: copy `license_server/` to your RDP, `pip install flask`, `python server.p
 - Python 3.11, PyQt5, Pillow, PyInstaller, ctypes (Windows mutex)
 - Flask, SQLite (license server)
 - HMAC-SHA256 (signed API responses)
+
+## License Statuses
+- **pending** — created, not yet activated
+- **active** — activated and running, countdown in progress
+- **expired** — time ran out
+- **revoked** — admin manually revoked
+- **deleted** — admin deleted (soft delete)
+- **suspended** — IP mismatch detected, waiting for admin unsuspend

@@ -18,7 +18,7 @@
                     <th>Created</th>
                     <th>Activated</th>
                     <th>Expires</th>
-                    <th>Last IP</th>
+                    <th>IP (Registered)</th>
                     <th>Note</th>
                     <th>Actions</th>
                 </tr>
@@ -30,6 +30,8 @@
                     <td>
                         {% if lic.status == 'pending' %}
                         <span class="badge badge-pending">Pending</span>
+                        {% elif lic.status == 'suspended' %}
+                        <span class="badge badge-suspended">Suspended</span>
                         {% elif lic.status == 'active' %}
                             {% if lic.online %}
                             <span class="badge badge-online">Online</span>
@@ -48,10 +50,20 @@
                     <td>{{ lic.created }}</td>
                     <td>{{ lic.activated }}</td>
                     <td>{{ lic.expires }}</td>
-                    <td>{{ lic.last_ip }}</td>
+                    <td>
+                        {{ lic.last_ip }}
+                        {% if lic.registered_ip != 'N/A' %}
+                        <div class="ip-info">Registered: {{ lic.registered_ip }}</div>
+                        {% endif %}
+                    </td>
                     <td>{{ lic.note }}</td>
                     <td class="actions-cell">
-                        {% if lic.status in ('active', 'pending') %}
+                        {% if lic.status == 'suspended' %}
+                        <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate from a new IP.')">
+                            <button type="submit" class="btn btn-success btn-sm">Unsuspend</button>
+                        </form>
+                        {% endif %}
+                        {% if lic.status in ('active', 'pending', 'suspended') %}
                         <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
                             <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
                         </form>
@@ -91,15 +103,16 @@
         0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
         50% { opacity: 0.4; box-shadow: none; }
     }
-    .badge-pending { background: #1a1a2a; color: #6688cc; }
 </style>
 <script>
 (function() {
     var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
     var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
+    var unsuspendUrl = "{{ url_for('unsuspend_license', license_id=0) }}".replace('/0', '');
 
     function statusBadge(lic) {
         if (lic.status === 'pending') return '<span class="badge badge-pending">Pending</span>';
+        if (lic.status === 'suspended') return '<span class="badge badge-suspended">Suspended</span>';
         if (lic.status === 'active') {
             return lic.online
                 ? '<span class="badge badge-online">Online</span>'
@@ -112,7 +125,11 @@
 
     function buildActions(lic) {
         var html = '';
-        if (lic.status === 'active' || lic.status === 'pending') {
+        if (lic.status === 'suspended') {
+            html += '<form method="POST" action="' + unsuspendUrl + '/' + lic.id + '" onsubmit="return confirm(\'Unsuspend this license? The user will need to re-activate from a new IP.\')">' +
+                '<button type="submit" class="btn btn-success btn-sm">Unsuspend</button></form>';
+        }
+        if (lic.status === 'active' || lic.status === 'pending' || lic.status === 'suspended') {
             html += '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
                 '<button type="submit" class="btn btn-danger btn-sm">Revoke</button></form>';
         }
@@ -138,7 +155,7 @@
                     table = document.createElement("table");
                     table.innerHTML =
                         '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
-                        '<th>Created</th><th>Activated</th><th>Expires</th><th>Last IP</th><th>Note</th><th>Actions</th></tr></thead>' +
+                        '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Note</th><th>Actions</th></tr></thead>' +
                         '<tbody id="history-tbody"></tbody>';
                     container.innerHTML = "";
                     container.appendChild(table);
@@ -148,6 +165,10 @@
                 tbody.innerHTML = "";
                 data.licenses.forEach(function(lic) {
                     var tr = document.createElement("tr");
+                    var ipText = lic.last_ip;
+                    if (lic.registered_ip && lic.registered_ip !== 'N/A') {
+                        ipText += '<div class="ip-info">Registered: ' + lic.registered_ip + '</div>';
+                    }
                     tr.innerHTML =
                         '<td><span class="key-text">' + lic.key + '</span></td>' +
                         '<td>' + statusBadge(lic) + '</td>' +
@@ -155,7 +176,7 @@
                         '<td>' + lic.created + '</td>' +
                         '<td>' + lic.activated + '</td>' +
                         '<td>' + lic.expires + '</td>' +
-                        '<td>' + lic.last_ip + '</td>' +
+                        '<td>' + ipText + '</td>' +
                         '<td>' + (lic.note || '') + '</td>' +
                         '<td class="actions-cell">' + buildActions(lic) + '</td>';
                     tbody.appendChild(tr);

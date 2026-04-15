@@ -27,6 +27,7 @@ _LICENSE_SECRET_KEY = 0x57
 EMBEDDED_LICENSE_KEY = ""
 LICENSE_CHECK_INTERVAL = 15000
 LICENSE_OFFLINE_GRACE = 3
+LICENSE_FATAL_GRACE = 3
 
 
 def _decode_secret():
@@ -366,6 +367,50 @@ def clear_instance_login(my_files):
     return f"cleared_{cleared}"
 
 
+def get_lock_file():
+    return os.path.join(APP_DIR, ".launcher_lock")
+
+
+def acquire_launcher_lock():
+    lock_path = get_lock_file()
+    try:
+        if os.path.isfile(lock_path):
+            try:
+                with open(lock_path, "r") as f:
+                    lock_data = json.load(f)
+                lock_time = lock_data.get("time", 0)
+                lock_pid = lock_data.get("pid", 0)
+                if import_time() - lock_time < 10:
+                    if lock_pid and lock_pid != os.getpid():
+                        if sys.platform == "win32":
+                            try:
+                                result = subprocess.run(
+                                    ["tasklist", "/FI", f"PID eq {lock_pid}", "/NH"],
+                                    capture_output=True, text=True,
+                                    creationflags=0x08000000
+                                )
+                                if str(lock_pid) in result.stdout:
+                                    return False
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+        with open(lock_path, "w") as f:
+            json.dump({"time": import_time(), "pid": os.getpid()}, f)
+        return True
+    except Exception:
+        return True
+
+
+def release_launcher_lock():
+    lock_path = get_lock_file()
+    try:
+        if os.path.isfile(lock_path):
+            os.remove(lock_path)
+    except Exception:
+        pass
+
+
 class SplashScreen(QSplashScreen):
     def __init__(self, pixmap):
         super().__init__(pixmap)
@@ -668,6 +713,16 @@ def validate_license(key, endpoint="validate"):
         return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
 
 
+def _is_suspended_error(error_msg):
+    return "suspended" in error_msg.lower()
+
+
+def _is_fatal_license_error(error_msg):
+    fatal_phrases = ["expired", "revoked", "deleted", "not found"]
+    lower = error_msg.lower()
+    return any(phrase in lower for phrase in fatal_phrases)
+
+
 class LicenseDialog(QDialog):
     def __init__(self, parent=None, error_msg=""):
         super().__init__(parent)
@@ -820,11 +875,26 @@ def check_license_or_prompt(app):
         if result.get("valid"):
             return True
         error_msg = result.get("error", "License invalid")
+
+        if _is_suspended_error(error_msg):
+            lock = LockScreen("License suspended\nContact the developer.")
+            lock.show()
+            app._lock_screen = lock
+            QTimer.singleShot(15000, app.quit)
+            return False
+
         if error_msg == "License already activated":
             hb = validate_license(saved_key, "heartbeat")
             if hb.get("valid"):
                 return True
             error_msg = hb.get("error", "License invalid")
+            if _is_suspended_error(error_msg):
+                lock = LockScreen("License suspended\nContact the developer.")
+                lock.show()
+                app._lock_screen = lock
+                QTimer.singleShot(15000, app.quit)
+                return False
+
         if EMBEDDED_LICENSE_KEY:
             return False
 
@@ -878,32 +948,54 @@ def start_license_watchdog(app):
         return None
 
     app._license_fail_count = 0
+    app._license_fatal_count = 0
 
     def check():
         result = validate_license(key, "heartbeat")
         if not result.get("valid"):
             error_msg = result.get("error", "")
             is_network_error = "unreachable" in error_msg.lower() or "timeout" in error_msg.lower()
+            is_suspended = _is_suspended_error(error_msg)
+            is_fatal = _is_fatal_license_error(error_msg)
 
             if is_network_error:
                 app._license_fail_count += 1
+                app._license_fatal_count = 0
                 if app._license_fail_count < LICENSE_OFFLINE_GRACE:
                     return
+            elif is_suspended or is_fatal:
+                app._license_fatal_count += 1
+                app._license_fail_count = 0
+                if app._license_fatal_count < LICENSE_FATAL_GRACE:
+                    return
+            else:
+                app._license_fail_count += 1
+                if app._license_fail_count < LICENSE_OFFLINE_GRACE:
+                    return
+
             app._license_fail_count = 0
+            app._license_fatal_count = 0
 
             if hasattr(app, '_license_timer'):
                 app._license_timer.stop()
             kill_all_roblox_pids(app)
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
-            if not EMBEDDED_LICENSE_KEY:
+
+            if is_suspended:
+                lock = LockScreen("License suspended\nContact the developer.")
+            elif not EMBEDDED_LICENSE_KEY:
                 delete_license_files()
-            lock = LockScreen(result.get("error", "License expired or revoked"))
+                lock = LockScreen(result.get("error", "License expired or revoked"))
+            else:
+                lock = LockScreen(result.get("error", "License expired or revoked"))
+
             lock.show()
             app._lock_screen = lock
             QTimer.singleShot(10000, app.quit)
         else:
             app._license_fail_count = 0
+            app._license_fatal_count = 0
 
     timer = QTimer()
     timer.timeout.connect(check)
@@ -924,7 +1016,23 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
+    if not acquire_launcher_lock():
+        saved_key = load_saved_license()
+        if saved_key and LICENSE_SERVER_URL:
+            hb = validate_license(saved_key, "heartbeat")
+            if hb.get("valid"):
+                pass
+            else:
+                error_msg = hb.get("error", "")
+                if _is_suspended_error(error_msg):
+                    lock = LockScreen("License suspended\nContact the developer.")
+                    lock.show()
+                    app._lock_screen = lock
+                    QTimer.singleShot(15000, app.quit)
+                    sys.exit(app.exec_())
+
     if not check_license_or_prompt(app):
+        release_launcher_lock()
         sys.exit(0)
 
     paths = get_paths()
@@ -1078,6 +1186,8 @@ def main():
             splash.set_progress(100, "Roblox is running!")
             app.processEvents()
             write_log(paths["logs"], "\n".join(log_lines))
+
+            release_launcher_lock()
 
             app.setQuitOnLastWindowClosed(False)
             start_license_watchdog(app)
