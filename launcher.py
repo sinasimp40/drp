@@ -1183,11 +1183,19 @@ def main():
     if sys.platform != "win32":
         os.environ["QT_QPA_PLATFORM"] = "xcb"
 
+    if sys.platform == "win32":
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"denfi.{APP_NAME}.launcher")
+        except Exception:
+            pass
+
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
 
     icon_path = os.path.join(APP_DIR, "icon.ico")
+    if not os.path.exists(icon_path) and getattr(sys, 'frozen', False):
+        icon_path = os.path.join(sys._MEIPASS, "icon.ico")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
