@@ -1488,6 +1488,8 @@ def api_update_check():
 
     config = conn.execute("SELECT id FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
+        config = conn.execute("SELECT id FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
+    if not config:
         conn.close()
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
