@@ -110,6 +110,7 @@
                 <th>Started</th>
                 <th>Finished</th>
                 <th>Error</th>
+                <th>Download</th>
             </tr>
         </thead>
         <tbody>
@@ -131,6 +132,17 @@
                 <td>{{ b.started }}</td>
                 <td>{{ b.finished }}</td>
                 <td style="color: #cc4444; font-size: 12px;">{{ b.error }}</td>
+                <td>
+                    {% if b.status == 'completed' and b.artifacts %}
+                    {% for art in b.artifacts %}
+                    {% if art.status == 'completed' and art.exe_filename %}
+                    <a href="{{ url_for('api_download_artifact', build_id=b.id, config_id=art.config_id) }}" class="btn btn-primary btn-sm" style="margin-bottom: 4px; display: inline-block;">
+                        {{ art.app_name }} ({{ (art.file_size / 1048576)|round(1) }} MB)
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

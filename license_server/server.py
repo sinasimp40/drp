@@ -1118,6 +1118,31 @@ def builds_page():
     past_builds = conn.execute("SELECT * FROM builds ORDER BY created_at DESC LIMIT 20").fetchall()
     conn.close()
 
+    all_artifacts = {}
+    if past_builds:
+        build_ids = [b["id"] for b in past_builds]
+        placeholders = ",".join("?" * len(build_ids))
+        conn2 = get_db()
+        arts = conn2.execute(f"""
+            SELECT ba.build_id, ba.build_config_id, ba.exe_filename, ba.file_size, ba.status,
+                   bc.app_name
+            FROM build_artifacts ba
+            LEFT JOIN build_configs bc ON ba.build_config_id = bc.id
+            WHERE ba.build_id IN ({placeholders})
+        """, build_ids).fetchall()
+        conn2.close()
+        for a in arts:
+            bid = a["build_id"]
+            if bid not in all_artifacts:
+                all_artifacts[bid] = []
+            all_artifacts[bid].append({
+                "config_id": a["build_config_id"],
+                "app_name": a["app_name"] or "Unknown",
+                "exe_filename": a["exe_filename"] or "",
+                "file_size": a["file_size"] or 0,
+                "status": a["status"],
+            })
+
     build_list = []
     for b in past_builds:
         build_list.append({
@@ -1125,6 +1150,7 @@ def builds_page():
             "total": b["total_configs"], "completed": b["completed_configs"],
             "started": format_time(b["started_at"]), "finished": format_time(b["completed_at"]),
             "error": b["error_message"] or "",
+            "artifacts": all_artifacts.get(b["id"], []),
         })
 
     config_list = []
