@@ -1,0 +1,28 @@
+49.146.44.33 - - [16/Apr/2026 06:44:19] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 362, in run_wsgi
+    execute(self.server.app)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 328, in execute
+    write(b"")
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 253, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
+49.146.44.33 - - [16/Apr/2026 06:44:33] "GET /api/ota_status HTTP/1.1" 200 -
+49.146.44.33 - - [16/Apr/2026 06:44:49] "GET /api/ota_status HTTP/1.1" 200 -
+49.146.44.33 - - [16/Apr/2026 06:44:49] "POST /api/trigger_build HTTP/1.1" 302 -
+49.146.44.33 - - [16/Apr/2026 06:44:49] "GET /builds HTTP/1.1" 200 -
+49.146.44.33 - - [16/Apr/2026 06:44:50] "GET /api/build_status_all HTTP/1.1" 200 -
+49.146.44.33 - - [16/Apr/2026 06:44:50] "GET /api/ota_status HTTP/1.1" 200 -
+49.146.44.33 - - [16/Apr/2026 06:44:51] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 362, in run_wsgi
+    execute(self.server.app)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 328, in execute
+    write(b"")
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\serving.py", line 253, in write
+    assert status_set is not None, "write() before start_response"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: write() before start_response
