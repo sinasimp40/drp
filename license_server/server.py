@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
@@ -36,6 +37,9 @@ SOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _build_progress = {}
 _build_lock = threading.Lock()
 _download_tokens = {}
+_download_progress = {}
+
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
 
 def get_db():
@@ -950,19 +954,30 @@ def _run_single_build(build_id, config, version):
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=work_dir
         )
         progress_steps = 0
+        last_emitted = 0
         for line in process.stdout:
             progress_steps += 1
             estimated = min(95, int(progress_steps * 1.5))
             with _build_lock:
                 if build_id in _build_progress:
                     _build_progress[build_id]["artifacts"][config_id]["progress"] = estimated
-            conn = get_db()
-            conn.execute(
-                "UPDATE build_artifacts SET progress=? WHERE build_id=? AND build_config_id=?",
-                (estimated, build_id, config_id)
-            )
-            conn.commit()
-            conn.close()
+            if estimated - last_emitted >= 5:
+                last_emitted = estimated
+                conn = get_db()
+                conn.execute(
+                    "UPDATE build_artifacts SET progress=? WHERE build_id=? AND build_config_id=?",
+                    (estimated, build_id, config_id)
+                )
+                conn.commit()
+                conn.close()
+                try:
+                    socketio.emit('build_progress', {
+                        'build_id': build_id, 'config_id': config_id,
+                        'progress': estimated, 'status': 'building',
+                        'name': config.get("app_name", ""),
+                    }, namespace='/')
+                except Exception:
+                    pass
 
         process.wait()
         if process.returncode != 0:
@@ -992,6 +1007,15 @@ def _run_single_build(build_id, config, version):
                     "name": config.get("app_name", ""),
                     "filename": os.path.basename(exe_path), "size": file_size
                 }
+        try:
+            socketio.emit('build_progress', {
+                'build_id': build_id, 'config_id': config_id,
+                'progress': 100, 'status': 'completed',
+                'name': config.get("app_name", ""),
+                'filename': os.path.basename(exe_path), 'size': file_size,
+            }, namespace='/')
+        except Exception:
+            pass
         return True
 
     except Exception as e:
@@ -1008,6 +1032,15 @@ def _run_single_build(build_id, config, version):
                     "status": "failed", "progress": 0,
                     "name": config.get("app_name", ""), "error": str(e)[:200]
                 }
+        try:
+            socketio.emit('build_progress', {
+                'build_id': build_id, 'config_id': config_id,
+                'progress': 0, 'status': 'failed',
+                'name': config.get("app_name", ""),
+                'error': str(e)[:200],
+            }, namespace='/')
+        except Exception:
+            pass
         return False
     finally:
         try:
@@ -1460,6 +1493,88 @@ def api_download_artifact(build_id, config_id):
     return send_file(file_path, as_attachment=True, download_name=artifact["exe_filename"])
 
 
+@app.route("/api/report_download_progress", methods=["POST"])
+def api_report_download_progress():
+    data = request.get_json(silent=True) or {}
+    key = (data.get("license_key") or "").strip()
+    progress = data.get("progress", 0)
+    version = (data.get("version") or "").strip()
+    status = (data.get("status") or "downloading").strip()
+
+    if not key:
+        return jsonify({"error": "Missing license_key"}), 400
+
+    conn = get_db()
+    lic = conn.execute("SELECT id FROM licenses WHERE license_key = ?", (key,)).fetchone()
+    conn.close()
+    if not lic:
+        return jsonify({"error": "Unknown key"}), 404
+
+    with _build_lock:
+        _download_progress[key] = {
+            "progress": min(100, max(0, int(progress))),
+            "version": version,
+            "status": status,
+            "updated_at": time.time(),
+        }
+
+    try:
+        socketio.emit('download_progress', {
+            'license_key': key,
+            'progress': min(100, max(0, int(progress))),
+            'version': version,
+            'status': status,
+        }, namespace='/')
+    except Exception:
+        pass
+
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ota_status")
+@require_admin
+def api_ota_status():
+    conn = get_db()
+    configs = conn.execute("""
+        SELECT bc.id, bc.app_name, bc.license_id, l.license_key, l.launcher_version
+        FROM build_configs bc LEFT JOIN licenses l ON bc.license_id = l.id
+    """).fetchall()
+
+    latest_version = conn.execute("""
+        SELECT version FROM builds WHERE status='completed' ORDER BY created_at DESC LIMIT 1
+    """).fetchone()
+    conn.close()
+
+    latest_ver = latest_version["version"] if latest_version else None
+    result = []
+    now = time.time()
+    for c in configs:
+        key = c["license_key"] or ""
+        dl_info = _download_progress.get(key, {})
+        dl_age = now - dl_info.get("updated_at", 0) if dl_info else 999999
+
+        if c["launcher_version"] and latest_ver and c["launcher_version"] == latest_ver:
+            ota_state = "updated"
+        elif dl_info and dl_info.get("status") == "downloading" and dl_age < 300:
+            ota_state = "downloading"
+        elif latest_ver and (not c["launcher_version"] or c["launcher_version"] != latest_ver):
+            ota_state = "outdated"
+        else:
+            ota_state = "unknown"
+
+        result.append({
+            "config_id": c["id"],
+            "app_name": c["app_name"],
+            "license_key": key[:8] + "..." if key else "",
+            "current_version": c["launcher_version"] or "—",
+            "latest_version": latest_ver or "—",
+            "ota_state": ota_state,
+            "download_progress": dl_info.get("progress", 0) if ota_state == "downloading" else None,
+        })
+
+    return jsonify({"users": result, "latest_version": latest_ver})
+
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
@@ -1467,4 +1582,4 @@ if __name__ == "__main__":
         print("WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!")
     print(f"License server starting on port {port}")
     print(f"Dashboard: http://0.0.0.0:{port}/")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)

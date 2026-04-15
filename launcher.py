@@ -750,6 +750,25 @@ def check_for_update(key):
         return None
 
 
+def _report_download_progress(pct, version, status="downloading"):
+    if not LICENSE_SERVER_URL:
+        return
+    try:
+        import urllib.request
+        url = LICENSE_SERVER_URL.rstrip("/") + "/api/report_download_progress"
+        key = load_saved_license() or EMBEDDED_LICENSE_KEY
+        payload = json.dumps({
+            "license_key": key,
+            "progress": pct,
+            "version": version,
+            "status": status,
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass
+
+
 def download_update(update_info, progress_callback=None):
     if not LICENSE_SERVER_URL:
         return None
@@ -758,42 +777,57 @@ def download_update(update_info, progress_callback=None):
         token = update_info.get("download_token", "")
         if not token:
             return None
+        version = update_info.get("latest_version", "")
         url = LICENSE_SERVER_URL.rstrip("/") + f"/api/download_update/{token}"
         req = urllib.request.Request(url)
+        _report_download_progress(0, version, "downloading")
         with urllib.request.urlopen(req, timeout=300) as resp:
             total_size = update_info.get("file_size", 0)
             data = bytearray()
             block_size = 65536
             downloaded = 0
+            last_reported = 0
             while True:
                 chunk = resp.read(block_size)
                 if not chunk:
                     break
                 data.extend(chunk)
                 downloaded += len(chunk)
-                if progress_callback and total_size > 0:
+                if total_size > 0:
                     pct = min(100, int(downloaded * 100 / total_size))
-                    progress_callback(pct, downloaded, total_size)
+                    if progress_callback:
+                        progress_callback(pct, downloaded, total_size)
+                    if pct - last_reported >= 10:
+                        last_reported = pct
+                        _report_download_progress(pct, version, "downloading")
 
         if len(data) < 1024:
+            _report_download_progress(0, version, "failed")
             return None
 
         expected_hash = update_info.get("sha256", "")
         if expected_hash:
             actual_hash = hashlib.sha256(data).hexdigest()
             if actual_hash != expected_hash:
+                _report_download_progress(0, version, "failed")
                 return None
 
         if total_size > 0 and len(data) != total_size:
+            _report_download_progress(0, version, "failed")
             return None
 
         temp_dir = os.path.join(APP_DIR, "_update")
         os.makedirs(temp_dir, exist_ok=True)
-        temp_path = os.path.join(temp_dir, f"update_{update_info.get('latest_version', 'new')}.exe")
+        temp_path = os.path.join(temp_dir, f"update_{version or 'new'}.exe")
         with open(temp_path, "wb") as f:
             f.write(data)
+        _report_download_progress(100, version, "completed")
         return temp_path
     except Exception:
+        try:
+            _report_download_progress(0, update_info.get("latest_version", ""), "failed")
+        except Exception:
+            pass
         return None
 
 

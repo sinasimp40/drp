@@ -87,6 +87,15 @@
     {% endif %}
 </div>
 
+<div class="card" style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+        <h2 style="font-size: 16px; color: #f0f0f0;">OTA Update Status</h2>
+    </div>
+    <div id="ota-status-area" style="padding: 16px;">
+        <div style="color: #555;">Loading...</div>
+    </div>
+</div>
+
 <div class="card">
     <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
         <h2 style="font-size: 16px; color: #f0f0f0;">Build History</h2>
@@ -160,9 +169,28 @@
     .artifact-name { font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
     .artifact-status { font-size: 12px; color: #888; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 (function() {
     var pollInterval = null;
+    var activeBuildId = null;
+    var socket = null;
+
+    function initSocket() {
+        try {
+            socket = io({ transports: ['websocket', 'polling'] });
+            socket.on('build_progress', function(data) {
+                if (activeBuildId && data.build_id === activeBuildId) {
+                    pollBuild(activeBuildId);
+                }
+            });
+            socket.on('download_progress', function(data) {
+                loadOtaStatus();
+            });
+        } catch(e) {
+            socket = null;
+        }
+    }
 
     function checkActiveBuild() {
         fetch("/api/build_status_all", { credentials: "same-origin" })
@@ -176,11 +204,12 @@
     }
 
     function startPolling(buildId) {
+        activeBuildId = buildId;
         var area = document.getElementById("build-progress-area");
         area.style.display = "block";
 
         if (pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(function() { pollBuild(buildId); }, 2000);
+        pollInterval = setInterval(function() { pollBuild(buildId); }, 5000);
         pollBuild(buildId);
     }
 
@@ -190,6 +219,7 @@
             .then(function(data) {
                 renderProgress(data);
                 if (data.status === "completed" || data.status === "failed") {
+                    activeBuildId = null;
                     if (pollInterval) {
                         clearInterval(pollInterval);
                         pollInterval = null;
@@ -249,7 +279,43 @@
         list.innerHTML = html || '<div style="padding: 12px; color: #555;">Waiting...</div>';
     }
 
+    function loadOtaStatus() {
+        fetch("/api/ota_status", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var area = document.getElementById("ota-status-area");
+                if (!data.users || data.users.length === 0) {
+                    area.innerHTML = '<div style="color: #555;">No build configs with linked licenses</div>';
+                    return;
+                }
+                var html = '<table style="width:100%;"><thead><tr>';
+                html += '<th>App Name</th><th>License</th><th>Current</th><th>Latest</th><th>Status</th>';
+                html += '</tr></thead><tbody>';
+                for (var i = 0; i < data.users.length; i++) {
+                    var u = data.users[i];
+                    var stateColor = '#555';
+                    var stateLabel = u.ota_state;
+                    if (u.ota_state === 'updated') { stateColor = '#44cc44'; stateLabel = 'Up to date'; }
+                    else if (u.ota_state === 'downloading') { stateColor = '#ff6a00'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
+                    else if (u.ota_state === 'outdated') { stateColor = '#cc4444'; stateLabel = 'Outdated'; }
+                    html += '<tr>';
+                    html += '<td style="font-weight:600;color:#ff8c33;">' + u.app_name + '</td>';
+                    html += '<td><span class="key-text" style="font-size:11px;">' + u.license_key + '</span></td>';
+                    html += '<td>' + u.current_version + '</td>';
+                    html += '<td>' + u.latest_version + '</td>';
+                    html += '<td style="color:' + stateColor + ';font-weight:600;">' + stateLabel + '</td>';
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                area.innerHTML = html;
+            })
+            .catch(function() {});
+    }
+
+    initSocket();
     checkActiveBuild();
+    loadOtaStatus();
+    setInterval(loadOtaStatus, 15000);
 })();
 </script>
 {% endblock %}

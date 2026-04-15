@@ -51,12 +51,15 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - **Build configs**: Each config links to a license — the license key gets baked into the .exe as EMBEDDED_LICENSE_KEY
 - **Build engine**: Server runs PyInstaller per config, patches launcher.py source with config values, produces personalized .exe files
 - **Version management**: Admin enters version number (X.Y.Z format) and triggers "Build All" — builds every config
-- **Build progress**: Real-time progress tracking via polling — admin sees per-config progress bars on the Builds page
+- **Build progress**: Real-time progress tracking via WebSocket (Flask-SocketIO) + HTTP polling fallback — admin sees per-config progress bars on the Builds page
 - **Launcher OTA**: After license check, launcher calls `/api/update_check` with current version. If update available, downloads new .exe with progress shown on splash screen
 - **Self-replace**: On Windows, launcher writes a .bat script that waits for process exit, swaps old/new exe, relaunches
 - **Download tokens**: Update check returns a short-lived token (10 min) for downloading, no signing needed on the download request
 - **Admin download**: Admin can download built artifacts directly from the Builds page
 - **Version display**: Dashboard and History pages show each user's current launcher version
+- **OTA status panel**: Builds page shows per-user update states (outdated/downloading/updated) with download progress
+- **Download progress reporting**: Launcher reports download progress back to server via `/api/report_download_progress`
+- **SHA-256 verification**: Launcher verifies SHA-256 hash of downloaded binary before applying update
 
 ### OTA Database Tables
 - `build_configs` — per-user build configuration (app_name, hardcoded_path, icon, license_server_url, license_secret, linked license_id)
@@ -71,6 +74,8 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - `GET /api/build_status/<build_id>` (admin) — poll build progress
 - `GET /api/build_status_all` (admin) — check if any active build
 - `GET /api/download_artifact/<build_id>/<config_id>` (admin) — download built .exe
+- `POST /api/report_download_progress` — launcher reports download % back to server
+- `GET /api/ota_status` (admin) — per-user OTA state (outdated/downloading/updated)
 
 ### Build File Storage
 - Built .exe files stored at: `license_server/builds/<version>/<config_id>/<ExeName>.exe`
@@ -128,7 +133,7 @@ license_server\          <- Deploy this to your RDP
 
 ## License Server Setup
 See `license_server/DEPLOY.md` for full instructions.
-Quick: copy `license_server/` to your RDP, `pip install flask Pillow`, `python server.py`
+Quick: copy `license_server/` to your RDP, `pip install flask flask-socketio Pillow`, `python server.py`
 
 ## Theme
 - Background: black (#0a0a0a)
@@ -137,7 +142,7 @@ Quick: copy `license_server/` to your RDP, `pip install flask Pillow`, `python s
 
 ## Tech Stack
 - Python 3.11, PyQt5, Pillow, PyInstaller, ctypes (Windows mutex)
-- Flask, SQLite (license server)
+- Flask, Flask-SocketIO, SQLite (license server)
 - HMAC-SHA256 (signed API responses)
 
 ## License Statuses
