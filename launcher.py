@@ -872,6 +872,14 @@ class LockScreen(QWidget):
         layout.addWidget(quit_btn)
 
 
+def _show_suspended_and_exit(app):
+    lock = LockScreen("License suspended — IP changed.\nContact the developer to unsuspend.")
+    lock.show()
+    app._lock_screen = lock
+    QTimer.singleShot(15000, app.quit)
+    sys.exit(app.exec_())
+
+
 def check_license_or_prompt(app):
     if not LICENSE_SERVER_URL:
         return True
@@ -886,11 +894,7 @@ def check_license_or_prompt(app):
         error_msg = result.get("error", "License invalid")
 
         if _is_suspended_error(error_msg):
-            lock = LockScreen("License suspended\nContact the developer.")
-            lock.show()
-            app._lock_screen = lock
-            QTimer.singleShot(15000, app.quit)
-            return False
+            _show_suspended_and_exit(app)
 
         if error_msg == "License already activated":
             hb = validate_license(saved_key, "heartbeat")
@@ -898,11 +902,7 @@ def check_license_or_prompt(app):
                 return True
             error_msg = hb.get("error", "License invalid")
             if _is_suspended_error(error_msg):
-                lock = LockScreen("License suspended\nContact the developer.")
-                lock.show()
-                app._lock_screen = lock
-                QTimer.singleShot(15000, app.quit)
-                return False
+                _show_suspended_and_exit(app)
 
         if EMBEDDED_LICENSE_KEY:
             return False
@@ -992,7 +992,7 @@ def start_license_watchdog(app):
                 app._bg_timer.stop()
 
             if is_suspended:
-                lock = LockScreen("License suspended\nContact the developer.")
+                lock = LockScreen("License suspended — IP changed.\nContact the developer to unsuspend.")
             elif not EMBEDDED_LICENSE_KEY:
                 delete_license_files()
                 lock = LockScreen(result.get("error", "License expired or revoked"))
@@ -1034,11 +1034,7 @@ def main():
             else:
                 error_msg = hb.get("error", "")
                 if _is_suspended_error(error_msg):
-                    lock = LockScreen("License suspended\nContact the developer.")
-                    lock.show()
-                    app._lock_screen = lock
-                    QTimer.singleShot(15000, app.quit)
-                    sys.exit(app.exec_())
+                    _show_suspended_and_exit(app)
 
     if not check_license_or_prompt(app):
         release_launcher_lock()
