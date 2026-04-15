@@ -1227,6 +1227,7 @@ def edit_build_config(config_id):
         "app_name": config["app_name"], "hardcoded_path": config["hardcoded_path"],
         "license_server_url": config["license_server_url"],
         "license_secret": config["license_secret"], "icon_filename": config["icon_filename"],
+        "embedded_key": config["embedded_key"] or "",
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
 
