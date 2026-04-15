@@ -536,62 +536,73 @@ def get_license_file():
     return os.path.join(APP_DIR, ".license_key")
 
 
-def _get_fallback_license_file():
+def _get_fallback_paths():
+    paths = []
     if sys.platform == "win32":
+        programdata = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
+        folder = os.path.join(programdata, APP_NAME.replace(" ", ""))
+        try:
+            os.makedirs(folder, exist_ok=True)
+            paths.append(os.path.join(folder, ".license_key"))
+        except Exception:
+            pass
+
         appdata = os.environ.get("APPDATA", "")
         if appdata:
-            folder = os.path.join(appdata, APP_NAME.replace(" ", ""))
-            os.makedirs(folder, exist_ok=True)
-            return os.path.join(folder, ".license_key")
-    return None
+            folder2 = os.path.join(appdata, APP_NAME.replace(" ", ""))
+            try:
+                os.makedirs(folder2, exist_ok=True)
+                paths.append(os.path.join(folder2, ".license_key"))
+            except Exception:
+                pass
+    return paths
 
 
 def load_saved_license():
     if EMBEDDED_LICENSE_KEY:
         return EMBEDDED_LICENSE_KEY
 
-    path = get_license_file()
-    if os.path.isfile(path):
-        try:
-            with open(path, "r") as f:
-                key = f.read().strip()
-                if key:
-                    return key
-        except Exception:
-            pass
+    search_paths = [get_license_file()] + _get_fallback_paths()
 
-    fallback = _get_fallback_license_file()
-    if fallback and os.path.isfile(fallback):
-        try:
-            with open(fallback, "r") as f:
-                key = f.read().strip()
-                if key:
-                    return key
-        except Exception:
-            pass
+    for path in search_paths:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r") as f:
+                    key = f.read().strip()
+                    if key:
+                        return key
+            except Exception:
+                pass
 
     return ""
 
 
 def save_license_key(key):
     if EMBEDDED_LICENSE_KEY:
-        return
+        return True
 
-    saved = False
-    path = get_license_file()
-    try:
-        with open(path, "w") as f:
-            f.write(key)
-        saved = True
-    except Exception:
-        pass
+    saved_to = []
+    failed = []
 
-    fallback = _get_fallback_license_file()
-    if fallback:
+    all_paths = [get_license_file()] + _get_fallback_paths()
+
+    for path in all_paths:
         try:
-            with open(fallback, "w") as f:
+            with open(path, "w") as f:
                 f.write(key)
-            saved = True
+            saved_to.append(path)
+        except Exception:
+            failed.append(path)
+
+    return len(saved_to) > 0
+
+
+def delete_license_files():
+    all_paths = [get_license_file()] + _get_fallback_paths()
+    for path in all_paths:
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
         except Exception:
             pass
 
@@ -816,7 +827,21 @@ def check_license_or_prompt(app):
     while True:
         dialog = LicenseDialog(error_msg=error_msg)
         if dialog.exec_() == QDialog.Accepted:
-            save_license_key(dialog.result_key)
+            if not save_license_key(dialog.result_key):
+                from PyQt5.QtWidgets import QMessageBox
+                msg = QMessageBox()
+                msg.setWindowTitle("Warning")
+                msg.setText("License activated but could not save the key file.\n\n"
+                            "You may be asked to enter the key again next time.\n\n"
+                            "To fix this, create a file called .license_key\n"
+                            f"next to {os.path.basename(sys.executable)}\n"
+                            f"containing your license key.")
+                msg.setStyleSheet("QMessageBox { background: #1a1a1a; color: white; }"
+                                  "QLabel { color: white; }"
+                                  "QPushButton { background: #ff6a00; color: white; border: none; "
+                                  "border-radius: 4px; padding: 6px 16px; }"
+                                  "QPushButton:hover { background: #ff8c33; }")
+                msg.exec_()
             return True
         else:
             return False
@@ -868,12 +893,7 @@ def start_license_watchdog(app):
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
             if not is_in_use and not EMBEDDED_LICENSE_KEY:
-                for lf in [get_license_file(), _get_fallback_license_file()]:
-                    try:
-                        if lf and os.path.isfile(lf):
-                            os.remove(lf)
-                    except Exception:
-                        pass
+                delete_license_files()
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()
             app._lock_screen = lock
