@@ -43,6 +43,11 @@
         </div>
 
         <div class="form-group">
+            <label>Embedded License Key (optional override — defaults to linked license key)</label>
+            <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key">
+        </div>
+
+        <div class="form-group">
             <label>Icon (PNG, JPG, ICO, BMP, WebP)</label>
             <input type="file" name="icon" accept=".ico,.png,.jpg,.jpeg,.bmp,.webp" style="color: #888;">
             {% if config and config.icon_filename %}

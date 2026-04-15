@@ -757,13 +757,20 @@ def _report_download_progress(pct, version, status="downloading"):
         import urllib.request
         url = LICENSE_SERVER_URL.rstrip("/") + "/api/report_download_progress"
         key = load_saved_license() or EMBEDDED_LICENSE_KEY
-        payload = json.dumps({
+        body = {
             "license_key": key,
             "progress": pct,
             "version": version,
             "status": status,
-        }).encode("utf-8")
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        }
+        timestamp, nonce, req_sig = sign_request(body)
+        payload = json.dumps(body).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={
+            "Content-Type": "application/json",
+            "X-Timestamp": timestamp,
+            "X-Nonce": nonce,
+            "X-Signature": req_sig,
+        })
         urllib.request.urlopen(req, timeout=5)
     except Exception:
         pass

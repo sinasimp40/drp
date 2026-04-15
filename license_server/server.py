@@ -39,7 +39,13 @@ _build_lock = threading.Lock()
 _download_tokens = {}
 _download_progress = {}
 
-socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode='threading')
+
+
+@socketio.on('connect')
+def handle_connect():
+    if not session.get("admin"):
+        return False
 
 
 def get_db():
@@ -97,6 +103,7 @@ def init_db():
             license_server_url TEXT DEFAULT '',
             license_secret TEXT DEFAULT 'DENFI_LICENSE_SECRET_KEY_2024',
             icon_filename TEXT DEFAULT '',
+            embedded_key TEXT DEFAULT '',
             created_at REAL NOT NULL,
             updated_at REAL,
             FOREIGN KEY (license_id) REFERENCES licenses(id)
@@ -129,6 +136,11 @@ def init_db():
         );
     """)
     conn.commit()
+    try:
+        conn.execute("SELECT embedded_key FROM build_configs LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE build_configs ADD COLUMN embedded_key TEXT DEFAULT ''")
+        conn.commit()
     conn.close()
 
 
@@ -1133,6 +1145,7 @@ def create_build_config():
         hardcoded_path = request.form.get("hardcoded_path", "").strip()
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
+        embedded_key = request.form.get("embedded_key", "").strip()
 
         icon_filename = ""
         icon_file = request.files.get("icon")
@@ -1148,8 +1161,8 @@ def create_build_config():
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, icon_filename))
 
         conn.execute(
-            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, time.time())
+            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time())
         )
         conn.commit()
         conn.close()
@@ -1180,6 +1193,7 @@ def edit_build_config(config_id):
         hardcoded_path = request.form.get("hardcoded_path", "").strip()
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
+        embedded_key = request.form.get("embedded_key", "").strip()
 
         icon_filename = config["icon_filename"]
         icon_file = request.files.get("icon")
@@ -1195,8 +1209,8 @@ def edit_build_config(config_id):
                 icon_filename = new_icon
 
         conn.execute(
-            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, updated_at=? WHERE id=?",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, time.time(), config_id)
+            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, updated_at=? WHERE id=?",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time(), config_id)
         )
         conn.commit()
         conn.close()
@@ -1273,7 +1287,7 @@ def api_trigger_build():
 
     config_list = []
     for c in configs:
-        embedded_key = c["license_key"] or ""
+        embedded_key = c["embedded_key"] or c["license_key"] or ""
         conn.execute(
             "INSERT INTO build_artifacts (build_id, build_config_id, license_id, status) VALUES (?, ?, ?, 'pending')",
             (build_id, c["id"], c["license_id"])
@@ -1494,6 +1508,7 @@ def api_download_artifact(build_id, config_id):
 
 
 @app.route("/api/report_download_progress", methods=["POST"])
+@require_signed_request
 def api_report_download_progress():
     data = request.get_json(silent=True) or {}
     key = (data.get("license_key") or "").strip()
