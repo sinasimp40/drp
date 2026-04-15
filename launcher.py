@@ -548,12 +548,22 @@ def _encrypt_key(plaintext):
 
 def _decrypt_key(raw_bytes):
     import base64
+    import re
     try:
-        decoded = base64.b64decode(raw_bytes)
+        text = raw_bytes.decode("utf-8", errors="replace").strip()
     except Exception:
-        return raw_bytes.decode("utf-8", errors="replace").strip()
-    decrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in decoded])
-    return decrypted.decode("utf-8", errors="replace").strip()
+        text = ""
+    if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', text):
+        return text
+    try:
+        decoded = base64.b64decode(raw_bytes, validate=True)
+        decrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in decoded])
+        result = decrypted.decode("utf-8", errors="replace").strip()
+        if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', result):
+            return result
+    except Exception:
+        pass
+    return ""
 
 
 def load_saved_license():
@@ -824,9 +834,8 @@ def check_license_or_prompt(app):
                 msg.setWindowTitle("Warning")
                 msg.setText("License activated but could not save the key file.\n\n"
                             "You may be asked to enter the key again next time.\n\n"
-                            "To fix this, create a file called .license_key\n"
-                            f"next to {os.path.basename(sys.executable)}\n"
-                            f"containing your license key.")
+                            "To fix this, make sure the folder containing\n"
+                            f"{os.path.basename(sys.executable)} is writable.")
                 msg.setStyleSheet("QMessageBox { background: #1a1a1a; color: white; }"
                                   "QLabel { color: white; }"
                                   "QPushButton { background: #ff6a00; color: white; border: none; "

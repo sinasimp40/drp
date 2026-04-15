@@ -205,7 +205,7 @@ def api_validate():
 
     if not row:
         conn.close()
-        resp = {"valid": False, "error": "Invalid license key"}
+        resp = {"valid": False, "error": "License not found"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "revoked":
@@ -297,7 +297,7 @@ def api_heartbeat():
 
     if not row:
         conn.close()
-        resp = {"valid": False, "error": "Invalid license key"}
+        resp = {"valid": False, "error": "License not found"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "pending":
