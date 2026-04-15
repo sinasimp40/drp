@@ -600,7 +600,7 @@ def validate_license(key, endpoint="validate"):
             "X-Nonce": nonce,
             "X-Signature": req_sig,
         })
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode('utf-8'))
 
         data = result.get("data", {})
