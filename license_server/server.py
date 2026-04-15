@@ -1629,7 +1629,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
     if ADMIN_PASSWORD == "admin":
         print("WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!")
-    print(f"Shared secret: {SHARED_SECRET[:4]}...{SHARED_SECRET[-4:]}")
     print(f"License server starting on port {port}")
     print(f"Dashboard: http://0.0.0.0:{port}/")
     socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)
