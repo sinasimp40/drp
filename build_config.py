@@ -38,6 +38,10 @@ def main():
     if len(sys.argv) >= 5:
         license_secret = sys.argv[4].strip().strip('"').strip("'")
 
+    embedded_key = ""
+    if len(sys.argv) >= 6:
+        embedded_key = sys.argv[5].strip().strip('"').strip("'")
+
     with open("launcher.py", "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -78,6 +82,15 @@ def main():
             print("[ERROR] Could not find _LICENSE_SECRET_XOR in launcher.py")
             sys.exit(1)
 
+    if embedded_key:
+        key_pattern = r'EMBEDDED_LICENSE_KEY = ".*?"'
+        key_replacement = f'EMBEDDED_LICENSE_KEY = "{embedded_key}"'
+        if re.search(key_pattern, content):
+            content = re.sub(key_pattern, key_replacement, content)
+        else:
+            print("[ERROR] Could not find EMBEDDED_LICENSE_KEY in launcher.py")
+            sys.exit(1)
+
     with open("launcher.py", "w", encoding="utf-8") as f:
         f.write(content)
 
@@ -92,6 +105,8 @@ def main():
         print(f"[OK] License server: {license_url}")
     if license_secret:
         print(f"[OK] License secret: (encoded and obfuscated)")
+    if embedded_key:
+        print(f"[OK] Embedded license key: {embedded_key}")
 
 
 if __name__ == "__main__":

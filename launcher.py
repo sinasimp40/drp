@@ -24,6 +24,7 @@ HARDCODED_PATH = ""
 LICENSE_SERVER_URL = ""
 _LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x04,0x12,0x08,0x04,0x12,0x14,0x05,0x12,0x03,0x08,0x1c,0x12,0x0e,0x08,0x65,0x67,0x65,0x63]
 _LICENSE_SECRET_KEY = 0x57
+EMBEDDED_LICENSE_KEY = ""
 LICENSE_CHECK_INTERVAL = 15000
 LICENSE_OFFLINE_GRACE = 3
 
@@ -535,24 +536,64 @@ def get_license_file():
     return os.path.join(APP_DIR, ".license_key")
 
 
+def _get_fallback_license_file():
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA", "")
+        if appdata:
+            folder = os.path.join(appdata, APP_NAME.replace(" ", ""))
+            os.makedirs(folder, exist_ok=True)
+            return os.path.join(folder, ".license_key")
+    return None
+
+
 def load_saved_license():
+    if EMBEDDED_LICENSE_KEY:
+        return EMBEDDED_LICENSE_KEY
+
     path = get_license_file()
     if os.path.isfile(path):
         try:
             with open(path, "r") as f:
-                return f.read().strip()
+                key = f.read().strip()
+                if key:
+                    return key
         except Exception:
             pass
+
+    fallback = _get_fallback_license_file()
+    if fallback and os.path.isfile(fallback):
+        try:
+            with open(fallback, "r") as f:
+                key = f.read().strip()
+                if key:
+                    return key
+        except Exception:
+            pass
+
     return ""
 
 
 def save_license_key(key):
+    if EMBEDDED_LICENSE_KEY:
+        return
+
+    saved = False
     path = get_license_file()
     try:
         with open(path, "w") as f:
             f.write(key)
+        saved = True
     except Exception:
         pass
+
+    fallback = _get_fallback_license_file()
+    if fallback:
+        try:
+            with open(fallback, "w") as f:
+                f.write(key)
+            saved = True
+        except Exception:
+            pass
 
 
 def verify_signature(data_dict, signature):
@@ -766,6 +807,11 @@ def check_license_or_prompt(app):
         if result.get("valid"):
             return True
         error_msg = result.get("error", "License invalid")
+        if EMBEDDED_LICENSE_KEY:
+            return False
+
+    if EMBEDDED_LICENSE_KEY:
+        return False
 
     while True:
         dialog = LicenseDialog(error_msg=error_msg)
@@ -821,13 +867,13 @@ def start_license_watchdog(app):
             kill_all_roblox_pids(app)
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
-            if not is_in_use:
-                try:
-                    lf = get_license_file()
-                    if os.path.isfile(lf):
-                        os.remove(lf)
-                except Exception:
-                    pass
+            if not is_in_use and not EMBEDDED_LICENSE_KEY:
+                for lf in [get_license_file(), _get_fallback_license_file()]:
+                    try:
+                        if lf and os.path.isfile(lf):
+                            os.remove(lf)
+                    except Exception:
+                        pass
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()
             app._lock_screen = lock

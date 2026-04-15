@@ -27,8 +27,12 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - Dashboard updates live every 5 seconds via AJAX (no page reload), with real-time countdown timers
 - New keys start as **Pending** — countdown only begins when someone actually activates the key
 - Launcher prompts for license key on first run, saves it as `.license_key` file
+- **Embedded key mode**: bake a license key into the EXE at build time — perfect for diskless setups where clients can't persist files
+- Key storage: tries EXE directory first, falls back to `%APPDATA%\{AppName}\.license_key` if EXE dir is read-only
 - Validates with server before launching, re-checks every 15 seconds for near-instant revocation
+- Single-session enforcement: license can only be active on one IP at a time (releases after 5 min heartbeat timeout)
 - If license expires or is revoked: shows lock screen, kills Roblox, auto-deletes `.license_key` file
+- "Already in use" error: shows lock screen but keeps `.license_key` so user can retry later
 - Offline grace: 3 consecutive server failures tolerated before locking (prevents brief network blips from killing sessions)
 - Server signs responses with HMAC to prevent tampering
 - Optional: leave license server URL blank during build to disable checking
@@ -71,7 +75,9 @@ license_server\          <- Deploy this to your RDP
 5. Enter the launcher name when prompted (e.g. "DENFI ROBLOX", "MY LAUNCHER")
 6. Enter the path to your Roblox files when prompted
 7. Enter the license server URL (e.g. http://144.31.48.238:3842) or press Enter to skip
-8. Get `{YourName}.exe` from `dist\` folder
+8. Enter the shared secret (or press Enter for default)
+9. **For diskless setups**: Enter a license key to embed, or press Enter to skip (users will enter manually)
+10. Get `{YourName}.exe` from `dist\` folder
 
 ## License Server Setup
 See `license_server/DEPLOY.md` for full instructions.
