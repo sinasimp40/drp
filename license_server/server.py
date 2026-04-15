@@ -188,7 +188,7 @@ def check_session_lock(row, client_ip):
         return True, ""
     if (time.time() - row["last_heartbeat"]) >= HEARTBEAT_TIMEOUT:
         return True, ""
-    return False, "License already in use on another device"
+    return False, "License already activated on another device"
 
 
 @app.route("/api/validate", methods=["POST"])

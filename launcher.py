@@ -536,18 +536,19 @@ def get_license_file():
     return os.path.join(APP_DIR, ".license_key")
 
 
-_LICENSE_FILE_XOR_KEY = 0xA3
+def _get_file_xor_key():
+    seed = APP_NAME + "LIC" + str(len(_LICENSE_SECRET_XOR))
+    return hashlib.md5(seed.encode("utf-8")).digest()
 
 
 def _encrypt_key(plaintext):
+    xor_key = _get_file_xor_key()
     data = plaintext.encode("utf-8")
-    encrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in data])
-    import base64
-    return base64.b64encode(encrypted)
+    encrypted = bytes([data[i] ^ xor_key[i % len(xor_key)] for i in range(len(data))])
+    return encrypted
 
 
 def _decrypt_key(raw_bytes):
-    import base64
     import re
     try:
         text = raw_bytes.decode("utf-8", errors="replace").strip()
@@ -555,14 +556,14 @@ def _decrypt_key(raw_bytes):
         text = ""
     if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', text):
         return text
+    xor_key = _get_file_xor_key()
+    decrypted = bytes([raw_bytes[i] ^ xor_key[i % len(xor_key)] for i in range(len(raw_bytes))])
     try:
-        decoded = base64.b64decode(raw_bytes, validate=True)
-        decrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in decoded])
         result = decrypted.decode("utf-8", errors="replace").strip()
-        if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', result):
-            return result
     except Exception:
-        pass
+        return ""
+    if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', result):
+        return result
     return ""
 
 
@@ -885,7 +886,7 @@ def start_license_watchdog(app):
                     return
             app._license_fail_count = 0
 
-            is_in_use = "already in use" in error_msg.lower()
+            is_in_use = "already activated" in error_msg.lower()
 
             if hasattr(app, '_license_timer'):
                 app._license_timer.stop()
