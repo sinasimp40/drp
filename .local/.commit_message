@@ -1,0 +1,23 @@
+Status-based one-time activation for license keys
+
+Changed license validation from IP-based session locking to pure
+status-based one-time activation:
+
+- Validate endpoint: if key status is "active", deny with "License
+  already activated" — no IP checks, purely based on status
+- Once a key is activated (pending → active), it cannot be validated
+  again by anyone
+- Heartbeats still work for the running session
+- Removed check_session_lock function entirely
+- Removed IP-based session locking logic from both validate and heartbeat
+
+Dashboard changes:
+- Added "Reset" button for active keys — resets status back to "pending"
+  so the key can be activated again
+- Added .btn-warning style (orange) for the Reset button
+- Reset clears activated_at, last_ip, last_heartbeat
+
+Launcher changes:
+- Removed is_in_use special case — all errors (expired, revoked,
+  already activated) now delete the saved key file
+- Simplified watchdog error handling
