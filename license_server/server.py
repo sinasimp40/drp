@@ -39,7 +39,7 @@ _build_lock = threading.Lock()
 _download_tokens = {}
 _download_progress = {}
 
-socketio = SocketIO(app, async_mode='threading')
+socketio = SocketIO(app, async_mode='threading', allow_upgrades=False, transports=['polling'])
 
 
 @socketio.on('connect')

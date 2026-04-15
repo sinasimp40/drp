@@ -178,7 +178,7 @@
 
     function initSocket() {
         try {
-            socket = io({ transports: ['websocket', 'polling'] });
+            socket = io({ transports: ['polling'] });
             socket.on('build_progress', function(data) {
                 if (activeBuildId && data.build_id === activeBuildId) {
                     pollBuild(activeBuildId);
