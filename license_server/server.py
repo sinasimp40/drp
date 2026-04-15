@@ -208,6 +208,21 @@ def api_validate():
         resp = {"valid": False, "error": "Invalid license key"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
+    if row["status"] == "revoked":
+        conn.close()
+        resp = {"valid": False, "error": "License has been revoked"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    if row["status"] == "deleted":
+        conn.close()
+        resp = {"valid": False, "error": "License has been deleted"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    if row["status"] == "expired":
+        conn.close()
+        resp = {"valid": False, "error": "License has expired"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     if row["status"] == "pending":
         expires_at = activate_license(conn, row)
         remaining = expires_at - time.time()
@@ -220,6 +235,7 @@ def api_validate():
         conn.close()
         resp = {
             "valid": True,
+            "status": "activated",
             "remaining_seconds": int(remaining),
             "remaining_text": format_duration(remaining),
             "expires_at": expires_at,
@@ -239,7 +255,7 @@ def api_validate():
         conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
         conn.commit()
         conn.close()
-        resp = {"valid": False, "error": "License expired"}
+        resp = {"valid": False, "error": "License has expired"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
@@ -258,6 +274,7 @@ def api_validate():
 
     resp = {
         "valid": True,
+        "status": "active",
         "remaining_seconds": int(remaining),
         "remaining_text": format_duration(remaining),
         "expires_at": row["expires_at"],
@@ -285,7 +302,22 @@ def api_heartbeat():
 
     if row["status"] == "pending":
         conn.close()
-        resp = {"valid": False, "error": "License not activated"}
+        resp = {"valid": False, "error": "License not yet activated"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    if row["status"] == "revoked":
+        conn.close()
+        resp = {"valid": False, "error": "License has been revoked"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    if row["status"] == "deleted":
+        conn.close()
+        resp = {"valid": False, "error": "License has been deleted"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
+    if row["status"] == "expired":
+        conn.close()
+        resp = {"valid": False, "error": "License has expired"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] != "active":
@@ -300,7 +332,7 @@ def api_heartbeat():
         conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
         conn.commit()
         conn.close()
-        resp = {"valid": False, "error": "License expired"}
+        resp = {"valid": False, "error": "License has expired"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr

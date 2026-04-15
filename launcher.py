@@ -536,43 +536,41 @@ def get_license_file():
     return os.path.join(APP_DIR, ".license_key")
 
 
-def _get_fallback_paths():
-    paths = []
-    if sys.platform == "win32":
-        programdata = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
-        folder = os.path.join(programdata, APP_NAME.replace(" ", ""))
-        try:
-            os.makedirs(folder, exist_ok=True)
-            paths.append(os.path.join(folder, ".license_key"))
-        except Exception:
-            pass
+_LICENSE_FILE_XOR_KEY = 0xA3
 
-        appdata = os.environ.get("APPDATA", "")
-        if appdata:
-            folder2 = os.path.join(appdata, APP_NAME.replace(" ", ""))
-            try:
-                os.makedirs(folder2, exist_ok=True)
-                paths.append(os.path.join(folder2, ".license_key"))
-            except Exception:
-                pass
-    return paths
+
+def _encrypt_key(plaintext):
+    data = plaintext.encode("utf-8")
+    encrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in data])
+    import base64
+    return base64.b64encode(encrypted)
+
+
+def _decrypt_key(raw_bytes):
+    import base64
+    try:
+        decoded = base64.b64decode(raw_bytes)
+    except Exception:
+        return raw_bytes.decode("utf-8", errors="replace").strip()
+    decrypted = bytes([b ^ _LICENSE_FILE_XOR_KEY for b in decoded])
+    return decrypted.decode("utf-8", errors="replace").strip()
 
 
 def load_saved_license():
     if EMBEDDED_LICENSE_KEY:
         return EMBEDDED_LICENSE_KEY
 
-    search_paths = [get_license_file()] + _get_fallback_paths()
-
-    for path in search_paths:
-        if os.path.isfile(path):
-            try:
-                with open(path, "r") as f:
-                    key = f.read().strip()
+    path = get_license_file()
+    if os.path.isfile(path):
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+                if raw:
+                    key = _decrypt_key(raw)
                     if key:
                         return key
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     return ""
 
@@ -581,30 +579,23 @@ def save_license_key(key):
     if EMBEDDED_LICENSE_KEY:
         return True
 
-    saved_to = []
-    failed = []
-
-    all_paths = [get_license_file()] + _get_fallback_paths()
-
-    for path in all_paths:
-        try:
-            with open(path, "w") as f:
-                f.write(key)
-            saved_to.append(path)
-        except Exception:
-            failed.append(path)
-
-    return len(saved_to) > 0
+    path = get_license_file()
+    try:
+        encrypted = _encrypt_key(key)
+        with open(path, "wb") as f:
+            f.write(encrypted)
+        return True
+    except Exception:
+        return False
 
 
 def delete_license_files():
-    all_paths = [get_license_file()] + _get_fallback_paths()
-    for path in all_paths:
-        try:
-            if os.path.isfile(path):
-                os.remove(path)
-        except Exception:
-            pass
+    path = get_license_file()
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except Exception:
+        pass
 
 
 def verify_signature(data_dict, signature):
