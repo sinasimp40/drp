@@ -8,6 +8,13 @@ echo        ROBLOX PORTABLE LAUNCHER - BUILD
 echo   =============================================
 echo.
 
+echo [*] Cleaning previous build files...
+if exist "build" rmdir /s /q "build" >nul 2>&1
+if exist "dist" rmdir /s /q "dist" >nul 2>&1
+if exist "*.spec" del /f /q *.spec >nul 2>&1
+echo [OK] Clean slate.
+echo.
+
 echo [1/8] Checking Python...
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -135,12 +142,8 @@ echo   Supported image formats:
 echo   .ico .png .jpg .jpeg .bmp .webp .tiff .gif
 echo.
 
-if exist "icon.ico" (
-    echo [OK] icon.ico found - using it directly
-) else (
-    echo [*] No icon.ico found - checking for other images...
-    python convert_icon.py
-)
+echo [*] Converting icon from source image...
+python convert_icon.py
 echo.
 
 echo [8/8] Building %EXE_NAME%.exe ...
@@ -151,10 +154,10 @@ if exist "splash_logo.png" set ADDDATA=--add-data "splash_logo.png;."
 
 if exist "icon.ico" (
     echo [*] Building with custom icon
-    pyinstaller --onefile --windowed --name "%EXE_NAME%" --icon=icon.ico --add-data "icon.ico;." %ADDDATA% launcher.py
+    pyinstaller --onefile --windowed --clean --name "%EXE_NAME%" --icon=icon.ico --add-data "icon.ico;." %ADDDATA% launcher.py
 ) else (
     echo [*] Building without icon
-    pyinstaller --onefile --windowed --name "%EXE_NAME%" %ADDDATA% launcher.py
+    pyinstaller --onefile --windowed --clean --name "%EXE_NAME%" %ADDDATA% launcher.py
 )
 
 if errorlevel 1 (

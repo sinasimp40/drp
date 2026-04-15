@@ -125,6 +125,7 @@ def get_roblox_version(roblox_dir):
 def sync_files(source_dir, roblox_dir):
     count = 0
     removed = 0
+    failed = []
 
     old_files = set()
     if os.path.isdir(roblox_dir):
@@ -137,25 +138,55 @@ def sync_files(source_dir, roblox_dir):
         src = os.path.join(source_dir, item)
         dst = os.path.join(roblox_dir, item)
         new_files.add(item)
-        if os.path.isfile(src):
-            shutil.copy2(src, dst)
-            count += 1
-        elif os.path.isdir(src):
-            if os.path.exists(dst):
-                shutil.rmtree(dst)
-            shutil.copytree(src, dst)
-            count += 1
+        success = False
+        for attempt in range(3):
+            try:
+                if os.path.isfile(src):
+                    shutil.copy2(src, dst)
+                    count += 1
+                    success = True
+                    break
+                elif os.path.isdir(src):
+                    if os.path.exists(dst):
+                        shutil.rmtree(dst)
+                    shutil.copytree(src, dst)
+                    count += 1
+                    success = True
+                    break
+            except PermissionError:
+                if attempt < 2:
+                    import time as _t
+                    _t.sleep(0.5)
+                else:
+                    failed.append(item)
+            except Exception:
+                if attempt < 2:
+                    import time as _t
+                    _t.sleep(0.3)
+                else:
+                    failed.append(item)
+        if not success and item not in failed:
+            failed.append(item)
 
     for old_item in old_files - new_files:
         old_path = os.path.join(roblox_dir, old_item)
-        if os.path.isfile(old_path):
-            os.remove(old_path)
-            removed += 1
-        elif os.path.isdir(old_path):
-            shutil.rmtree(old_path)
-            removed += 1
+        try:
+            if os.path.isfile(old_path):
+                os.remove(old_path)
+                removed += 1
+            elif os.path.isdir(old_path):
+                shutil.rmtree(old_path)
+                removed += 1
+        except Exception:
+            pass
 
-    return count, removed
+    exe_path = os.path.join(roblox_dir, "RobloxPlayerBeta.exe")
+    if not os.path.isfile(exe_path):
+        if "RobloxPlayerBeta.exe" in failed:
+            raise PermissionError("Could not copy RobloxPlayerBeta.exe - close Roblox first and try again")
+        raise FileNotFoundError("RobloxPlayerBeta.exe missing after sync")
+
+    return count, removed, failed
 
 
 _mutex_handle = None
@@ -783,17 +814,20 @@ def start_license_watchdog(app):
                     return
             app._license_fail_count = 0
 
+            is_in_use = "already in use" in error_msg.lower()
+
             if hasattr(app, '_license_timer'):
                 app._license_timer.stop()
             kill_all_roblox_pids(app)
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
-            try:
-                lf = get_license_file()
-                if os.path.isfile(lf):
-                    os.remove(lf)
-            except Exception:
-                pass
+            if not is_in_use:
+                try:
+                    lf = get_license_file()
+                    if os.path.isfile(lf):
+                        os.remove(lf)
+                except Exception:
+                    pass
             lock = LockScreen(result.get("error", "License expired or revoked"))
             lock.show()
             app._lock_screen = lock
@@ -892,10 +926,20 @@ def main():
                 splash.set_progress(55, "Syncing Roblox files...")
                 app.processEvents()
                 try:
-                    count, removed = sync_files(sync_state["source"], paths["roblox"])
+                    count, removed, failed = sync_files(sync_state["source"], paths["roblox"])
                     log_lines.append(f"Synced {count} files, cleaned {removed} old files")
+                    if failed:
+                        log_lines.append(f"Failed to sync: {', '.join(failed)}")
                     splash.set_progress(70, f"Synced {count} files!")
                     app.processEvents()
+                except PermissionError as e:
+                    log_lines.append(f"Sync blocked: {e}")
+                    splash.set_progress(70, "Close Roblox and try again!")
+                    app.processEvents()
+                    splash.show_error(str(e))
+                    write_log(paths["logs"], "\n".join(log_lines))
+                    QTimer.singleShot(5000, app.quit)
+                    return app.exec_()
                 except Exception as e:
                     log_lines.append(f"Sync failed: {e}")
                     splash.set_progress(70, "Sync failed - using existing files")

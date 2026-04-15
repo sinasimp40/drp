@@ -8,12 +8,10 @@ def find_image():
         script_dir = os.path.dirname(sys.executable)
 
     extensions = ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.tiff', '.tif', '.gif']
-    candidates = []
 
-    for f in os.listdir(script_dir):
-        name, ext = os.path.splitext(f.lower())
-        if ext in extensions and name != "icon":
-            candidates.append(os.path.join(script_dir, f))
+    icon_png = os.path.join(script_dir, "icon.png")
+    if os.path.isfile(icon_png):
+        return icon_png
 
     icon_images = []
     for f in os.listdir(script_dir):
@@ -23,6 +21,13 @@ def find_image():
 
     if icon_images:
         return icon_images[0]
+
+    candidates = []
+    for f in os.listdir(script_dir):
+        name, ext = os.path.splitext(f.lower())
+        if ext in extensions and name != "icon":
+            candidates.append(os.path.join(script_dir, f))
+
     if candidates:
         return candidates[0]
     return None
@@ -58,12 +63,11 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     ico_path = os.path.join(script_dir, "icon.ico")
 
-    if os.path.exists(ico_path):
-        print(f"[OK] icon.ico already exists")
-        return True
-
     image_path = find_image()
     if not image_path:
+        if os.path.exists(ico_path):
+            print(f"[OK] icon.ico already exists (no source image to reconvert)")
+            return True
         print("[*] No image file found to convert")
         return False
 

@@ -181,6 +181,16 @@ def expire_active_licenses(conn):
     conn.commit()
 
 
+def check_session_lock(row, client_ip):
+    if not row["last_ip"] or not row["last_heartbeat"]:
+        return True, ""
+    if row["last_ip"] == client_ip:
+        return True, ""
+    if (time.time() - row["last_heartbeat"]) >= HEARTBEAT_TIMEOUT:
+        return True, ""
+    return False, "License already in use on another device"
+
+
 @app.route("/api/validate", methods=["POST"])
 @require_signed_request
 def api_validate():
@@ -233,6 +243,12 @@ def api_validate():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
+    allowed, lock_msg = check_session_lock(row, client_ip)
+    if not allowed:
+        conn.close()
+        resp = {"valid": False, "error": lock_msg}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     conn.execute(
         "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
         (now, client_ip, row["id"])
@@ -288,6 +304,12 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
+    allowed, lock_msg = check_session_lock(row, client_ip)
+    if not allowed:
+        conn.close()
+        resp = {"valid": False, "error": lock_msg}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
+
     conn.execute(
         "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
         (now, client_ip, row["id"])
