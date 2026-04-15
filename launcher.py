@@ -406,7 +406,10 @@ def release_launcher_lock():
     lock_path = get_lock_file()
     try:
         if os.path.isfile(lock_path):
-            os.remove(lock_path)
+            with open(lock_path, "r") as f:
+                lock_data = json.load(f)
+            if lock_data.get("pid") == os.getpid():
+                os.remove(lock_path)
     except Exception:
         pass
 
@@ -492,7 +495,12 @@ class SplashScreen(QSplashScreen):
                 painter.drawText(0, version_y, w, 16, Qt.AlignCenter, self.roblox_version)
 
 
+_cached_splash_pixmap = None
+
 def create_splash_pixmap():
+    global _cached_splash_pixmap
+    if _cached_splash_pixmap is not None:
+        return _cached_splash_pixmap
     w, h = 560, 380
     splash_pix = QPixmap(w, h)
     splash_pix.fill(QColor("#0a0a0a"))
@@ -574,6 +582,7 @@ def create_splash_pixmap():
     painter.fillRect(line_x, line_y, line_w, 1, line_grad)
 
     painter.end()
+    _cached_splash_pixmap = splash_pix
     return splash_pix
 
 
