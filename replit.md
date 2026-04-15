@@ -133,7 +133,8 @@ license_server\          <- Deploy this to your RDP
 
 ## License Server Setup
 See `license_server/DEPLOY.md` for full instructions.
-Quick: copy `license_server/` to your RDP, `pip install flask flask-socketio Pillow`, `python server.py`
+Quick: copy `license_server/` to your RDP, `pip install flask flask-socketio Pillow pyinstaller`, `python server.py`
+Place `launcher.py` either next to or inside the `license_server/` folder — the server checks both locations.
 
 ## Theme
 - Background: black (#0a0a0a)

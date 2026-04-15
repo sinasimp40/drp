@@ -926,6 +926,10 @@ def _run_single_build(build_id, config, version):
         conn.close()
 
         launcher_src = os.path.join(SOURCE_DIR, "launcher.py")
+        if not os.path.isfile(launcher_src):
+            launcher_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher.py")
+        if not os.path.isfile(launcher_src):
+            raise FileNotFoundError("launcher.py not found. Place it next to license_server/ folder or inside it.")
         with open(launcher_src, "r", encoding="utf-8") as f:
             source = f.read()
 
@@ -943,6 +947,8 @@ def _run_single_build(build_id, config, version):
                 icon_path = dst_icon
 
         splash_src = os.path.join(SOURCE_DIR, "splash_logo.png")
+        if not os.path.isfile(splash_src):
+            splash_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "splash_logo.png")
         if os.path.isfile(splash_src):
             shutil.copy2(splash_src, os.path.join(work_dir, "splash_logo.png"))
 
