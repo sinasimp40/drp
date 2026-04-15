@@ -246,11 +246,6 @@ def api_validate():
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
         client_ip = request.remote_addr
-        if row["last_ip"] and row["last_ip"] != client_ip:
-            conn.close()
-            resp = {"valid": False, "error": "License already activated"}
-            return jsonify({"data": resp, "signature": sign_response(resp)})
-
         conn.execute(
             "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
             (now, client_ip, row["id"])
