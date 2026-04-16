@@ -1704,7 +1704,6 @@ def api_download_update(token):
 
 
 @app.route("/api/download_artifact/<int:build_id>/<int:config_id>")
-@require_admin
 def api_download_artifact(build_id, config_id):
     conn = get_db()
     artifact = conn.execute("""
@@ -1715,13 +1714,11 @@ def api_download_artifact(build_id, config_id):
     conn.close()
 
     if not artifact:
-        flash("Artifact not found", "error")
-        return redirect(url_for("builds_page"))
+        return "Artifact not found", 404
 
     file_path = os.path.join(BUILDS_DIR, artifact["version"], str(config_id), artifact["exe_filename"])
     if not os.path.isfile(file_path):
-        flash("Build file missing from disk", "error")
-        return redirect(url_for("builds_page"))
+        return "Build file missing from disk", 404
 
     return send_file(file_path, as_attachment=True, download_name=artifact["exe_filename"])
 
