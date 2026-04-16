@@ -1552,7 +1552,7 @@ def api_trigger_build():
     skipped = 0
     skipped_expired = 0
     for c in configs:
-        if c["license_status"] in ('expired', 'revoked', 'deleted'):
+        if c["license_status"] not in ('active', None):
             skipped_expired += 1
             continue
         if c["id"] in already_built:
@@ -1580,7 +1580,7 @@ def api_trigger_build():
         if skipped > 0:
             parts.append(f"{skipped} already built")
         if skipped_expired > 0:
-            parts.append(f"{skipped_expired} skipped (expired/revoked/deleted)")
+            parts.append(f"{skipped_expired} skipped (not active)")
         flash(f"Nothing to build for v{version}. {', '.join(parts)}.", "warning")
         return redirect(url_for("builds_page"))
 
@@ -1602,7 +1602,7 @@ def api_trigger_build():
     if skipped > 0:
         skip_parts.append(f"{skipped} already built")
     if skipped_expired > 0:
-        skip_parts.append(f"{skipped_expired} skipped (expired/revoked/deleted)")
+        skip_parts.append(f"{skipped_expired} skipped (not active)")
     skip_msg = f" ({', '.join(skip_parts)})" if skip_parts else ""
     flash(f"Build v{version} started for {len(config_list)} config(s){skip_msg}", "success")
     return redirect(url_for("builds_page"))
