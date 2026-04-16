@@ -504,11 +504,11 @@ class SplashScreen(QSplashScreen):
             painter.fillRect(0, status_y - 10, w, h - status_y + 10, QColor("#0d0000"))
 
             painter.setPen(QColor(RED))
-            painter.setFont(QFont("Segoe UI", 11, QFont.Bold))
+            painter.setFont(QFont("Montserrat", 11, QFont.Bold))
             painter.drawText(0, status_y - 5, w, 22, Qt.AlignCenter, "ERROR")
 
             painter.setPen(QColor("#cccccc"))
-            painter.setFont(QFont("Segoe UI", 9))
+            painter.setFont(QFont("Montserrat", 9))
             lines = self.error_msg.split("\n")
             y_off = status_y + 20
             for line in lines[:3]:
@@ -520,7 +520,7 @@ class SplashScreen(QSplashScreen):
             painter.fillRect(0, status_y - 5, w, 25, QColor("#0a0a0a"))
 
             painter.setPen(QColor("#888888"))
-            painter.setFont(QFont("Segoe UI", 9))
+            painter.setFont(QFont("Montserrat", 9))
             painter.drawText(0, status_y, w, 20, Qt.AlignCenter, self.status_msg)
 
             painter.fillRect(bar_x, bar_y, bar_w, bar_h, QColor("#1e1e1e"))
@@ -541,7 +541,7 @@ class SplashScreen(QSplashScreen):
 
             if self.roblox_version:
                 painter.setPen(QColor("#444444"))
-                painter.setFont(QFont("Segoe UI", 8))
+                painter.setFont(QFont("Montserrat", 8))
                 painter.drawText(0, version_y, w, 16, Qt.AlignCenter, self.roblox_version)
 
 
@@ -605,14 +605,14 @@ def create_splash_pixmap():
     title_size = 32
     title_spacing = 6
     while title_size >= 10:
-        title_font = QFont("Segoe UI", title_size, QFont.Bold)
+        title_font = QFont("Montserrat", title_size, QFont.Bold)
         title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
         fm = QFontMetrics(title_font)
         if fm.horizontalAdvance(APP_NAME) <= max_title_w:
             break
         title_size -= 2
         title_spacing = max(0, title_spacing - 1)
-    title_font = QFont("Segoe UI", title_size, QFont.Bold)
+    title_font = QFont("Montserrat", title_size, QFont.Bold)
     title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
     painter.setFont(title_font)
     fm = QFontMetrics(title_font)
@@ -624,7 +624,7 @@ def create_splash_pixmap():
 
     sub_y = title_y + 52
     painter.setPen(QColor("#cc5500"))
-    sub_font = QFont("Segoe UI", 13)
+    sub_font = QFont("Montserrat", 13)
     sub_font.setLetterSpacing(QFont.AbsoluteSpacing, 12)
     painter.setFont(sub_font)
     painter.drawText(0, sub_y, w, 25, Qt.AlignCenter, "PORTABLE")
@@ -966,19 +966,19 @@ class UpdateInstalledDialog(QDialog):
         layout.setSpacing(10)
 
         icon_label = QLabel("\u2714")
-        icon_label.setFont(QFont("Segoe UI", 28))
+        icon_label.setFont(QFont("Montserrat", 28))
         icon_label.setStyleSheet("color: #ff6a00;")
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
         title = QLabel("Update Installed")
-        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setFont(QFont("Montserrat", 16, QFont.Bold))
         title.setStyleSheet("color: #ff6a00;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         msg = QLabel(f"Version {version} installed successfully!\nPlease reopen the app to use the new version.")
-        msg.setFont(QFont("Segoe UI", 10))
+        msg.setFont(QFont("Montserrat", 10))
         msg.setStyleSheet("color: #b0b0c0;")
         msg.setAlignment(Qt.AlignCenter)
         msg.setWordWrap(True)
@@ -988,7 +988,7 @@ class UpdateInstalledDialog(QDialog):
 
         ok_btn = QPushButton("OK")
         ok_btn.setFixedHeight(36)
-        ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        ok_btn.setFont(QFont("Montserrat", 11, QFont.Bold))
         ok_btn.setStyleSheet("""
             QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
             QPushButton:hover { background: #ff8c33; }
@@ -1015,13 +1015,13 @@ class WarningDialog(QDialog):
         layout.setSpacing(10)
 
         title = QLabel(title_text)
-        title.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        title.setFont(QFont("Montserrat", 14, QFont.Bold))
         title.setStyleSheet("color: #ffbb33;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         msg_label = QLabel(message)
-        msg_label.setFont(QFont("Segoe UI", 10))
+        msg_label.setFont(QFont("Montserrat", 10))
         msg_label.setStyleSheet("color: #b0b0c0;")
         msg_label.setAlignment(Qt.AlignCenter)
         msg_label.setWordWrap(True)
@@ -1031,7 +1031,7 @@ class WarningDialog(QDialog):
 
         ok_btn = QPushButton("OK")
         ok_btn.setFixedHeight(34)
-        ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        ok_btn.setFont(QFont("Montserrat", 11, QFont.Bold))
         ok_btn.setStyleSheet("""
             QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
             QPushButton:hover { background: #ff8c33; }
@@ -1071,20 +1071,20 @@ class LicenseDialog(QDialog):
         layout.setSpacing(12)
 
         title = QLabel(APP_NAME)
-        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setFont(QFont("Montserrat", 16, QFont.Bold))
         title.setStyleSheet("color: #ff6a00;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         subtitle = QLabel("Enter your license key to continue")
-        subtitle.setFont(QFont("Segoe UI", 10))
+        subtitle.setFont(QFont("Montserrat", 10))
         subtitle.setStyleSheet("color: #7a7a90;")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
 
         if error_msg:
             err_label = QLabel(error_msg)
-            err_label.setFont(QFont("Segoe UI", 9))
+            err_label.setFont(QFont("Montserrat", 9))
             err_label.setStyleSheet("color: #ff4444;")
             err_label.setAlignment(Qt.AlignCenter)
             err_label.setWordWrap(True)
@@ -1109,7 +1109,7 @@ class LicenseDialog(QDialog):
         layout.addLayout(btn_row)
 
         self.status_label = QLabel("")
-        self.status_label.setFont(QFont("Segoe UI", 9))
+        self.status_label.setFont(QFont("Montserrat", 9))
         self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
 
@@ -1158,13 +1158,13 @@ class LockScreen(QWidget):
         layout.setSpacing(16)
 
         title = QLabel(APP_NAME)
-        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setFont(QFont("Montserrat", 16, QFont.Bold))
         title.setStyleSheet("color: #ee5555;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         msg = QLabel(reason)
-        msg.setFont(QFont("Segoe UI", 11))
+        msg.setFont(QFont("Montserrat", 11))
         msg.setStyleSheet("color: #b0b0c0;")
         msg.setAlignment(Qt.AlignCenter)
         msg.setWordWrap(True)
