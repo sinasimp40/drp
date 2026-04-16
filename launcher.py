@@ -549,12 +549,15 @@ def create_splash_pixmap():
             logo_path = bundle_logo
 
     if logo_path:
-        logo_pix = QPixmap(logo_path)
-        if not logo_pix.isNull():
-            logo_pix = logo_pix.scaled(logo_size, logo_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            logo_x = (w - logo_pix.width()) // 2
-            logo_y = 35
-            painter.drawPixmap(logo_x, logo_y, logo_pix)
+        try:
+            logo_pix = QPixmap(logo_path)
+            if not logo_pix.isNull():
+                logo_pix = logo_pix.scaled(logo_size, logo_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                logo_x = (w - logo_pix.width()) // 2
+                logo_y = 35
+                painter.drawPixmap(logo_x, logo_y, logo_pix)
+        except Exception:
+            pass
 
     title_y = 140
     painter.setPen(QColor("#ff6a00"))
