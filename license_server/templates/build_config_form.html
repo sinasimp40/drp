@@ -7,11 +7,11 @@
 </div>
 
 <div class="card" style="padding: 24px;">
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" autocomplete="off">
         <div class="form-row">
             <div class="form-group">
                 <label>App Name</label>
-                <input type="text" name="app_name" value="{{ config.app_name if config else '' }}" required placeholder="App name">
+                <input type="text" name="app_name" value="{{ config.app_name if config else '' }}" required placeholder="App name" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>Linked License</label>
@@ -28,23 +28,23 @@
 
         <div class="form-group">
             <label>Hardcoded Roblox Path</label>
-            <input type="text" name="hardcoded_path" value="{{ config.hardcoded_path if config else '' }}" placeholder="Path to RobloxFiles">
+            <input type="text" name="hardcoded_path" value="{{ config.hardcoded_path if config else '' }}" placeholder="Path to RobloxFiles" autocomplete="off">
         </div>
 
         <div class="form-row">
             <div class="form-group">
                 <label>License Server URL</label>
-                <input type="text" name="license_server_url" value="{{ config.license_server_url if config else '' }}" placeholder="http://your-server:port">
+                <input type="text" name="license_server_url" value="{{ config.license_server_url if config else '' }}" placeholder="http://your-server:port" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>License Secret</label>
-                <input type="text" name="license_secret" value="{{ config.license_secret if config else '' }}" placeholder="Shared secret">
+                <input type="text" name="license_secret" value="{{ config.license_secret if config else '' }}" placeholder="Shared secret" autocomplete="off">
             </div>
         </div>
 
         <div class="form-group">
             <label>Embedded License Key (optional override — defaults to linked license key)</label>
-            <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key">
+            <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key" autocomplete="off">
         </div>
 
         <div class="form-group">
