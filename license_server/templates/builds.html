@@ -315,7 +315,7 @@
             .then(function(data) {
                 var area = document.getElementById("ota-status-area");
                 if (!data.users || data.users.length === 0) {
-                    area.innerHTML = '<div style="color: #555;">No build configs with linked licenses</div>';
+                    area.innerHTML = '<div style="color: #555;">No active licenses detected yet</div>';
                     return;
                 }
                 var html = '<table style="width:100%;"><thead><tr>';

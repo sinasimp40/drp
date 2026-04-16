@@ -1490,6 +1490,8 @@ def api_update_check():
     if not config:
         config = conn.execute("SELECT id FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
     if not config:
+        config = conn.execute("SELECT id FROM build_configs ORDER BY created_at DESC LIMIT 1").fetchone()
+    if not config:
         conn.close()
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
@@ -1651,32 +1653,46 @@ def api_report_download_progress():
 @require_admin
 def api_ota_status():
     conn = get_db()
-    configs = conn.execute("""
-        SELECT bc.id, bc.app_name, bc.license_id, bc.embedded_key,
-               l.license_key, l.launcher_version
-        FROM build_configs bc LEFT JOIN licenses l ON bc.license_id = l.id
-    """).fetchall()
 
     latest_version = conn.execute("""
         SELECT version FROM builds WHERE status='completed' ORDER BY created_at DESC LIMIT 1
     """).fetchone()
-
     latest_ver = latest_version["version"] if latest_version else None
+
+    configs = conn.execute("SELECT id, app_name, license_id, embedded_key FROM build_configs").fetchall()
+    app_name_map = {}
+    for c in configs:
+        app_name_map[c["id"]] = c["app_name"]
+
+    licenses = conn.execute("""
+        SELECT id, license_key, launcher_version, status, note
+        FROM licenses WHERE status IN ('active', 'pending', 'suspended')
+    """).fetchall()
+
+    seen_keys = set()
     result = []
     now = time.time()
-    for c in configs:
-        launcher_ver = c["launcher_version"] or ""
-        key = c["license_key"] or ""
 
-        if not launcher_ver and c["embedded_key"]:
-            ek_row = conn.execute(
-                "SELECT license_key, launcher_version FROM licenses WHERE license_key = ?",
-                (c["embedded_key"],)
-            ).fetchone()
-            if ek_row:
-                launcher_ver = ek_row["launcher_version"] or ""
-                if not key:
-                    key = ek_row["license_key"] or ""
+    for lic in licenses:
+        key = lic["license_key"] or ""
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        launcher_ver = lic["launcher_version"] or ""
+
+        config_match = None
+        for c in configs:
+            if c["license_id"] and c["license_id"] == lic["id"]:
+                config_match = c
+                break
+            if c["embedded_key"] and c["embedded_key"] == key:
+                config_match = c
+                break
+        if not config_match and len(configs) == 1:
+            config_match = configs[0]
+
+        app_name = app_name_map.get(config_match["id"], "Unknown") if config_match else (lic["note"] or key[:12])
 
         dl_info = _download_progress.get(key, {})
         dl_age = now - dl_info.get("updated_at", 0) if dl_info else 999999
@@ -1691,8 +1707,8 @@ def api_ota_status():
             ota_state = "unknown"
 
         result.append({
-            "config_id": c["id"],
-            "app_name": c["app_name"],
+            "config_id": config_match["id"] if config_match else None,
+            "app_name": app_name,
             "license_key": key[:8] + "..." if key else "",
             "current_version": launcher_ver or "—",
             "latest_version": latest_ver or "—",
