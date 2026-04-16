@@ -1145,6 +1145,33 @@ def _run_build_all(build_id, version, configs):
             _build_progress[build_id]["error"] = error_msg
 
 
+@app.route("/splash_preview")
+@require_admin
+def splash_preview():
+    splash_file = None
+    for ext in [".gif", ".png"]:
+        for d in [SOURCE_DIR, os.path.dirname(os.path.abspath(__file__))]:
+            candidate = os.path.join(d, f"splash_logo{ext}")
+            if os.path.isfile(candidate):
+                splash_file = f"splash_logo{ext}"
+                break
+        if splash_file:
+            break
+    return render_template("splash_preview.html", splash_file=splash_file)
+
+
+@app.route("/splash_logo_file")
+@require_admin
+def splash_logo_file():
+    for ext in [".gif", ".png"]:
+        for d in [SOURCE_DIR, os.path.dirname(os.path.abspath(__file__))]:
+            candidate = os.path.join(d, f"splash_logo{ext}")
+            if os.path.isfile(candidate):
+                mime = "image/gif" if ext == ".gif" else "image/png"
+                return send_file(candidate, mimetype=mime)
+    return "No splash logo found", 404
+
+
 @app.route("/builds")
 @require_admin
 def builds_page():

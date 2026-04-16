@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Splash Preview{% endblock %}
+{% block content %}
+<div style="padding: 24px;">
+    <h2 style="margin-bottom: 16px;">Splash Screen Preview</h2>
+    <p style="color: #888; margin-bottom: 24px;">This is how the splash screen will look in the launcher. The GIF animates exactly as it will at runtime.</p>
+
+    <div style="display: flex; justify-content: center;">
+        <div id="splash" style="
+            width: 560px;
+            height: 380px;
+            position: relative;
+            border: 1px solid #1c1c1c;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #111111 30%, #0e0e0e 70%, #0a0a0a 100%);
+        ">
+            <div style="
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                background: radial-gradient(circle at 50% 37%, rgba(255,106,0,0.07) 0%, rgba(255,106,0,0.02) 50%, transparent 100%);
+            "></div>
+
+            <div style="
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                border: 1px solid rgba(255,106,0,0.1);
+                pointer-events: none;
+            "></div>
+
+            {% if splash_file %}
+            <div style="
+                position: absolute;
+                top: 20px;
+                left: 40px;
+                right: 40px;
+                height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">
+                <img src="/splash_logo_file" style="max-width: 480px; max-height: 100px; object-fit: contain;" alt="Splash Logo">
+            </div>
+            {% else %}
+            <div style="
+                position: absolute;
+                top: 20px;
+                left: 40px;
+                right: 40px;
+                height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #444;
+                font-size: 13px;
+            ">No splash_logo.gif or splash_logo.png found</div>
+            {% endif %}
+
+            <div id="title-text" style="
+                position: absolute;
+                top: 140px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                color: #ff6a00;
+                font-weight: 700;
+                letter-spacing: 6px;
+                font-size: 32px;
+            ">DENFI ROBLOX</div>
+
+            <div style="
+                position: absolute;
+                top: 192px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                color: #cc5500;
+                font-size: 13px;
+                letter-spacing: 12px;
+            ">PORTABLE</div>
+
+            <div style="
+                position: absolute;
+                top: 227px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100px;
+                height: 1px;
+                background: linear-gradient(90deg, transparent 0%, rgba(255,106,0,0.35) 30%, rgba(255,106,0,0.55) 50%, rgba(255,106,0,0.35) 70%, transparent 100%);
+            "></div>
+
+            <div style="
+                position: absolute;
+                top: 275px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                color: #888;
+                font-size: 9px;
+            ">Checking Roblox files...</div>
+
+            <div style="
+                position: absolute;
+                top: 310px;
+                left: 80px;
+                right: 80px;
+                height: 3px;
+                background: #1e1e1e;
+                border-radius: 2px;
+            ">
+                <div id="progress-bar" style="
+                    width: 65%;
+                    height: 100%;
+                    border-radius: 2px;
+                    background: linear-gradient(90deg, #ff6a00, #ff9d4d);
+                    position: relative;
+                    transition: width 2s ease;
+                ">
+                    <div style="
+                        position: absolute;
+                        right: -8px;
+                        top: -8px;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: radial-gradient(circle, rgba(255,106,0,0.5) 0%, transparent 70%);
+                    "></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <p style="color: #666; font-size: 12px;">Splash dimensions: 560 × 380 &nbsp;|&nbsp; Logo area: 480 × 100 (aspect ratio preserved)</p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var bar = document.getElementById('progress-bar');
+    var pct = 0;
+    var dir = 1;
+    setInterval(function() {
+        pct += dir * 5;
+        if (pct >= 100) { pct = 100; dir = -1; }
+        if (pct <= 0) { pct = 0; dir = 1; }
+        bar.style.width = pct + '%';
+    }, 400);
+})();
+</script>
+{% endblock %}
