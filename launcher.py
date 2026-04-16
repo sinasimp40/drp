@@ -847,8 +847,16 @@ def apply_update_and_restart(new_exe_path):
         current_exe = sys.executable
         backup_path = current_exe + ".bak"
         bat_path = os.path.join(APP_DIR, "_update_swap.bat")
+        pid = os.getpid()
         bat_content = f'''@echo off
+:waitloop
+tasklist /fi "PID eq {pid}" 2>nul | find "{pid}" >nul
+if not errorlevel 1 (
+    timeout /t 1 /nobreak >nul
+    goto waitloop
+)
 timeout /t 2 /nobreak >nul
+for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" >nul 2>&1
 copy "{current_exe}" "{backup_path}" >nul 2>&1
 move /y "{new_exe_path}" "{current_exe}" >nul 2>&1
 if errorlevel 1 (
