@@ -26,7 +26,7 @@ _LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x
 _LICENSE_SECRET_KEY = 0x57
 EMBEDDED_LICENSE_KEY = ""
 LICENSE_CHECK_INTERVAL = 10000
-LICENSE_OFFLINE_GRACE = 3
+LICENSE_OFFLINE_GRACE = 18
 LICENSE_FATAL_GRACE = 3
 
 
@@ -415,7 +415,8 @@ def release_launcher_lock():
 
 
 class SplashScreen(QSplashScreen):
-    LOGO_SIZE = 100
+    LOGO_MAX_W = 480
+    LOGO_MAX_H = 100
     LOGO_Y = 20
 
     def __init__(self, pixmap):
@@ -445,14 +446,15 @@ class SplashScreen(QSplashScreen):
             movie.jumpToFrame(0)
             orig = movie.currentPixmap().size()
             if orig.width() > 0 and orig.height() > 0:
-                scaled = orig.scaled(self.LOGO_SIZE, self.LOGO_SIZE, Qt.KeepAspectRatio)
+                scaled = orig.scaled(self.LOGO_MAX_W, self.LOGO_MAX_H, Qt.KeepAspectRatio)
             else:
-                scaled = QSize(self.LOGO_SIZE, self.LOGO_SIZE)
+                scaled = QSize(self.LOGO_MAX_W, self.LOGO_MAX_H)
             movie.setScaledSize(scaled)
+            logo_y = self.LOGO_Y + (self.LOGO_MAX_H - scaled.height()) // 2
             lbl = QLabel(self)
             lbl.setStyleSheet("background: transparent;")
             lbl.setFixedSize(scaled)
-            lbl.move((w - scaled.width()) // 2, self.LOGO_Y)
+            lbl.move((w - scaled.width()) // 2, logo_y)
             lbl.setMovie(movie)
             movie.start()
             self._logo_label = lbl
@@ -464,11 +466,12 @@ class SplashScreen(QSplashScreen):
         pix = QPixmap(path)
         if pix.isNull():
             return
-        pix = pix.scaled(self.LOGO_SIZE, self.LOGO_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pix = pix.scaled(self.LOGO_MAX_W, self.LOGO_MAX_H, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo_y = self.LOGO_Y + (self.LOGO_MAX_H - pix.height()) // 2
         lbl = QLabel(self)
         lbl.setStyleSheet("background: transparent;")
         lbl.setFixedSize(pix.width(), pix.height())
-        lbl.move((splash_w - pix.width()) // 2, self.LOGO_Y)
+        lbl.move((splash_w - pix.width()) // 2, logo_y)
         lbl.setPixmap(pix)
         self._logo_label = lbl
 
