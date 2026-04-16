@@ -1146,7 +1146,6 @@ def _run_build_all(build_id, version, configs):
 
 
 @app.route("/splash_preview")
-@require_admin
 def splash_preview():
     splash_file = None
     for ext in [".gif", ".png"]:
@@ -1161,7 +1160,6 @@ def splash_preview():
 
 
 @app.route("/splash_logo_file")
-@require_admin
 def splash_logo_file():
     for ext in [".gif", ".png"]:
         for d in [SOURCE_DIR, os.path.dirname(os.path.abspath(__file__))]:
