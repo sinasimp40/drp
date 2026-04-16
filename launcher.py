@@ -478,13 +478,13 @@ class SplashScreen(QSplashScreen):
             if self.progress > 0:
                 fill_w = int(bar_w * self.progress / 100)
                 bar_grad = QLinearGradient(bar_x, 0, bar_x + bar_w, 0)
-                bar_grad.setColorAt(0, QColor("#ff6a00"))
-                bar_grad.setColorAt(1, QColor("#ff9d4d"))
+                bar_grad.setColorAt(0, QColor("#00c853"))
+                bar_grad.setColorAt(1, QColor("#69f0ae"))
                 painter.fillRect(bar_x, bar_y, fill_w, bar_h, bar_grad)
 
                 glow = QRadialGradient(bar_x + fill_w, bar_y + bar_h // 2, 12)
-                glow.setColorAt(0, QColor(255, 106, 0, 80))
-                glow.setColorAt(1, QColor(255, 106, 0, 0))
+                glow.setColorAt(0, QColor(0, 200, 83, 80))
+                glow.setColorAt(1, QColor(0, 200, 83, 0))
                 painter.setBrush(QBrush(glow))
                 painter.setPen(Qt.NoPen)
                 painter.drawEllipse(bar_x + fill_w - 12, bar_y - 10, 24, 24)
