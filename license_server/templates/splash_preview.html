@@ -87,14 +87,17 @@
         <div id="title-text" style="
             position: absolute;
             top: 140px;
-            left: 0;
-            right: 0;
+            left: 20px;
+            right: 20px;
             text-align: center;
             color: #ff6a00;
             font-family: 'Roblox', 'Segoe UI', sans-serif;
             font-weight: 700;
             letter-spacing: 6px;
             font-size: 32px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         ">DENFI ROBLOX</div>
 
         <div style="
@@ -171,6 +174,19 @@
             if (pct <= 0) { pct = 0; dir = 1; }
             bar.style.width = pct + '%';
         }, 400);
+
+        var titleEl = document.getElementById('title-text');
+        if (titleEl) {
+            var maxW = titleEl.parentElement.offsetWidth - 40;
+            var size = 32;
+            var spacing = 6;
+            while (size >= 14 && titleEl.scrollWidth > maxW) {
+                size -= 2;
+                spacing = Math.max(0, spacing - 1);
+                titleEl.style.fontSize = size + 'px';
+                titleEl.style.letterSpacing = spacing + 'px';
+            }
+        }
     })();
     </script>
 </body>
