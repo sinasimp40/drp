@@ -403,6 +403,7 @@
                 var sizeKB = (data.size / 1024).toFixed(1);
                 el.innerHTML =
                     '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
+                    '<div><span style="color: #888;">Version:</span> <span style="color: #ff8c33; font-weight: 600;">' + (data.version || 'unknown') + '</span></div>' +
                     '<div><span style="color: #888;">Size:</span> <span style="color: #f0f0f0;">' + sizeKB + ' KB</span></div>' +
                     '<div><span style="color: #888;">Modified:</span> <span style="color: #f0f0f0;">' + dateStr + '</span></div>' +
                     '</div>';

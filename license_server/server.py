@@ -1,3 +1,5 @@
+SERVER_VERSION = "1.0.0"
+
 import os
 import sys
 import uuid
@@ -1333,6 +1335,12 @@ def api_upload_server():
         flash("Invalid server.py — missing expected server code", "error")
         return redirect(url_for("builds_page"))
 
+    try:
+        compile(content, "server.py", "exec")
+    except SyntaxError as e:
+        flash(f"Syntax error in uploaded server.py (line {e.lineno}): {e.msg}", "error")
+        return redirect(url_for("builds_page"))
+
     server_path = os.path.abspath(__file__)
 
     backup_path = server_path + ".bak"
@@ -1371,10 +1379,16 @@ def api_server_info():
         return jsonify({"found": False})
 
     try:
+        with open(server_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        ver_match = re.search(r'^SERVER_VERSION\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if not ver_match:
+            ver_match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
         size = os.path.getsize(server_path)
         mtime = os.path.getmtime(server_path)
         return jsonify({
             "found": True,
+            "version": ver_match.group(1) if ver_match else "unknown",
             "size": size,
             "modified": mtime,
             "path": server_path,
