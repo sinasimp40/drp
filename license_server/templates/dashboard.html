@@ -4,13 +4,16 @@
 {% block content %}
 <div class="page-header">
     <h1>Active Licenses <span id="live-dot" class="live-indicator"></span></h1>
-    <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="search" id="dashboard-search" placeholder="Search licenses..." class="filter-input" oninput="window.applyDashboardFilter && window.applyDashboardFilter()">
+        <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
+    </div>
 </div>
 
 <div class="card">
-    <div id="license-table-container">
+    <div id="license-table-container" class="scroll-table">
         {% if licenses %}
-        <table>
+        <table id="licenses-table">
             <thead>
                 <tr>
                     <th>License Key</th>
@@ -107,6 +110,33 @@
     }
     .fade-update { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
+    .scroll-table {
+        max-height: 70vh;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+    .scroll-table table { margin: 0; }
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        background: #1c1c26;
+        z-index: 1;
+    }
+    .filter-input {
+        background: #16161e;
+        color: #e8e8ef;
+        border: 1px solid #2a2a38;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 240px;
+        outline: none;
+    }
+    .filter-input:focus { border-color: #ff7a1a; }
+    .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scroll-table::-webkit-scrollbar-track { background: #16161e; }
+    .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
+    .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
 </style>
 <script>
 (function() {
@@ -194,6 +224,7 @@
                 var table = container.querySelector("table");
                 if (!table) {
                     table = document.createElement("table");
+                    table.id = "licenses-table";
                     table.innerHTML =
                         '<thead><tr>' +
                             '<th>License Key</th><th>Status</th><th>Activated</th><th>Time Remaining</th>' +
@@ -210,9 +241,22 @@
                     row.classList.add("fade-update");
                     tbody.appendChild(row);
                 });
+                window.applyDashboardFilter();
             })
             .catch(function() {});
     }
+
+    window.applyDashboardFilter = function() {
+        var input = document.getElementById("dashboard-search");
+        var table = document.getElementById("licenses-table");
+        if (!input || !table) return;
+        var q = input.value.toLowerCase().trim();
+        var rows = table.querySelectorAll("tbody tr");
+        for (var i = 0; i < rows.length; i++) {
+            var text = rows[i].textContent.toLowerCase();
+            rows[i].style.display = (!q || text.indexOf(q) !== -1) ? "" : "none";
+        }
+    };
 
     function tickCountdowns() {
         var cells = document.querySelectorAll(".time-remaining[data-seconds]");

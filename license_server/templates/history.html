@@ -4,12 +4,13 @@
 {% block content %}
 <div class="page-header">
     <h1>License History <span class="live-indicator"></span></h1>
+    <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="window.applyHistoryFilter && window.applyHistoryFilter()">
 </div>
 
 <div class="card">
-    <div id="history-table-container">
+    <div id="history-table-container" class="scroll-table">
         {% if licenses %}
-        <table>
+        <table id="history-licenses-table">
             <thead>
                 <tr>
                     <th>License Key</th>
@@ -105,6 +106,33 @@
         0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
         50% { opacity: 0.4; box-shadow: none; }
     }
+    .scroll-table {
+        max-height: 70vh;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+    .scroll-table table { margin: 0; }
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        background: #1c1c26;
+        z-index: 1;
+    }
+    .filter-input {
+        background: #16161e;
+        color: #e8e8ef;
+        border: 1px solid #2a2a38;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 240px;
+        outline: none;
+    }
+    .filter-input:focus { border-color: #ff7a1a; }
+    .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scroll-table::-webkit-scrollbar-track { background: #16161e; }
+    .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
+    .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
 </style>
 <script>
 (function() {
@@ -155,6 +183,7 @@
                 var table = container.querySelector("table");
                 if (!table) {
                     table = document.createElement("table");
+                    table.id = "history-licenses-table";
                     table.innerHTML =
                         '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
                         '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Version</th><th>Note</th><th>Actions</th></tr></thead>' +
@@ -184,9 +213,22 @@
                         '<td class="actions-cell">' + buildActions(lic) + '</td>';
                     tbody.appendChild(tr);
                 });
+                window.applyHistoryFilter();
             })
             .catch(function() {});
     }
+
+    window.applyHistoryFilter = function() {
+        var input = document.getElementById("history-search");
+        var table = document.getElementById("history-licenses-table");
+        if (!input || !table) return;
+        var q = input.value.toLowerCase().trim();
+        var rows = table.querySelectorAll("tbody tr");
+        for (var i = 0; i < rows.length; i++) {
+            var text = rows[i].textContent.toLowerCase();
+            rows[i].style.display = (!q || text.indexOf(q) !== -1) ? "" : "none";
+        }
+    };
 
     setInterval(refreshHistory, 5000);
 })();
