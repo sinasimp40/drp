@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QWidget
 )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import (
     QColor, QPainter, QPixmap, QIcon, QFont, QFontMetrics, QLinearGradient,
     QRadialGradient, QPen, QPainterPath, QBrush
@@ -415,6 +415,9 @@ def release_launcher_lock():
 
 
 class SplashScreen(QSplashScreen):
+    LOGO_SIZE = 100
+    LOGO_Y = 20
+
     def __init__(self, pixmap):
         super().__init__(pixmap)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.SplashScreen)
@@ -424,6 +427,44 @@ class SplashScreen(QSplashScreen):
         self.is_error = False
         self._base_pixmap = pixmap
         self.roblox_version = ""
+        self._logo_label = None
+        self._logo_movie = None
+        self._setup_logo()
+
+    def _setup_logo(self):
+        from PyQt5.QtGui import QMovie
+        logo_path = _find_splash_logo()
+        if not logo_path:
+            return
+        w = self._base_pixmap.width()
+        if logo_path.lower().endswith(".gif"):
+            movie = QMovie(logo_path)
+            if not movie.isValid():
+                self._draw_static_logo(logo_path, w)
+                return
+            movie.setScaledSize(QSize(self.LOGO_SIZE, self.LOGO_SIZE))
+            lbl = QLabel(self)
+            lbl.setStyleSheet("background: transparent;")
+            lbl.setFixedSize(self.LOGO_SIZE, self.LOGO_SIZE)
+            lbl.move((w - self.LOGO_SIZE) // 2, self.LOGO_Y)
+            lbl.setMovie(movie)
+            movie.start()
+            self._logo_label = lbl
+            self._logo_movie = movie
+        else:
+            self._draw_static_logo(logo_path, w)
+
+    def _draw_static_logo(self, path, splash_w):
+        pix = QPixmap(path)
+        if pix.isNull():
+            return
+        pix = pix.scaled(self.LOGO_SIZE, self.LOGO_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        lbl = QLabel(self)
+        lbl.setStyleSheet("background: transparent;")
+        lbl.setFixedSize(pix.width(), pix.height())
+        lbl.move((splash_w - pix.width()) // 2, self.LOGO_Y)
+        lbl.setPixmap(pix)
+        self._logo_label = lbl
 
     def set_progress(self, value, msg=""):
         self.progress = value
@@ -495,6 +536,21 @@ class SplashScreen(QSplashScreen):
                 painter.drawText(0, version_y, w, 16, Qt.AlignCenter, self.roblox_version)
 
 
+def _find_splash_logo():
+    logo_extensions = [".gif", ".png"]
+    search_dirs = [
+        APP_DIR,
+        os.path.dirname(os.path.abspath(__file__)),
+    ]
+    if getattr(sys, 'frozen', False):
+        search_dirs.append(sys._MEIPASS)
+    for d in search_dirs:
+        for ext in logo_extensions:
+            candidate = os.path.join(d, f"splash_logo{ext}")
+            if os.path.isfile(candidate):
+                return candidate
+    return None
+
 _cached_splash_pixmap = None
 
 def create_splash_pixmap():
@@ -533,35 +589,6 @@ def create_splash_pixmap():
     inner_pen.setWidth(1)
     painter.setPen(inner_pen)
     painter.drawRect(1, 1, w - 3, h - 3)
-
-    logo_size = 80
-    logo_extensions = [".gif", ".png"]
-    search_dirs = [
-        APP_DIR,
-        os.path.dirname(os.path.abspath(__file__)),
-    ]
-    if getattr(sys, 'frozen', False):
-        search_dirs.append(sys._MEIPASS)
-    logo_candidates = []
-    for d in search_dirs:
-        for ext in logo_extensions:
-            candidate = os.path.join(d, f"splash_logo{ext}")
-            if os.path.isfile(candidate):
-                logo_candidates.append(candidate)
-
-    logo_drawn = False
-    for logo_path in logo_candidates:
-        try:
-            logo_pix = QPixmap(logo_path)
-            if not logo_pix.isNull():
-                logo_pix = logo_pix.scaled(logo_size, logo_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                logo_x = (w - logo_pix.width()) // 2
-                logo_y = 35
-                painter.drawPixmap(logo_x, logo_y, logo_pix)
-                logo_drawn = True
-                break
-        except Exception:
-            pass
 
     title_y = 140
     painter.setPen(QColor("#ff6a00"))
