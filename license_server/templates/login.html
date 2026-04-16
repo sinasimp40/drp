@@ -8,31 +8,32 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #0a0a0a;
-            color: #f0f0f0;
+            background: #121218;
+            color: #e8e8ef;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .login-card {
-            background: #111;
-            border: 1px solid #1e1e1e;
+            background: #1c1c26;
+            border: 1px solid #2a2a38;
             border-radius: 12px;
             padding: 40px;
             width: 100%;
             max-width: 380px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         .login-card h1 {
             text-align: center;
             font-size: 20px;
-            color: #ff6a00;
+            color: #ff7a1a;
             letter-spacing: 3px;
             margin-bottom: 8px;
         }
         .login-card .subtitle {
             text-align: center;
-            color: #555;
+            color: #7a7a90;
             font-size: 13px;
             margin-bottom: 32px;
         }
@@ -43,27 +44,29 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #888;
+            color: #9a9ab0;
             margin-bottom: 6px;
         }
         .form-group input {
             width: 100%;
             padding: 10px 12px;
-            background: #0d0d0d;
-            border: 1px solid #2a2a2a;
+            background: #16161e;
+            border: 1px solid #333345;
             border-radius: 6px;
-            color: #f0f0f0;
+            color: #e8e8ef;
             font-size: 14px;
+            transition: border-color 0.2s;
         }
         .form-group input:focus {
             outline: none;
-            border-color: #ff6a00;
+            border-color: #ff7a1a;
+            box-shadow: 0 0 0 2px rgba(255,122,26,0.15);
         }
         .btn {
             display: block;
             width: 100%;
             padding: 12px;
-            background: #ff6a00;
+            background: #ff7a1a;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -72,15 +75,15 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .btn:hover { background: #ff8c33; }
+        .btn:hover { background: #ff9d4d; }
         .flash {
             padding: 10px 12px;
             border-radius: 6px;
             margin-bottom: 16px;
             font-size: 13px;
-            background: #2a0a0a;
-            color: #cc4444;
-            border: 1px solid #3a1a1a;
+            background: #351515;
+            color: #ee5555;
+            border: 1px solid #502030;
         }
     </style>
 </head>

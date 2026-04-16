@@ -7,47 +7,27 @@
     <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">+ New Config</a>
 </div>
 
-<div style="display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
-    <div class="card" style="flex: 1; min-width: 300px;">
-        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-            <h2 style="font-size: 16px; color: #f0f0f0;">Launcher Source</h2>
-        </div>
-        <div style="padding: 16px;">
-            <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
-                <span style="color: #555;">Loading launcher info...</span>
-            </div>
-            <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                    <label>Upload launcher.py</label>
-                    <input type="file" name="launcher_file" accept=".py" style="color: #888;" required>
-                </div>
-                <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
-            </form>
-        </div>
+<div class="card" style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+        <h2 style="font-size: 16px; color: #f0f0f5;">Launcher Source</h2>
     </div>
-
-    <div class="card" style="flex: 1; min-width: 300px;">
-        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-            <h2 style="font-size: 16px; color: #f0f0f0;">Server Source</h2>
+    <div style="padding: 16px;">
+        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #16161e; border-radius: 6px;">
+            <span style="color: #7a7a90;">Loading launcher info...</span>
         </div>
-        <div style="padding: 16px;">
-            <div id="server-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
-                <span style="color: #555;">Loading server info...</span>
+        <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                <label>Upload launcher.py</label>
+                <input type="file" name="launcher_file" accept=".py" style="color: #9a9ab0;" required>
             </div>
-            <form method="POST" action="{{ url_for('api_upload_server') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                    <label>Upload server.py</label>
-                    <input type="file" name="server_file" accept=".py" style="color: #888;" required>
-                </div>
-                <button type="submit" class="btn btn-warning" onclick="return confirm('Replace server.py and restart the server? You will be disconnected briefly.')">Upload & Restart</button>
-            </form>
-        </div>
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
+        </form>
     </div>
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between;">
-        <h2 style="font-size: 16px; color: #f0f0f0;">Trigger Build</h2>
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between;">
+        <h2 style="font-size: 16px; color: #f0f0f5;">Trigger Build</h2>
     </div>
     <div style="padding: 16px;">
         <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
@@ -62,9 +42,9 @@
 
 <div id="build-progress-area" style="margin-bottom: 24px; display: none;">
     <div class="card">
-        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-            <h2 style="font-size: 16px; color: #f0f0f0;">
-                Build Progress <span id="build-version-label" style="color: #ff6a00;"></span>
+        <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+            <h2 style="font-size: 16px; color: #f0f0f5;">
+                Build Progress <span id="build-version-label" style="color: #ff7a1a;"></span>
                 <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
             </h2>
         </div>
@@ -73,8 +53,8 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-        <h2 style="font-size: 16px; color: #f0f0f0;">Build Configs ({{ configs|length }})</h2>
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+        <h2 style="font-size: 16px; color: #f0f0f5;">Build Configs ({{ configs|length }})</h2>
     </div>
     {% if configs %}
     <table>
@@ -98,15 +78,15 @@
                     <div class="ip-info">{{ c.license_note }}</div>
                     {% endif %}
                 </td>
-                <td style="font-size: 12px; color: #888;">{{ c.hardcoded_path or 'Not set' }}</td>
+                <td style="font-size: 12px; color: #9a9ab0;">{{ c.hardcoded_path or 'Not set' }}</td>
                 <td>
                     {% if c.has_icon %}
                     <span style="color: #44cc44;">Yes</span>
                     {% else %}
-                    <span style="color: #555;">No</span>
+                    <span style="color: #6a6a80;">No</span>
                     {% endif %}
                 </td>
-                <td style="font-size: 12px; color: #888;">{{ c.license_server_url or 'Not set' }}</td>
+                <td style="font-size: 12px; color: #9a9ab0;">{{ c.license_server_url or 'Not set' }}</td>
                 <td class="actions-cell">
                     <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <form method="POST" action="{{ url_for('delete_build_config', config_id=c.id) }}" onsubmit="return confirm('Delete this build config?')" style="display: inline;">
@@ -126,17 +106,17 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-        <h2 style="font-size: 16px; color: #f0f0f0;">OTA Update Status</h2>
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+        <h2 style="font-size: 16px; color: #f0f0f5;">OTA Update Status</h2>
     </div>
     <div id="ota-status-area" style="padding: 16px;">
-        <div style="color: #555;">Loading...</div>
+        <div style="color: #7a7a90;">Loading...</div>
     </div>
 </div>
 
 <div class="card">
-    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-        <h2 style="font-size: 16px; color: #f0f0f0;">Build History</h2>
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+        <h2 style="font-size: 16px; color: #f0f0f5;">Build History</h2>
     </div>
     {% if builds %}
     <table>
@@ -196,7 +176,7 @@
 {% block scripts %}
 <style>
     .progress-bar-container {
-        background: #1e1e1e;
+        background: #222230;
         border-radius: 4px;
         height: 20px;
         overflow: hidden;
@@ -208,16 +188,16 @@
         border-radius: 4px;
         transition: width 0.3s ease;
     }
-    .progress-bar-fill.building { background: linear-gradient(90deg, #ff6a00, #ff9d4d); }
-    .progress-bar-fill.completed { background: #44cc44; }
-    .progress-bar-fill.failed { background: #cc4444; }
+    .progress-bar-fill.building { background: linear-gradient(90deg, #ff7a1a, #ff9d4d); }
+    .progress-bar-fill.completed { background: #55dd66; }
+    .progress-bar-fill.failed { background: #ee5555; }
     .artifact-item {
         padding: 12px;
-        border-bottom: 1px solid #1a1a1a;
+        border-bottom: 1px solid #222230;
     }
     .artifact-item:last-child { border-bottom: none; }
-    .artifact-name { font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
-    .artifact-status { font-size: 12px; color: #888; }
+    .artifact-name { font-weight: 600; color: #e8e8ef; margin-bottom: 4px; }
+    .artifact-status { font-size: 12px; color: #9a9ab0; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
@@ -312,11 +292,11 @@
                 html += '</div>';
                 html += '<div class="artifact-status">';
                 if (art.status === "completed") {
-                    html += '<span style="color: #44cc44;">Completed</span>';
+                    html += '<span style="color: #55dd66;">Completed</span>';
                     if (art.filename) html += ' — ' + art.filename;
                     if (art.size) html += ' (' + (art.size / 1024 / 1024).toFixed(1) + ' MB)';
                 } else if (art.status === "failed") {
-                    html += '<span style="color: #cc4444;">Failed: ' + (art.error || "Unknown error") + '</span>';
+                    html += '<span style="color: #ee5555;">Failed: ' + (art.error || "Unknown error") + '</span>';
                 } else {
                     html += 'Building... ' + pct + '%';
                 }
@@ -324,9 +304,9 @@
             }
         }
         if (data.error) {
-            html += '<div style="padding: 12px; color: #cc4444;">' + data.error + '</div>';
+            html += '<div style="padding: 12px; color: #ee5555;">' + data.error + '</div>';
         }
-        list.innerHTML = html || '<div style="padding: 12px; color: #555;">Waiting...</div>';
+        list.innerHTML = html || '<div style="padding: 12px; color: #7a7a90;">Waiting...</div>';
     }
 
     function loadOtaStatus() {
@@ -335,7 +315,7 @@
             .then(function(data) {
                 var area = document.getElementById("ota-status-area");
                 if (!data.users || data.users.length === 0) {
-                    area.innerHTML = '<div style="color: #555;">No active licenses detected yet</div>';
+                    area.innerHTML = '<div style="color: #7a7a90;">No active licenses detected yet</div>';
                     return;
                 }
                 var html = '<table style="width:100%;"><thead><tr>';
@@ -343,11 +323,11 @@
                 html += '</tr></thead><tbody>';
                 for (var i = 0; i < data.users.length; i++) {
                     var u = data.users[i];
-                    var stateColor = '#555';
+                    var stateColor = '#7a7a90';
                     var stateLabel = u.ota_state;
-                    if (u.ota_state === 'updated') { stateColor = '#44cc44'; stateLabel = 'Up to date'; }
-                    else if (u.ota_state === 'downloading') { stateColor = '#ff6a00'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
-                    else if (u.ota_state === 'outdated') { stateColor = '#cc4444'; stateLabel = 'Outdated'; }
+                    if (u.ota_state === 'updated') { stateColor = '#55dd66'; stateLabel = 'Up to date'; }
+                    else if (u.ota_state === 'downloading') { stateColor = '#ff7a1a'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
+                    else if (u.ota_state === 'outdated') { stateColor = '#ee5555'; stateLabel = 'Outdated'; }
                     html += '<tr>';
                     html += '<td style="font-weight:600;color:#ff8c33;">' + u.app_name + '</td>';
                     html += '<td><span class="key-text" style="font-size:11px;">' + u.license_key + '</span></td>';
@@ -368,7 +348,7 @@
             .then(function(data) {
                 var el = document.getElementById("launcher-info");
                 if (!data.found) {
-                    el.innerHTML = '<span style="color: #cc4444; font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
+                    el.innerHTML = '<span style="color: #ee5555; font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
                     return;
                 }
                 var modified = new Date(data.modified * 1000);
@@ -376,10 +356,10 @@
                 var sizeKB = (data.size / 1024).toFixed(1);
                 el.innerHTML =
                     '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
-                    '<div><span style="color: #888;">Version:</span> <span style="color: #ff8c33; font-weight: 600;">' + data.version + '</span></div>' +
-                    '<div><span style="color: #888;">App Name:</span> <span style="color: #f0f0f0;">' + data.app_name + '</span></div>' +
-                    '<div><span style="color: #888;">Size:</span> <span style="color: #f0f0f0;">' + sizeKB + ' KB</span></div>' +
-                    '<div><span style="color: #888;">Modified:</span> <span style="color: #f0f0f0;">' + dateStr + '</span></div>' +
+                    '<div><span style="color: #9a9ab0;">Version:</span> <span style="color: #ff9d4d; font-weight: 600;">' + data.version + '</span></div>' +
+                    '<div><span style="color: #9a9ab0;">App Name:</span> <span style="color: #e8e8ef;">' + data.app_name + '</span></div>' +
+                    '<div><span style="color: #9a9ab0;">Size:</span> <span style="color: #e8e8ef;">' + sizeKB + ' KB</span></div>' +
+                    '<div><span style="color: #9a9ab0;">Modified:</span> <span style="color: #e8e8ef;">' + dateStr + '</span></div>' +
                     '</div>';
                 var versionInput = document.getElementById("build-version-input");
                 if (versionInput && !versionInput.value) {
@@ -389,32 +369,9 @@
             .catch(function() {});
     }
 
-    function loadServerInfo() {
-        fetch("/api/server_info", { credentials: "same-origin" })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var el = document.getElementById("server-info");
-                if (!data.found) {
-                    el.innerHTML = '<span style="color: #cc4444; font-weight: 600;">server.py not found!</span>';
-                    return;
-                }
-                var modified = new Date(data.modified * 1000);
-                var dateStr = modified.toLocaleString();
-                var sizeKB = (data.size / 1024).toFixed(1);
-                el.innerHTML =
-                    '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
-                    '<div><span style="color: #888;">Version:</span> <span style="color: #ff8c33; font-weight: 600;">' + (data.version || 'unknown') + '</span></div>' +
-                    '<div><span style="color: #888;">Size:</span> <span style="color: #f0f0f0;">' + sizeKB + ' KB</span></div>' +
-                    '<div><span style="color: #888;">Modified:</span> <span style="color: #f0f0f0;">' + dateStr + '</span></div>' +
-                    '</div>';
-            })
-            .catch(function() {});
-    }
-
     initSocket();
     checkActiveBuild();
     loadLauncherInfo();
-    loadServerInfo();
     loadOtaStatus();
     setInterval(loadOtaStatus, 5000);
 })();

@@ -846,48 +846,32 @@ def apply_update_and_restart(new_exe_path):
     try:
         current_exe = sys.executable
         backup_path = current_exe + ".bak"
-        bat_path = os.path.join(APP_DIR, "_update_swap.bat")
-        pid = os.getpid()
-        mei_dir = getattr(sys, '_MEIPASS', '')
-        bat_content = f'''@echo off
-setlocal
 
-:waitloop
-tasklist /fi "PID eq {pid}" 2>nul | find "{pid}" >nul
-if not errorlevel 1 (
-    timeout /t 1 /nobreak >nul
-    goto waitloop
-)
+        if os.path.exists(backup_path):
+            try:
+                os.remove(backup_path)
+            except Exception:
+                pass
 
-timeout /t 3 /nobreak >nul
+        os.rename(current_exe, backup_path)
 
-for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" >nul 2>&1
+        shutil.copy2(new_exe_path, current_exe)
 
-if exist "{mei_dir}" (
-    rd /s /q "{mei_dir}" >nul 2>&1
-)
+        try:
+            os.remove(new_exe_path)
+            update_dir = os.path.dirname(new_exe_path)
+            if os.path.isdir(update_dir) and not os.listdir(update_dir):
+                os.rmdir(update_dir)
+        except Exception:
+            pass
 
-copy "{current_exe}" "{backup_path}" >nul 2>&1
-move /y "{new_exe_path}" "{current_exe}" >nul 2>&1
-if errorlevel 1 (
-    timeout /t 2 /nobreak >nul
-    copy /y "{new_exe_path}" "{current_exe}" >nul 2>&1
-    if errorlevel 1 (
-        copy /y "{backup_path}" "{current_exe}" >nul 2>&1
-    )
-)
-del "{backup_path}" >nul 2>&1
-del "%~f0" >nul 2>&1
-'''
-        with open(bat_path, "w") as f:
-            f.write(bat_content)
-        subprocess.Popen(
-            ["cmd", "/c", bat_path],
-            creationflags=0x08000000,
-            close_fds=True
-        )
         return True
     except Exception:
+        if os.path.exists(backup_path) and not os.path.exists(current_exe):
+            try:
+                os.rename(backup_path, current_exe)
+            except Exception:
+                pass
         return False
 
 
@@ -1212,6 +1196,20 @@ def main():
         icon_path = os.path.join(sys._MEIPASS, "icon.ico")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
+
+    if getattr(sys, 'frozen', False):
+        bak_path = sys.executable + ".bak"
+        if os.path.exists(bak_path):
+            try:
+                os.remove(bak_path)
+            except Exception:
+                pass
+        update_dir = os.path.join(APP_DIR, "_update")
+        if os.path.isdir(update_dir):
+            try:
+                shutil.rmtree(update_dir, ignore_errors=True)
+            except Exception:
+                pass
 
     splash_pix = create_splash_pixmap()
     splash = SplashScreen(splash_pix)

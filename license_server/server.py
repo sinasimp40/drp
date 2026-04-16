@@ -1071,29 +1071,46 @@ def _run_single_build(build_id, config, version):
 
 
 def _run_build_all(build_id, version, configs):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     conn = get_db()
     conn.execute("UPDATE builds SET status='building', started_at=? WHERE id=?", (time.time(), build_id))
     conn.commit()
     conn.close()
 
-    completed = 0
-    failed = 0
-    for config in configs:
+    completed = [0]
+    failed = [0]
+    count_lock = threading.Lock()
+
+    def build_one(config):
         success = _run_single_build(build_id, config, version)
-        if success:
-            completed += 1
-        else:
-            failed += 1
-        conn = get_db()
-        conn.execute("UPDATE builds SET completed_configs=? WHERE id=?", (completed + failed, build_id))
-        conn.commit()
-        conn.close()
+        with count_lock:
+            if success:
+                completed[0] += 1
+            else:
+                failed[0] += 1
+            total_done = completed[0] + failed[0]
+        conn2 = get_db()
+        conn2.execute("UPDATE builds SET completed_configs=? WHERE id=?", (total_done, build_id))
+        conn2.commit()
+        conn2.close()
         with _build_lock:
             if build_id in _build_progress:
-                _build_progress[build_id]["completed"] = completed + failed
+                _build_progress[build_id]["completed"] = total_done
+        return success
 
-    final_status = "completed" if failed == 0 else ("failed" if completed == 0 else "completed")
-    error_msg = f"{failed} config(s) failed" if failed > 0 else ""
+    max_workers = min(3, len(configs))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(build_one, cfg): cfg for cfg in configs}
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception:
+                with count_lock:
+                    failed[0] += 1
+
+    final_status = "completed" if failed[0] == 0 else ("failed" if completed[0] == 0 else "completed")
+    error_msg = f"{failed[0]} config(s) failed" if failed[0] > 0 else ""
     conn = get_db()
     conn.execute(
         "UPDATE builds SET status=?, completed_at=?, error_message=? WHERE id=?",
