@@ -960,6 +960,15 @@ def _run_single_build(build_id, config, version):
             if splash_src:
                 shutil.copy2(splash_src, os.path.join(work_dir, os.path.basename(splash_src)))
 
+        font_file = None
+        for font_dir in [SOURCE_DIR, os.path.dirname(os.path.abspath(__file__))]:
+            candidate = os.path.join(font_dir, "Roblox2017.ttf")
+            if os.path.isfile(candidate):
+                font_file = candidate
+                break
+        if font_file:
+            shutil.copy2(font_file, os.path.join(work_dir, "Roblox2017.ttf"))
+
         cmd = [
             sys.executable, "-m", "PyInstaller",
             "--onefile", "--windowed", "--clean",
@@ -975,6 +984,9 @@ def _run_single_build(build_id, config, version):
             splash_work = os.path.join(work_dir, f"splash_logo{splash_ext}")
             if os.path.isfile(splash_work):
                 cmd.extend(["--add-data", f"{splash_work}{os.pathsep}."])
+        font_work = os.path.join(work_dir, "Roblox2017.ttf")
+        if os.path.isfile(font_work):
+            cmd.extend(["--add-data", f"{font_work}{os.pathsep}."])
         cmd.append(patched_path)
 
         process = subprocess.Popen(
