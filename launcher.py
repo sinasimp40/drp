@@ -1369,15 +1369,41 @@ def main():
     step_index = [0]
 
     def do_step():
+        try:
+            _do_step_inner()
+        except Exception as e:
+            log_lines.append(f"FATAL ERROR at step {step_index[0]}: {e}")
+            try:
+                write_log(paths["logs"], "\n".join(log_lines))
+            except Exception:
+                pass
+            splash.show_error(f"Error: {str(e)[:80]}")
+            app.processEvents()
+            QTimer.singleShot(5000, app.quit)
+
+    def _do_step_inner():
         idx = step_index[0]
 
         if idx == 0:
             splash.set_progress(10, "Preparing folders...")
             app.processEvents()
-            os.makedirs(paths["roblox"], exist_ok=True)
-            os.makedirs(paths["cache"], exist_ok=True)
-            os.makedirs(paths["logs"], exist_ok=True)
-            log_lines.append("Folders ready")
+            try:
+                os.makedirs(paths["roblox"], exist_ok=True)
+                os.makedirs(paths["cache"], exist_ok=True)
+                os.makedirs(paths["logs"], exist_ok=True)
+                log_lines.append("Folders ready")
+            except PermissionError:
+                log_lines.append(f"Permission denied creating: {paths['roblox']}")
+                splash.show_error(f"Cannot create folder!\n{paths['roblox']}\nRun as administrator or choose a different path.")
+                app.processEvents()
+                QTimer.singleShot(5000, app.quit)
+                return
+            except Exception as e:
+                log_lines.append(f"Folder creation failed: {e}")
+                splash.show_error(f"Cannot create folder!\n{str(e)[:60]}")
+                app.processEvents()
+                QTimer.singleShot(5000, app.quit)
+                return
 
         elif idx == 1:
             splash.set_progress(25, "Checking Roblox files...")
