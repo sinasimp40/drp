@@ -1519,8 +1519,10 @@ def api_trigger_build():
         conn.close()
         flash("A build is already in progress. Wait for it to finish.", "error")
         return redirect(url_for("builds_page"))
+    expire_active_licenses(conn)
+
     configs = conn.execute("""
-        SELECT bc.*, l.license_key
+        SELECT bc.*, l.license_key, l.status as license_status
         FROM build_configs bc
         LEFT JOIN licenses l ON bc.license_id = l.id
     """).fetchall()
@@ -1548,7 +1550,11 @@ def api_trigger_build():
 
     config_list = []
     skipped = 0
+    skipped_expired = 0
     for c in configs:
+        if c["license_status"] in ('expired', 'revoked', 'deleted'):
+            skipped_expired += 1
+            continue
         if c["id"] in already_built:
             skipped += 1
             continue
@@ -1570,7 +1576,12 @@ def api_trigger_build():
         conn.execute("DELETE FROM builds WHERE id=?", (build_id,))
         conn.commit()
         conn.close()
-        flash(f"All {skipped} config(s) already built for v{version}. Nothing to do.", "warning")
+        parts = []
+        if skipped > 0:
+            parts.append(f"{skipped} already built")
+        if skipped_expired > 0:
+            parts.append(f"{skipped_expired} skipped (expired/revoked/deleted)")
+        flash(f"Nothing to build for v{version}. {', '.join(parts)}.", "warning")
         return redirect(url_for("builds_page"))
 
     conn.execute("UPDATE builds SET total_configs=? WHERE id=?", (len(config_list), build_id))
@@ -1587,7 +1598,12 @@ def api_trigger_build():
     thread = threading.Thread(target=_run_build_all, args=(build_id, version, config_list), daemon=True)
     thread.start()
 
-    skip_msg = f" ({skipped} skipped — already built)" if skipped > 0 else ""
+    skip_parts = []
+    if skipped > 0:
+        skip_parts.append(f"{skipped} already built")
+    if skipped_expired > 0:
+        skip_parts.append(f"{skipped_expired} skipped (expired/revoked/deleted)")
+    skip_msg = f" ({', '.join(skip_parts)})" if skip_parts else ""
     flash(f"Build v{version} started for {len(config_list)} config(s){skip_msg}", "success")
     return redirect(url_for("builds_page"))
 
