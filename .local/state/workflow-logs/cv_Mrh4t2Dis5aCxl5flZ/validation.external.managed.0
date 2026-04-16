@@ -1,0 +1,41 @@
+VERDICT: APPROVED_WITH_COMMENTS
+
+The core task is implemented correctly: launcher now sends `app_name` in update checks, server uses `app_name` as fallback between `embedded_key` and global latest-config fallback in `api_update_check`, and OTA status nVERDICT: APPROVED_WITH_COMMENTS
+ow attempts app-name-based matching so the UI can resolve the expected config n
+ame.
+
+Critical findings / analysis:
+- ✅ `launcher.py`: The core task is implemented correctly: launcher now sends `app_name` in update checks, server uses `app_name` as fallback between `embedded_key` and global latest-config fallback in `api_update_check`, and OTA status now attempts app-name-based matching so the UI can resolve the expected config name.
+`check_for_update()` now includes `"app_name": APP_NAME`
+ in the signed body, satisfying the launcher-side requiremeCritical findings / analysis:
+nt.
+- ✅ `license_server/server.py` `api_update_check()`: matching o- ✅ `launcher.py`: `check_for_update()` now includes `"app_name": APP_NAME` in the signed body, satisfying the launcher-side requirement.
+rder is now license_id → embedded_key → app_name (case-insensitive) → most recent config. This directly addresses the wrong-exe issue when license assignment is missing.
+- ✅ OTA status path now carries and uses app name:
+  - launcher sends `app_name` in `/api/report_download_progress`
+  - server stores it in `_download_progress[key]["app_name"]`
+  - `/api/ota_status` uses this app name (or license note fallback) to match config when license_id/embedded_key fail.
+
+Comments (non-blocking):
+- In `api_ota_status`, app-name matching iterates unsorted `configs`, while `api_update_check` uses `ORDER BY created_at DESC LIMIT 1`. If duplicate `app_name` values exist, UI may display a different config than update-check selection. This is a consistency gap but not a blocker for the primary fix.
+
+Security:
+- None observed (no new dangerous sinks, no authz regression, parameterized SQL retained, signed-request flow preserved).
+
+Next actions:
+1. Align OTA status app-name resolution ordering with `api_update_check` (prefer newest config for same app_name).
+2. Optionally persist last-seen app_name per license in DB (instead of in-memory `_download_progress`) for stable status across server restarts.- ✅ `license_server/server.py` `api_update_check()`: matching order is now license_id → embedded_key → app_name (case-insensitive) → most recent config. This directly addresses the wrong-exe issue when license assignment is missing.
+- ✅ OTA status path now carries and uses app name:
+  - launcher sends `app_name` in `/api/report_download_progress`
+  - server stores it in `_download_progress[key]["app_name"]`
+  - `/api/ota_status` uses this app name (or license note fallback) to match config when license_id/embedded_key fail.
+
+Comments (non-blocking):
+- In `api_ota_status`, app-name matching iterates unsorted `configs`, while `api_update_check` uses `ORDER BY created_at DESC LIMIT 1`. If duplicate `app_name` values exist, UI may display a different config than update-check selection. This is a consistency gap but not a blocker for the primary fix.
+
+Security:
+- None observed (no new dangerous sinks, no authz regression, parameterized SQL retained, signed-request flow preserved).
+
+Next actions:
+1. Align OTA status app-name resolution ordering with `api_update_check` (prefer newest config for same app_name).
+2. Optionally persist last-seen app_name per license in DB (instead of in-memory `_download_progress`) for stable status across server restarts.
