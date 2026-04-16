@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
-    QColor, QPainter, QPixmap, QIcon, QFont, QLinearGradient,
+    QColor, QPainter, QPixmap, QIcon, QFont, QFontMetrics, QLinearGradient,
     QRadialGradient, QPen, QPainterPath, QBrush
 )
 
@@ -535,20 +535,22 @@ def create_splash_pixmap():
     painter.drawRect(1, 1, w - 3, h - 3)
 
     logo_size = 80
-    logo_path = None
-    for candidate in [
-        os.path.join(APP_DIR, "splash_logo.png"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "splash_logo.png"),
-    ]:
-        if os.path.isfile(candidate):
-            logo_path = candidate
-            break
+    logo_extensions = [".gif", ".png"]
+    search_dirs = [
+        APP_DIR,
+        os.path.dirname(os.path.abspath(__file__)),
+    ]
     if getattr(sys, 'frozen', False):
-        bundle_logo = os.path.join(sys._MEIPASS, "splash_logo.png")
-        if os.path.isfile(bundle_logo):
-            logo_path = bundle_logo
+        search_dirs.append(sys._MEIPASS)
+    logo_candidates = []
+    for d in search_dirs:
+        for ext in logo_extensions:
+            candidate = os.path.join(d, f"splash_logo{ext}")
+            if os.path.isfile(candidate):
+                logo_candidates.append(candidate)
 
-    if logo_path:
+    logo_drawn = False
+    for logo_path in logo_candidates:
         try:
             logo_pix = QPixmap(logo_path)
             if not logo_pix.isNull():
@@ -556,15 +558,33 @@ def create_splash_pixmap():
                 logo_x = (w - logo_pix.width()) // 2
                 logo_y = 35
                 painter.drawPixmap(logo_x, logo_y, logo_pix)
+                logo_drawn = True
+                break
         except Exception:
             pass
 
     title_y = 140
     painter.setPen(QColor("#ff6a00"))
-    title_font = QFont("Segoe UI", 32, QFont.Bold)
-    title_font.setLetterSpacing(QFont.AbsoluteSpacing, 6)
+    max_title_w = w - 40
+    title_size = 32
+    title_spacing = 6
+    while title_size >= 10:
+        title_font = QFont("Segoe UI", title_size, QFont.Bold)
+        title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
+        fm = QFontMetrics(title_font)
+        if fm.horizontalAdvance(APP_NAME) <= max_title_w:
+            break
+        title_size -= 2
+        title_spacing = max(0, title_spacing - 1)
+    title_font = QFont("Segoe UI", title_size, QFont.Bold)
+    title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
     painter.setFont(title_font)
-    painter.drawText(0, title_y, w, 45, Qt.AlignCenter, APP_NAME)
+    fm = QFontMetrics(title_font)
+    title_text = APP_NAME
+    if fm.horizontalAdvance(title_text) > max_title_w:
+        title_text = fm.elidedText(APP_NAME, Qt.ElideRight, max_title_w)
+    title_h = fm.height() + 8
+    painter.drawText(0, title_y, w, title_h, Qt.AlignCenter, title_text)
 
     sub_y = title_y + 52
     painter.setPen(QColor("#cc5500"))

@@ -950,11 +950,15 @@ def _run_single_build(build_id, config, version):
                 shutil.copy2(src_icon, dst_icon)
                 icon_path = dst_icon
 
-        splash_src = os.path.join(SOURCE_DIR, "splash_logo.png")
-        if not os.path.isfile(splash_src):
-            splash_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "splash_logo.png")
-        if os.path.isfile(splash_src):
-            shutil.copy2(splash_src, os.path.join(work_dir, "splash_logo.png"))
+        for splash_ext in [".gif", ".png"]:
+            splash_src = None
+            for splash_dir in [SOURCE_DIR, os.path.dirname(os.path.abspath(__file__))]:
+                candidate = os.path.join(splash_dir, f"splash_logo{splash_ext}")
+                if os.path.isfile(candidate):
+                    splash_src = candidate
+                    break
+            if splash_src:
+                shutil.copy2(splash_src, os.path.join(work_dir, os.path.basename(splash_src)))
 
         cmd = [
             sys.executable, "-m", "PyInstaller",
@@ -967,9 +971,10 @@ def _run_single_build(build_id, config, version):
         if icon_path:
             cmd.extend(["--icon", icon_path])
             cmd.extend(["--add-data", f"{icon_path}{os.pathsep}."])
-        splash_work = os.path.join(work_dir, "splash_logo.png")
-        if os.path.isfile(splash_work):
-            cmd.extend(["--add-data", f"{splash_work}{os.pathsep}."])
+        for splash_ext in [".gif", ".png"]:
+            splash_work = os.path.join(work_dir, f"splash_logo{splash_ext}")
+            if os.path.isfile(splash_work):
+                cmd.extend(["--add-data", f"{splash_work}{os.pathsep}."])
         cmd.append(patched_path)
 
         process = subprocess.Popen(
