@@ -1778,7 +1778,7 @@ def api_ota_status():
     """).fetchone()
     latest_ver = latest_version["version"] if latest_version else None
 
-    configs = conn.execute("SELECT id, app_name, license_id, embedded_key FROM build_configs").fetchall()
+    configs = conn.execute("SELECT id, app_name, license_id, embedded_key FROM build_configs ORDER BY created_at DESC").fetchall()
     app_name_map = {}
     for c in configs:
         app_name_map[c["id"]] = c["app_name"]
