@@ -1168,7 +1168,8 @@ def splash_preview():
                 break
         if splash_file:
             break
-    return render_template("splash_preview.html", splash_file=splash_file)
+    app_name = request.args.get("app_name", "DENFI ROBLOX")
+    return render_template("splash_preview.html", splash_file=splash_file, app_name=app_name)
 
 
 @app.route("/splash_logo_file")

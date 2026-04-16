@@ -600,11 +600,20 @@ def create_splash_pixmap():
     painter.drawRect(1, 1, w - 3, h - 3)
 
     roblox_font_family = None
-    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    roblox_font_path = os.path.join(base_dir, "Roblox2017.ttf")
-    if not os.path.exists(roblox_font_path):
-        roblox_font_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "Roblox2017.ttf")
-    if os.path.exists(roblox_font_path):
+    font_search_dirs = [
+        APP_DIR,
+        os.path.dirname(os.path.abspath(__file__)),
+    ]
+    if getattr(sys, 'frozen', False):
+        font_search_dirs.append(sys._MEIPASS)
+        font_search_dirs.append(os.path.dirname(os.path.abspath(sys.executable)))
+    roblox_font_path = None
+    for fd in font_search_dirs:
+        candidate = os.path.join(fd, "Roblox2017.ttf")
+        if os.path.isfile(candidate):
+            roblox_font_path = candidate
+            break
+    if roblox_font_path:
         font_id = QFontDatabase.addApplicationFont(roblox_font_path)
         if font_id >= 0:
             families = QFontDatabase.applicationFontFamilies(font_id)
