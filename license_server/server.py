@@ -899,12 +899,26 @@ def _safe_str(val):
 
 
 def _compute_config_hash(config):
+    icon_filename = config.get("icon_filename", "") or ""
+    icon_bytes_hash = ""
+    if icon_filename:
+        icon_path = os.path.join(ICONS_DIR, icon_filename)
+        if os.path.isfile(icon_path):
+            try:
+                h = hashlib.sha256()
+                with open(icon_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(65536), b""):
+                        h.update(chunk)
+                icon_bytes_hash = h.hexdigest()
+            except Exception:
+                icon_bytes_hash = ""
     fields = {
         "app_name": config.get("app_name", ""),
         "hardcoded_path": config.get("hardcoded_path", ""),
         "license_server_url": config.get("license_server_url", ""),
         "license_secret": config.get("license_secret", ""),
-        "icon_filename": config.get("icon_filename", ""),
+        "icon_filename": icon_filename,
+        "icon_bytes_hash": icon_bytes_hash,
         "embedded_key": config.get("embedded_key", ""),
     }
     raw = json.dumps(fields, sort_keys=True)
