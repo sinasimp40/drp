@@ -1478,8 +1478,21 @@ def api_trigger_build():
     )
     build_id = cursor.lastrowid
 
+    already_built = set()
+    existing = conn.execute("""
+        SELECT ba.build_config_id FROM build_artifacts ba
+        JOIN builds b ON ba.build_id = b.id
+        WHERE b.version = ? AND ba.status = 'completed'
+    """, (version,)).fetchall()
+    for row in existing:
+        already_built.add(row["build_config_id"])
+
     config_list = []
+    skipped = 0
     for c in configs:
+        if c["id"] in already_built:
+            skipped += 1
+            continue
         embedded_key = c["embedded_key"] or c["license_key"] or ""
         conn.execute(
             "INSERT INTO build_artifacts (build_id, build_config_id, license_id, status) VALUES (?, ?, ?, 'pending')",
@@ -1494,6 +1507,14 @@ def api_trigger_build():
             "embedded_key": embedded_key,
         })
 
+    if not config_list:
+        conn.execute("DELETE FROM builds WHERE id=?", (build_id,))
+        conn.commit()
+        conn.close()
+        flash(f"All {skipped} config(s) already built for v{version}. Nothing to do.", "warning")
+        return redirect(url_for("builds_page"))
+
+    conn.execute("UPDATE builds SET total_configs=? WHERE id=?", (len(config_list), build_id))
     conn.commit()
     conn.close()
 
@@ -1507,7 +1528,8 @@ def api_trigger_build():
     thread = threading.Thread(target=_run_build_all, args=(build_id, version, config_list), daemon=True)
     thread.start()
 
-    flash(f"Build v{version} started for {len(config_list)} config(s)", "success")
+    skip_msg = f" ({skipped} skipped — already built)" if skipped > 0 else ""
+    flash(f"Build v{version} started for {len(config_list)} config(s){skip_msg}", "success")
     return redirect(url_for("builds_page"))
 
 
