@@ -1602,9 +1602,13 @@ def api_update_check():
         resp = {"update_available": False, "error": "License not found or inactive"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
+    client_app_name = (data.get("app_name") or "").strip()
+
     config = conn.execute("SELECT id FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
         config = conn.execute("SELECT id FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
+    if not config and client_app_name:
+        config = conn.execute("SELECT id FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config:
         config = conn.execute("SELECT id FROM build_configs ORDER BY created_at DESC LIMIT 1").fetchone()
     if not config:
@@ -1731,6 +1735,7 @@ def api_report_download_progress():
     progress = data.get("progress", 0)
     version = (data.get("version") or "").strip()
     status = (data.get("status") or "downloading").strip()
+    client_app_name = (data.get("app_name") or "").strip()
 
     if not key:
         return jsonify({"error": "Missing license_key"}), 400
@@ -1747,6 +1752,7 @@ def api_report_download_progress():
             "version": version,
             "status": status,
             "updated_at": time.time(),
+            "app_name": client_app_name,
         }
 
     try:
@@ -1799,9 +1805,20 @@ def api_ota_status():
             if c["license_id"] and c["license_id"] == lic["id"]:
                 config_match = c
                 break
-            if c["embedded_key"] and c["embedded_key"] == key:
-                config_match = c
-                break
+        if not config_match:
+            for c in configs:
+                if c["embedded_key"] and c["embedded_key"] == key:
+                    config_match = c
+                    break
+        if not config_match:
+            dl_app_name = _download_progress.get(key, {}).get("app_name", "")
+            match_name = dl_app_name or (lic["note"] or "")
+            if match_name:
+                match_lower = match_name.strip().lower()
+                for c in configs:
+                    if c["app_name"] and c["app_name"].strip().lower() == match_lower:
+                        config_match = c
+                        break
         if not config_match and len(configs) == 1:
             config_match = configs[0]
 

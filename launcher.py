@@ -731,7 +731,7 @@ def check_for_update(key):
     try:
         import urllib.request
         url = LICENSE_SERVER_URL.rstrip("/") + "/api/update_check"
-        body = {"key": key, "version": APP_VERSION}
+        body = {"key": key, "version": APP_VERSION, "app_name": APP_NAME}
         timestamp, nonce, req_sig = sign_request(body)
         req_data = json.dumps(body).encode('utf-8')
         req = urllib.request.Request(url, data=req_data, headers={
@@ -765,6 +765,7 @@ def _report_download_progress(pct, version, status="downloading"):
             "progress": pct,
             "version": version,
             "status": status,
+            "app_name": APP_NAME,
         }
         timestamp, nonce, req_sig = sign_request(body)
         payload = json.dumps(body).encode("utf-8")
