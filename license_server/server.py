@@ -899,7 +899,7 @@ def _compute_config_hash(config):
         "embedded_key": config.get("embedded_key", ""),
     }
     raw = json.dumps(fields, sort_keys=True)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def _patch_launcher_source(source, config, version):
