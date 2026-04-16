@@ -10,7 +10,7 @@ import hashlib
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QWidget, QMessageBox
+    QLabel, QLineEdit, QPushButton, QWidget
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
@@ -885,6 +885,98 @@ def _is_fatal_license_error(error_msg):
     return any(phrase in lower for phrase in fatal_phrases)
 
 
+class UpdateInstalledDialog(QDialog):
+    def __init__(self, version="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Update Installed")
+        self.setFixedSize(400, 220)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+        self.setStyleSheet("""
+            QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
+            QLabel { color: #e8e8ef; background: transparent; }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 24)
+        layout.setSpacing(10)
+
+        icon_label = QLabel("\u2714")
+        icon_label.setFont(QFont("Segoe UI", 28))
+        icon_label.setStyleSheet("color: #ff7a1a;")
+        icon_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon_label)
+
+        title = QLabel("Update Installed")
+        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setStyleSheet("color: #ff7a1a;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        msg = QLabel(f"Version {version} installed successfully!\nPlease reopen the app to use the new version.")
+        msg.setFont(QFont("Segoe UI", 10))
+        msg.setStyleSheet("color: #b0b0c0;")
+        msg.setAlignment(Qt.AlignCenter)
+        msg.setWordWrap(True)
+        layout.addWidget(msg)
+
+        layout.addSpacing(8)
+
+        ok_btn = QPushButton("OK")
+        ok_btn.setFixedHeight(36)
+        ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        ok_btn.setStyleSheet("""
+            QPushButton { background: #ff7a1a; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
+            QPushButton:hover { background: #ff9d4d; }
+        """)
+        ok_btn.clicked.connect(self.accept)
+        layout.addWidget(ok_btn)
+
+
+class WarningDialog(QDialog):
+    def __init__(self, title_text="Warning", message="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title_text)
+        self.setFixedSize(420, 200)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+        self.setStyleSheet("""
+            QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
+            QLabel { color: #e8e8ef; background: transparent; }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 24, 32, 24)
+        layout.setSpacing(10)
+
+        title = QLabel(title_text)
+        title.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        title.setStyleSheet("color: #ffbb33;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        msg_label = QLabel(message)
+        msg_label.setFont(QFont("Segoe UI", 10))
+        msg_label.setStyleSheet("color: #b0b0c0;")
+        msg_label.setAlignment(Qt.AlignCenter)
+        msg_label.setWordWrap(True)
+        layout.addWidget(msg_label)
+
+        layout.addSpacing(6)
+
+        ok_btn = QPushButton("OK")
+        ok_btn.setFixedHeight(34)
+        ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        ok_btn.setStyleSheet("""
+            QPushButton { background: #ff7a1a; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
+            QPushButton:hover { background: #ff9d4d; }
+        """)
+        ok_btn.clicked.connect(self.accept)
+        layout.addWidget(ok_btn)
+
+
 class LicenseDialog(QDialog):
     def __init__(self, parent=None, error_msg=""):
         super().__init__(parent)
@@ -895,20 +987,20 @@ class LicenseDialog(QDialog):
         self.result_key = ""
 
         self.setStyleSheet(f"""
-            QDialog {{ background: #0a0a0a; border: 1px solid #1e1e1e; }}
-            QLabel {{ color: #f0f0f0; background: transparent; }}
+            QDialog {{ background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }}
+            QLabel {{ color: #e8e8ef; background: transparent; }}
             QLineEdit {{
-                background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
-                color: #ff8c33; padding: 10px 12px; font-size: 14px;
+                background: #16161e; border: 1px solid #333345; border-radius: 6px;
+                color: #ff9d4d; padding: 10px 12px; font-size: 14px;
                 font-family: Consolas, monospace; letter-spacing: 1px;
             }}
-            QLineEdit:focus {{ border-color: #ff6a00; }}
+            QLineEdit:focus {{ border-color: #ff7a1a; }}
             QPushButton {{
-                background: #ff6a00; color: white; border: none; border-radius: 6px;
+                background: #ff7a1a; color: white; border: none; border-radius: 6px;
                 padding: 10px 24px; font-size: 14px; font-weight: bold;
             }}
-            QPushButton:hover {{ background: #ff8c33; }}
-            QPushButton:disabled {{ background: #333; color: #666; }}
+            QPushButton:hover {{ background: #ff9d4d; }}
+            QPushButton:disabled {{ background: #2a2a38; color: #6a6a80; }}
         """)
 
         layout = QVBoxLayout(self)
@@ -917,13 +1009,13 @@ class LicenseDialog(QDialog):
 
         title = QLabel(APP_NAME)
         title.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        title.setStyleSheet("color: #ff6a00;")
+        title.setStyleSheet("color: #ff7a1a;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         subtitle = QLabel("Enter your license key to continue")
         subtitle.setFont(QFont("Segoe UI", 10))
-        subtitle.setStyleSheet("color: #666;")
+        subtitle.setStyleSheet("color: #7a7a90;")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
 
@@ -948,7 +1040,7 @@ class LicenseDialog(QDialog):
         btn_row.addWidget(self.activate_btn)
 
         quit_btn = QPushButton("Quit")
-        quit_btn.setStyleSheet("background: #1e1e1e; color: #888;")
+        quit_btn.setStyleSheet("background: #222230; color: #9a9ab0;")
         quit_btn.clicked.connect(self.reject)
         btn_row.addWidget(quit_btn)
         layout.addLayout(btn_row)
@@ -968,7 +1060,7 @@ class LicenseDialog(QDialog):
             return
 
         self.activate_btn.setEnabled(False)
-        self.status_label.setStyleSheet("color: #888;")
+        self.status_label.setStyleSheet("color: #9a9ab0;")
         self.status_label.setText("Validating...")
         QApplication.processEvents()
 
@@ -996,7 +1088,7 @@ class LockScreen(QWidget):
         self.setWindowTitle(f"{APP_NAME} - Locked")
         self.setFixedSize(400, 200)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setStyleSheet("background: #0a0a0a; border: 1px solid #1e1e1e;")
+        self.setStyleSheet("background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px;")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 28, 32, 28)
@@ -1004,22 +1096,22 @@ class LockScreen(QWidget):
 
         title = QLabel(APP_NAME)
         title.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        title.setStyleSheet("color: #ff4444;")
+        title.setStyleSheet("color: #ee5555;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
         msg = QLabel(reason)
         msg.setFont(QFont("Segoe UI", 11))
-        msg.setStyleSheet("color: #ccc;")
+        msg.setStyleSheet("color: #b0b0c0;")
         msg.setAlignment(Qt.AlignCenter)
         msg.setWordWrap(True)
         layout.addWidget(msg)
 
         quit_btn = QPushButton("Close")
         quit_btn.setStyleSheet("""
-            QPushButton { background: #ff4444; color: white; border: none;
+            QPushButton { background: #ee5555; color: white; border: none;
                          border-radius: 6px; padding: 10px 24px; font-size: 14px; font-weight: bold; }
-            QPushButton:hover { background: #ff6666; }
+            QPushButton:hover { background: #ff7777; }
         """)
         quit_btn.clicked.connect(lambda: QApplication.instance().quit())
         layout.addWidget(quit_btn)
@@ -1076,19 +1168,14 @@ def check_license_or_prompt(app, splash=None):
         dialog = LicenseDialog(error_msg=error_msg)
         if dialog.exec_() == QDialog.Accepted:
             if not save_license_key(dialog.result_key):
-                from PyQt5.QtWidgets import QMessageBox
-                msg = QMessageBox()
-                msg.setWindowTitle("Warning")
-                msg.setText("License activated but could not save the key file.\n\n"
+                warn_dlg = WarningDialog(
+                    title_text="Warning",
+                    message="License activated but could not save the key file.\n\n"
                             "You may be asked to enter the key again next time.\n\n"
-                            "To fix this, make sure the folder containing\n"
-                            f"{os.path.basename(sys.executable)} is writable.")
-                msg.setStyleSheet("QMessageBox { background: #1a1a1a; color: white; }"
-                                  "QLabel { color: white; }"
-                                  "QPushButton { background: #ff6a00; color: white; border: none; "
-                                  "border-radius: 4px; padding: 6px 16px; }"
-                                  "QPushButton:hover { background: #ff8c33; }")
-                msg.exec_()
+                            "To fix this, make sure the folder containing "
+                            f"{os.path.basename(sys.executable)} is writable."
+                )
+                warn_dlg.exec_()
             if splash:
                 splash.show()
             return True
@@ -1260,13 +1347,8 @@ def main():
                     splash.set_progress(100, f"Update v{new_version} installed!")
                     app.processEvents()
                     splash.hide()
-                    msg = QMessageBox()
-                    msg.setWindowTitle("Update Installed")
-                    msg.setText(f"Update v{new_version} installed successfully!\n\nPlease reopen the app to use the new version.")
-                    msg.setIcon(QMessageBox.Information)
-                    msg.setStandardButtons(QMessageBox.Ok)
-                    msg.setStyleSheet("QMessageBox { background-color: #1a1a1a; color: #f0f0f0; } QPushButton { background-color: #00c853; color: #fff; padding: 6px 20px; border: none; border-radius: 4px; font-weight: bold; } QPushButton:hover { background-color: #00a844; }")
-                    msg.exec_()
+                    dlg = UpdateInstalledDialog(version=new_version)
+                    dlg.exec_()
                     release_launcher_lock()
                     sys.exit(0)
                 else:
