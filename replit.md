@@ -51,8 +51,10 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - **Build configs**: Each config links to a license — the license key gets baked into the .exe as EMBEDDED_LICENSE_KEY
 - **Build engine**: Server runs PyInstaller per config, patches launcher.py source with config values, produces personalized .exe files
 - **Version management**: Admin enters version number (X.Y.Z format) and triggers "Build All" — builds every config
+- **Config-change detection**: Each build stores a config_hash (SHA256 of config fields). When a client checks for updates, the server compares config hashes — if the config changed (new icon, path, etc.), the launcher auto-updates even without a version bump
+- **Single-config rebuild**: Admin can click "Rebuild" on individual build configs to rebuild just that one client's launcher using the latest version, without rebuilding all configs
 - **Build progress**: Real-time progress tracking via WebSocket (Flask-SocketIO) + HTTP polling fallback — admin sees per-config progress bars on the Builds page
-- **Launcher OTA**: After license check, launcher calls `/api/update_check` with current version. If update available, downloads new .exe with progress shown on splash screen
+- **Launcher OTA**: After license check, launcher calls `/api/update_check` with current version + config_hash. If update available (new version OR config changed), downloads new .exe with progress shown on splash screen
 - **Self-replace**: On Windows, launcher writes a .bat script that waits for process exit, swaps old/new exe, relaunches
 - **Download tokens**: Update check returns a short-lived token (10 min) for downloading, no signing needed on the download request
 - **Admin download**: Admin can download built artifacts directly from the Builds page
@@ -60,16 +62,18 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - **OTA status panel**: Builds page shows per-user update states (outdated/downloading/updated) with download progress
 - **Download progress reporting**: Launcher reports download progress back to server via `/api/report_download_progress`
 - **SHA-256 verification**: Launcher verifies SHA-256 hash of downloaded binary before applying update
+- **Build skipping**: Only active licenses get built; pending, suspended, expired, revoked, deleted licenses are skipped
 
 ### OTA Database Tables
 - `build_configs` — per-user build configuration (app_name, hardcoded_path, icon, license_server_url, license_secret, linked license_id)
 - `builds` — build runs (version, status, progress, timestamps)
-- `build_artifacts` — per-config results within a build (exe filename, file size, status, progress)
+- `build_artifacts` — per-config results within a build (exe filename, file size, status, progress, config_hash)
 - `licenses.launcher_version` — tracks each launcher's reported version from heartbeats
 
 ### OTA API Endpoints
 - `POST /api/update_check` (signed) — launcher checks for updates
 - `GET /api/download_update/<token>` — launcher downloads new .exe
+- `POST /build_config/<config_id>/rebuild` (admin) — rebuild single config with latest version
 - `POST /api/trigger_build` (admin) — triggers build for all configs
 - `GET /api/build_status/<build_id>` (admin) — poll build progress
 - `GET /api/build_status_all` (admin) — check if any active build

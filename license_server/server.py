@@ -131,12 +131,18 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'pending',
             progress INTEGER DEFAULT 0,
             error_message TEXT DEFAULT '',
+            config_hash TEXT DEFAULT '',
             started_at REAL,
             completed_at REAL,
             FOREIGN KEY (build_id) REFERENCES builds(id),
             FOREIGN KEY (build_config_id) REFERENCES build_configs(id)
         );
     """)
+    try:
+        conn.execute("SELECT config_hash FROM build_artifacts LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE build_artifacts ADD COLUMN config_hash TEXT DEFAULT ''")
+        conn.commit()
     conn.commit()
     try:
         conn.execute("SELECT embedded_key FROM build_configs LIMIT 1")
@@ -883,6 +889,19 @@ def _safe_str(val):
     return (val or "").replace("\\", "\\\\").replace('"', '\\"').replace("\n", "").replace("\r", "")
 
 
+def _compute_config_hash(config):
+    fields = {
+        "app_name": config.get("app_name", ""),
+        "hardcoded_path": config.get("hardcoded_path", ""),
+        "license_server_url": config.get("license_server_url", ""),
+        "license_secret": config.get("license_secret", ""),
+        "icon_filename": config.get("icon_filename", ""),
+        "embedded_key": config.get("embedded_key", ""),
+    }
+    raw = json.dumps(fields, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
 def _patch_launcher_source(source, config, version):
     safe_ver = _safe_str(version)
     source = re.sub(r'APP_VERSION = ".*?"', f'APP_VERSION = "{safe_ver}"', source)
@@ -901,6 +920,15 @@ def _patch_launcher_source(source, config, version):
     if config.get("embedded_key"):
         safe_key = _safe_str(config["embedded_key"])
         source = re.sub(r'EMBEDDED_LICENSE_KEY = ".*?"', f'EMBEDDED_LICENSE_KEY = "{safe_key}"', source)
+    cfg_hash = _compute_config_hash(config)
+    if re.search(r'CONFIG_HASH = ".*?"', source):
+        source = re.sub(r'CONFIG_HASH = ".*?"', f'CONFIG_HASH = "{cfg_hash}"', source)
+    else:
+        source = re.sub(
+            r'(EMBEDDED_LICENSE_KEY = ".*?")',
+            f'\\1\nCONFIG_HASH = "{cfg_hash}"',
+            source
+        )
     return source
 
 
@@ -1046,10 +1074,11 @@ def _run_single_build(build_id, config, version):
             except Exception as ve:
                 print(f"[BUILD] Config #{config_id}: Could not verify exe: {ve}")
 
+        cfg_hash = _compute_config_hash(config)
         conn = get_db()
         conn.execute(
-            "UPDATE build_artifacts SET status='completed', progress=100, exe_filename=?, file_size=?, completed_at=? WHERE build_id=? AND build_config_id=?",
-            (os.path.basename(exe_path), file_size, time.time(), build_id, config_id)
+            "UPDATE build_artifacts SET status='completed', progress=100, exe_filename=?, file_size=?, config_hash=?, completed_at=? WHERE build_id=? AND build_config_id=?",
+            (os.path.basename(exe_path), file_size, cfg_hash, time.time(), build_id, config_id)
         )
         conn.commit()
         conn.close()
@@ -1358,6 +1387,104 @@ def delete_build_config(config_id):
     conn.commit()
     conn.close()
     flash("Build config deleted", "success")
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/build_config/<int:config_id>/rebuild", methods=["POST"])
+@require_admin
+def rebuild_single_config(config_id):
+    conn = get_db()
+
+    active_build = conn.execute("SELECT id FROM builds WHERE status IN ('pending', 'building') LIMIT 1").fetchone()
+    if active_build:
+        conn.close()
+        flash("A build is already in progress. Wait for it to finish.", "error")
+        return redirect(url_for("builds_page"))
+
+    config = conn.execute("SELECT * FROM build_configs WHERE id = ?", (config_id,)).fetchone()
+    if not config:
+        conn.close()
+        flash("Build config not found", "error")
+        return redirect(url_for("builds_page"))
+
+    license_row = None
+    if config["license_id"]:
+        license_row = conn.execute("SELECT license_key, status FROM licenses WHERE id = ?", (config["license_id"],)).fetchone()
+        if license_row and license_row["status"] != 'active':
+            conn.close()
+            flash(f"Cannot rebuild — license is '{license_row['status']}', not active", "error")
+            return redirect(url_for("builds_page"))
+
+    latest_build = conn.execute("""
+        SELECT b.version FROM builds b
+        WHERE b.status = 'completed'
+        ORDER BY b.created_at DESC LIMIT 1
+    """).fetchone()
+    if not latest_build:
+        conn.close()
+        flash("No completed build found. Do a 'Build All' first to set a version.", "error")
+        return redirect(url_for("builds_page"))
+
+    version = latest_build["version"]
+    embedded_key = config["embedded_key"] or (license_row["license_key"] if license_row else "") or ""
+
+    now = time.time()
+    cursor = conn.execute(
+        "INSERT INTO builds (version, status, total_configs, created_at) VALUES (?, 'pending', 1, ?)",
+        (version, now)
+    )
+    build_id = cursor.lastrowid
+
+    conn.execute(
+        "INSERT INTO build_artifacts (build_id, build_config_id, license_id, status) VALUES (?, ?, ?, 'pending')",
+        (build_id, config_id, config["license_id"])
+    )
+    conn.commit()
+    conn.close()
+
+    config_dict = {
+        "id": config["id"], "app_name": config["app_name"],
+        "hardcoded_path": config["hardcoded_path"],
+        "license_server_url": config["license_server_url"],
+        "license_secret": config["license_secret"],
+        "icon_filename": config["icon_filename"],
+        "embedded_key": embedded_key,
+    }
+
+    with _build_lock:
+        _build_progress[build_id] = {
+            "status": "pending", "version": version,
+            "total": 1, "completed": 0,
+            "artifacts": {}, "error": "",
+        }
+
+    def run_single_rebuild():
+        conn2 = get_db()
+        conn2.execute("UPDATE builds SET status='building', started_at=? WHERE id=?", (time.time(), build_id))
+        conn2.commit()
+        conn2.close()
+
+        success = _run_single_build(build_id, config_dict, version)
+
+        final_status = "completed" if success else "failed"
+        error_msg = "" if success else "Build failed"
+        conn3 = get_db()
+        conn3.execute(
+            "UPDATE builds SET status=?, completed_configs=?, completed_at=?, error_message=? WHERE id=?",
+            (final_status, 1 if success else 0, time.time(), error_msg, build_id)
+        )
+        conn3.commit()
+        conn3.close()
+        with _build_lock:
+            if build_id in _build_progress:
+                _build_progress[build_id]["status"] = final_status
+                _build_progress[build_id]["completed"] = 1 if success else 0
+                _build_progress[build_id]["error"] = error_msg
+
+    thread = threading.Thread(target=run_single_rebuild, daemon=True)
+    thread.start()
+
+    flash(f"Rebuild started for '{config['app_name']}' using v{version}", "success")
     return redirect(url_for("builds_page"))
 
 
@@ -1685,14 +1812,12 @@ def api_update_check():
     if not config and client_app_name:
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config:
-        config = conn.execute("SELECT id, app_name FROM build_configs ORDER BY created_at DESC LIMIT 1").fetchone()
-    if not config:
         conn.close()
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     artifact = conn.execute("""
-        SELECT ba.exe_filename, ba.file_size, b.version
+        SELECT ba.exe_filename, ba.file_size, ba.config_hash, b.version
         FROM build_artifacts ba
         JOIN builds b ON ba.build_id = b.id
         WHERE ba.build_config_id = ? AND ba.status = 'completed' AND b.status = 'completed'
@@ -1705,8 +1830,19 @@ def api_update_check():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     latest_version = artifact["version"]
-    if _version_compare(latest_version, current_version) <= 0:
-        resp = {"update_available": False, "latest_version": latest_version}
+    client_config_hash = (data.get("config_hash") or "").strip()
+    server_config_hash = artifact["config_hash"] or ""
+
+    version_newer = _version_compare(latest_version, current_version) > 0
+    config_changed = False
+    if server_config_hash:
+        if not client_config_hash:
+            config_changed = True
+        elif server_config_hash != client_config_hash:
+            config_changed = True
+
+    if not version_newer and not config_changed:
+        resp = {"update_available": False, "latest_version": latest_version, "config_hash": server_config_hash}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     file_path = os.path.join(BUILDS_DIR, latest_version, str(config["id"]), artifact["exe_filename"])
@@ -1732,6 +1868,7 @@ def api_update_check():
         "download_token": token,
         "sha256": file_hash,
         "app_name": config_app_name,
+        "config_hash": server_config_hash,
     }
     return jsonify({"data": resp, "signature": sign_response(resp)})
 
