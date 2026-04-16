@@ -248,6 +248,15 @@ def is_online(last_heartbeat):
     return (time.time() - last_heartbeat) < HEARTBEAT_TIMEOUT
 
 
+def _is_same_subnet(ip1, ip2):
+    try:
+        parts1 = ip1.split(".")[:3]
+        parts2 = ip2.split(".")[:3]
+        return parts1 == parts2 and len(parts1) == 3
+    except Exception:
+        return False
+
+
 def activate_license(conn, row, client_ip):
     now = time.time()
     expires_at = now + row["duration_seconds"]
@@ -333,7 +342,7 @@ def api_validate():
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
         client_ip = request.remote_addr
-        if row["registered_ip"] and client_ip != row["registered_ip"]:
+        if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
             conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
             conn.commit()
             conn.close()
@@ -425,7 +434,7 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = request.remote_addr
-    if row["registered_ip"] and client_ip != row["registered_ip"]:
+    if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
         conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
         conn.commit()
         conn.close()

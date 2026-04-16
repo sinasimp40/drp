@@ -34,7 +34,7 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - Validates with server before launching, re-checks every 10 seconds for near-instant revocation
 - Server returns clear status: "License has expired", "License has been revoked", "License suspended", etc.
 - One-time activation: once a key is activated (pending → active), it cannot be activated again
-- **IP binding**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check against it. If IP changes, license is auto-suspended.
+- **IP binding (subnet-based)**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check the first 3 octets (e.g., 103.188.86.x). IPs in the same /24 subnet are allowed — different subnets trigger suspension. This supports diskless setups where PCs share a subnet but have different last octets.
 - **Suspended state**: suspended licenses block usage until an admin unsuspends them. Unsuspending resets the license to pending with cleared IP, allowing re-activation from a new IP.
 - Heartbeats keep the running session alive and report launcher version
 - Dashboard shows registered IP alongside last-seen IP and launcher version for each license
