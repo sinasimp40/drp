@@ -913,6 +913,8 @@ def _run_single_build(build_id, config, version):
     os.makedirs(work_dir, exist_ok=True)
 
     try:
+        print(f"[BUILD] Config #{config_id}: app_name='{config.get('app_name', '')}', icon='{config.get('icon_filename', '')}', path='{config.get('hardcoded_path', '')}', exe_name='{exe_name}'")
+
         with _build_lock:
             if build_id in _build_progress:
                 _build_progress[build_id]["artifacts"][config_id] = {
@@ -1013,6 +1015,20 @@ def _run_single_build(build_id, config, version):
                 raise Exception("Build output not found")
 
         file_size = os.path.getsize(exe_path)
+
+        expected_name = config.get("app_name", "")
+        if expected_name:
+            try:
+                with open(exe_path, "rb") as ef:
+                    exe_bytes = ef.read()
+                name_bytes = expected_name.encode("utf-8")
+                if name_bytes in exe_bytes:
+                    print(f"[BUILD] Config #{config_id}: VERIFIED — exe contains APP_NAME '{expected_name}'")
+                else:
+                    print(f"[BUILD] Config #{config_id}: WARNING — exe does NOT contain expected APP_NAME '{expected_name}'")
+            except Exception as ve:
+                print(f"[BUILD] Config #{config_id}: Could not verify exe: {ve}")
+
         conn = get_db()
         conn.execute(
             "UPDATE build_artifacts SET status='completed', progress=100, exe_filename=?, file_size=?, completed_at=? WHERE build_id=? AND build_config_id=?",
@@ -1604,13 +1620,13 @@ def api_update_check():
 
     client_app_name = (data.get("app_name") or "").strip()
 
-    config = conn.execute("SELECT id FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
+    config = conn.execute("SELECT id, app_name FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
-        config = conn.execute("SELECT id FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
+        config = conn.execute("SELECT id, app_name FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
     if not config and client_app_name:
-        config = conn.execute("SELECT id FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
+        config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config:
-        config = conn.execute("SELECT id FROM build_configs ORDER BY created_at DESC LIMIT 1").fetchone()
+        config = conn.execute("SELECT id, app_name FROM build_configs ORDER BY created_at DESC LIMIT 1").fetchone()
     if not config:
         conn.close()
         resp = {"update_available": False}
@@ -1650,11 +1666,13 @@ def api_update_check():
             "expires": time.time() + 600, "license_key": key,
         }
 
+    config_app_name = config["app_name"] if config else ""
     resp = {
         "update_available": True, "latest_version": latest_version,
         "file_size": artifact["file_size"],
         "download_token": token,
         "sha256": file_hash,
+        "app_name": config_app_name,
     }
     return jsonify({"data": resp, "signature": sign_response(resp)})
 
