@@ -10,7 +10,7 @@ import hashlib
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QWidget
+    QLabel, QLineEdit, QPushButton, QWidget, QMessageBox
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import (
