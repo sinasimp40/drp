@@ -1267,7 +1267,7 @@ def create_build_config():
             if ext in ('.ico',):
                 icon_filename = f"{config_id_temp}.ico"
                 icon_file.save(os.path.join(ICONS_DIR, icon_filename))
-            elif ext in ('.png', '.jpg', '.jpeg', '.bmp', '.webp'):
+            elif ext in ('.png', '.jpg', '.jpeg', '.jfif', '.bmp', '.webp'):
                 icon_filename = f"{config_id_temp}.ico"
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, icon_filename))
 
@@ -1315,7 +1315,7 @@ def edit_build_config(config_id):
             if ext in ('.ico',):
                 icon_file.save(os.path.join(ICONS_DIR, new_icon))
                 icon_filename = new_icon
-            elif ext in ('.png', '.jpg', '.jpeg', '.bmp', '.webp'):
+            elif ext in ('.png', '.jpg', '.jpeg', '.jfif', '.bmp', '.webp'):
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, new_icon))
                 icon_filename = new_icon
 
