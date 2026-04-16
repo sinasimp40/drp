@@ -42,9 +42,9 @@ def get_app_dir():
 APP_DIR = get_app_dir()
 
 BG = "#0a0a0a"
-ORANGE = "#ff6a00"
-ORANGE_LIGHT = "#ff8c33"
-ORANGE_DARK = "#cc5500"
+GREEN = "#00cc66"
+GREEN_LIGHT = "#33dd88"
+GREEN_DARK = "#009944"
 TEXT_WHITE = "#f0f0f0"
 TEXT_DIM = "#555555"
 RED = "#ff3333"
@@ -478,13 +478,13 @@ class SplashScreen(QSplashScreen):
             if self.progress > 0:
                 fill_w = int(bar_w * self.progress / 100)
                 bar_grad = QLinearGradient(bar_x, 0, bar_x + bar_w, 0)
-                bar_grad.setColorAt(0, QColor("#ff6a00"))
-                bar_grad.setColorAt(1, QColor("#ff9d4d"))
+                bar_grad.setColorAt(0, QColor("#00cc66"))
+                bar_grad.setColorAt(1, QColor("#33dd88"))
                 painter.fillRect(bar_x, bar_y, fill_w, bar_h, bar_grad)
 
                 glow = QRadialGradient(bar_x + fill_w, bar_y + bar_h // 2, 12)
-                glow.setColorAt(0, QColor(255, 106, 0, 80))
-                glow.setColorAt(1, QColor(255, 106, 0, 0))
+                glow.setColorAt(0, QColor(0, 204, 102, 80))
+                glow.setColorAt(1, QColor(0, 204, 102, 0))
                 painter.setBrush(QBrush(glow))
                 painter.setPen(Qt.NoPen)
                 painter.drawEllipse(bar_x + fill_w - 12, bar_y - 10, 24, 24)
@@ -518,8 +518,8 @@ def create_splash_pixmap():
     painter.fillRect(0, 0, w, h, bg_grad)
 
     center_glow = QRadialGradient(w / 2, 140, 200)
-    center_glow.setColorAt(0, QColor(255, 106, 0, 18))
-    center_glow.setColorAt(0.5, QColor(255, 106, 0, 6))
+    center_glow.setColorAt(0, QColor(0, 204, 102, 18))
+    center_glow.setColorAt(0.5, QColor(0, 204, 102, 6))
     center_glow.setColorAt(1, QColor(0, 0, 0, 0))
     painter.fillRect(0, 0, w, h, center_glow)
 
@@ -529,7 +529,7 @@ def create_splash_pixmap():
     painter.setBrush(Qt.NoBrush)
     painter.drawRect(0, 0, w - 1, h - 1)
 
-    inner_pen = QPen(QColor(255, 106, 0, 25))
+    inner_pen = QPen(QColor(0, 204, 102, 25))
     inner_pen.setWidth(1)
     painter.setPen(inner_pen)
     painter.drawRect(1, 1, w - 3, h - 3)
@@ -560,14 +560,14 @@ def create_splash_pixmap():
             pass
 
     title_y = 140
-    painter.setPen(QColor("#ff6a00"))
+    painter.setPen(QColor("#00cc66"))
     title_font = QFont("Segoe UI", 32, QFont.Bold)
     title_font.setLetterSpacing(QFont.AbsoluteSpacing, 6)
     painter.setFont(title_font)
     painter.drawText(0, title_y, w, 45, Qt.AlignCenter, APP_NAME)
 
     sub_y = title_y + 52
-    painter.setPen(QColor("#cc5500"))
+    painter.setPen(QColor("#009944"))
     sub_font = QFont("Segoe UI", 13)
     sub_font.setLetterSpacing(QFont.AbsoluteSpacing, 12)
     painter.setFont(sub_font)
@@ -577,11 +577,11 @@ def create_splash_pixmap():
     line_w = 100
     line_x = (w - line_w) // 2
     line_grad = QLinearGradient(line_x, 0, line_x + line_w, 0)
-    line_grad.setColorAt(0, QColor(255, 106, 0, 0))
-    line_grad.setColorAt(0.3, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(0.5, QColor(255, 106, 0, 90))
-    line_grad.setColorAt(0.7, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(1, QColor(255, 106, 0, 0))
+    line_grad.setColorAt(0, QColor(0, 204, 102, 0))
+    line_grad.setColorAt(0.3, QColor(0, 204, 102, 60))
+    line_grad.setColorAt(0.5, QColor(0, 204, 102, 90))
+    line_grad.setColorAt(0.7, QColor(0, 204, 102, 60))
+    line_grad.setColorAt(1, QColor(0, 204, 102, 0))
     painter.fillRect(line_x, line_y, line_w, 1, line_grad)
 
     painter.end()
@@ -907,13 +907,13 @@ class UpdateInstalledDialog(QDialog):
 
         icon_label = QLabel("\u2714")
         icon_label.setFont(QFont("Segoe UI", 28))
-        icon_label.setStyleSheet("color: #ff6a00;")
+        icon_label.setStyleSheet("color: #00cc66;")
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
         title = QLabel("Update Installed")
         title.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        title.setStyleSheet("color: #ff6a00;")
+        title.setStyleSheet("color: #00cc66;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
@@ -930,8 +930,8 @@ class UpdateInstalledDialog(QDialog):
         ok_btn.setFixedHeight(36)
         ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
         ok_btn.setStyleSheet("""
-            QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
-            QPushButton:hover { background: #ff8c33; }
+            QPushButton { background: #00cc66; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
+            QPushButton:hover { background: #33dd88; }
         """)
         ok_btn.clicked.connect(self.accept)
         layout.addWidget(ok_btn)
@@ -973,8 +973,8 @@ class WarningDialog(QDialog):
         ok_btn.setFixedHeight(34)
         ok_btn.setFont(QFont("Segoe UI", 11, QFont.Bold))
         ok_btn.setStyleSheet("""
-            QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
-            QPushButton:hover { background: #ff8c33; }
+            QPushButton { background: #00cc66; color: white; border: none; border-radius: 6px; padding: 8px 32px; }
+            QPushButton:hover { background: #33dd88; }
         """)
         ok_btn.clicked.connect(self.accept)
         layout.addWidget(ok_btn)
@@ -994,15 +994,15 @@ class LicenseDialog(QDialog):
             QLabel {{ color: #e8e8ef; background: transparent; }}
             QLineEdit {{
                 background: #16161e; border: 1px solid #333345; border-radius: 6px;
-                color: #ff8c33; padding: 10px 12px; font-size: 14px;
+                color: #33dd88; padding: 10px 12px; font-size: 14px;
                 font-family: Consolas, monospace; letter-spacing: 1px;
             }}
-            QLineEdit:focus {{ border-color: #ff6a00; }}
+            QLineEdit:focus {{ border-color: #00cc66; }}
             QPushButton {{
-                background: #ff6a00; color: white; border: none; border-radius: 6px;
+                background: #00cc66; color: white; border: none; border-radius: 6px;
                 padding: 10px 24px; font-size: 14px; font-weight: bold;
             }}
-            QPushButton:hover {{ background: #ff8c33; }}
+            QPushButton:hover {{ background: #33dd88; }}
             QPushButton:disabled {{ background: #2a2a38; color: #6a6a80; }}
         """)
 
@@ -1012,7 +1012,7 @@ class LicenseDialog(QDialog):
 
         title = QLabel(APP_NAME)
         title.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        title.setStyleSheet("color: #ff6a00;")
+        title.setStyleSheet("color: #00cc66;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
