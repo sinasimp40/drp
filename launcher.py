@@ -518,8 +518,8 @@ def create_splash_pixmap():
     painter.fillRect(0, 0, w, h, bg_grad)
 
     center_glow = QRadialGradient(w / 2, 140, 200)
-    center_glow.setColorAt(0, QColor(255, 106, 0, 18))
-    center_glow.setColorAt(0.5, QColor(255, 106, 0, 6))
+    center_glow.setColorAt(0, QColor(0, 200, 83, 18))
+    center_glow.setColorAt(0.5, QColor(0, 200, 83, 6))
     center_glow.setColorAt(1, QColor(0, 0, 0, 0))
     painter.fillRect(0, 0, w, h, center_glow)
 
@@ -529,7 +529,7 @@ def create_splash_pixmap():
     painter.setBrush(Qt.NoBrush)
     painter.drawRect(0, 0, w - 1, h - 1)
 
-    inner_pen = QPen(QColor(255, 106, 0, 25))
+    inner_pen = QPen(QColor(0, 200, 83, 25))
     inner_pen.setWidth(1)
     painter.setPen(inner_pen)
     painter.drawRect(1, 1, w - 3, h - 3)
@@ -557,14 +557,14 @@ def create_splash_pixmap():
             painter.drawPixmap(logo_x, logo_y, logo_pix)
 
     title_y = 140
-    painter.setPen(QColor("#ff6a00"))
+    painter.setPen(QColor("#00c853"))
     title_font = QFont("Segoe UI", 32, QFont.Bold)
     title_font.setLetterSpacing(QFont.AbsoluteSpacing, 6)
     painter.setFont(title_font)
     painter.drawText(0, title_y, w, 45, Qt.AlignCenter, APP_NAME)
 
     sub_y = title_y + 52
-    painter.setPen(QColor("#cc5500"))
+    painter.setPen(QColor("#00a844"))
     sub_font = QFont("Segoe UI", 13)
     sub_font.setLetterSpacing(QFont.AbsoluteSpacing, 12)
     painter.setFont(sub_font)
@@ -574,11 +574,11 @@ def create_splash_pixmap():
     line_w = 100
     line_x = (w - line_w) // 2
     line_grad = QLinearGradient(line_x, 0, line_x + line_w, 0)
-    line_grad.setColorAt(0, QColor(255, 106, 0, 0))
-    line_grad.setColorAt(0.3, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(0.5, QColor(255, 106, 0, 90))
-    line_grad.setColorAt(0.7, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(1, QColor(255, 106, 0, 0))
+    line_grad.setColorAt(0, QColor(0, 200, 83, 0))
+    line_grad.setColorAt(0.3, QColor(0, 200, 83, 60))
+    line_grad.setColorAt(0.5, QColor(0, 200, 83, 90))
+    line_grad.setColorAt(0.7, QColor(0, 200, 83, 60))
+    line_grad.setColorAt(1, QColor(0, 200, 83, 0))
     painter.fillRect(line_x, line_y, line_w, 1, line_grad)
 
     painter.end()
