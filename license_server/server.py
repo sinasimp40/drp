@@ -1206,7 +1206,7 @@ def splash_preview():
                 break
         if splash_file:
             break
-    app_name = request.args.get("app_name", "DENFI ROBLOX")
+    app_name = request.args.get("app_name", "ROBLOX")
     return render_template("splash_preview.html", splash_file=splash_file, app_name=app_name)
 
 
