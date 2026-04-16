@@ -26,6 +26,7 @@ _LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x
 _LICENSE_SECRET_KEY = 0x57
 EMBEDDED_LICENSE_KEY = ""
 CONFIG_HASH = ""
+CONFIG_ID = 0
 LICENSE_CHECK_INTERVAL = 10000
 LICENSE_OFFLINE_GRACE = 18
 LICENSE_FATAL_GRACE = 3
@@ -815,7 +816,7 @@ def check_for_update(key):
     try:
         import urllib.request
         url = LICENSE_SERVER_URL.rstrip("/") + "/api/update_check"
-        body = {"key": key, "version": APP_VERSION, "app_name": APP_NAME, "config_hash": CONFIG_HASH}
+        body = {"key": key, "version": APP_VERSION, "app_name": APP_NAME, "config_hash": CONFIG_HASH, "config_id": CONFIG_ID}
         timestamp, nonce, req_sig = sign_request(body)
         req_data = json.dumps(body).encode('utf-8')
         req = urllib.request.Request(url, data=req_data, headers={

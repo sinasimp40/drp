@@ -952,6 +952,15 @@ def _patch_launcher_source(source, config, version):
             f'\\1\nCONFIG_HASH = "{cfg_hash}"',
             source
         )
+    cid = int(config.get("id") or 0)
+    if re.search(r'CONFIG_ID\s*=\s*\d+', source):
+        source = re.sub(r'CONFIG_ID\s*=\s*\d+', f'CONFIG_ID = {cid}', source)
+    else:
+        source = re.sub(
+            r'(CONFIG_HASH = ".*?")',
+            f'\\1\nCONFIG_ID = {cid}',
+            source
+        )
     return source
 
 
@@ -1877,8 +1886,16 @@ def api_update_check():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_app_name = (data.get("app_name") or "").strip()
+    try:
+        client_config_id = int(data.get("config_id") or 0)
+    except (TypeError, ValueError):
+        client_config_id = 0
 
-    config = conn.execute("SELECT id, app_name FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
+    config = None
+    if client_config_id:
+        config = conn.execute("SELECT id, app_name FROM build_configs WHERE id = ?", (client_config_id,)).fetchone()
+    if not config:
+        config = conn.execute("SELECT id, app_name FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
     if not config and client_app_name:
