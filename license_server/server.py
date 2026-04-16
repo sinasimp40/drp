@@ -1320,6 +1320,69 @@ def api_upload_launcher():
     return redirect(url_for("builds_page"))
 
 
+@app.route("/api/upload_server", methods=["POST"])
+@require_admin
+def api_upload_server():
+    server_file = request.files.get("server_file")
+    if not server_file or not server_file.filename:
+        flash("No file selected", "error")
+        return redirect(url_for("builds_page"))
+
+    content = server_file.read().decode("utf-8", errors="replace")
+    if "Flask" not in content or "def init_db" not in content:
+        flash("Invalid server.py — missing expected server code", "error")
+        return redirect(url_for("builds_page"))
+
+    server_path = os.path.abspath(__file__)
+
+    backup_path = server_path + ".bak"
+    try:
+        shutil.copy2(server_path, backup_path)
+    except Exception:
+        pass
+
+    try:
+        with open(server_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        if os.path.isfile(backup_path):
+            shutil.copy2(backup_path, server_path)
+        flash(f"Failed to save server.py: {e}", "error")
+        return redirect(url_for("builds_page"))
+
+    flash("Server uploaded successfully! The server will restart in 3 seconds...", "success")
+
+    def delayed_restart():
+        import time as _t
+        _t.sleep(3)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    restart_thread = threading.Thread(target=delayed_restart, daemon=True)
+    restart_thread.start()
+
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/api/server_info")
+@require_admin
+def api_server_info():
+    server_path = os.path.abspath(__file__)
+    if not os.path.isfile(server_path):
+        return jsonify({"found": False})
+
+    try:
+        size = os.path.getsize(server_path)
+        mtime = os.path.getmtime(server_path)
+        return jsonify({
+            "found": True,
+            "size": size,
+            "modified": mtime,
+            "path": server_path,
+        })
+    except Exception as e:
+        return jsonify({"found": False, "error": str(e)})
+
+
 @app.route("/api/launcher_info")
 @require_admin
 def api_launcher_info():

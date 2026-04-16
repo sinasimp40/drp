@@ -78,6 +78,8 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 - `GET /api/ota_status` (admin) — per-user OTA state (outdated/downloading/updated), resolves version via embedded_key fallback
 - `POST /api/upload_launcher` (admin) — upload launcher.py source file for builds
 - `GET /api/launcher_info` (admin) — returns detected version, app name, size, modified time of current launcher.py
+- `POST /api/upload_server` (admin) — upload server.py, creates backup, auto-restarts server after 3 seconds
+- `GET /api/server_info` (admin) — returns size, modified time of current server.py
 
 ### Build File Storage
 - Built .exe files stored at: `license_server/builds/<version>/<config_id>/<ExeName>.exe`

@@ -7,21 +7,41 @@
     <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">+ New Config</a>
 </div>
 
-<div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
-        <h2 style="font-size: 16px; color: #f0f0f0;">Launcher Source</h2>
-    </div>
-    <div style="padding: 16px;">
-        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
-            <span style="color: #555;">Loading launcher info...</span>
+<div style="display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+    <div class="card" style="flex: 1; min-width: 300px;">
+        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+            <h2 style="font-size: 16px; color: #f0f0f0;">Launcher Source</h2>
         </div>
-        <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                <label>Upload launcher.py</label>
-                <input type="file" name="launcher_file" accept=".py" style="color: #888;" required>
+        <div style="padding: 16px;">
+            <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
+                <span style="color: #555;">Loading launcher info...</span>
             </div>
-            <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
-        </form>
+            <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                    <label>Upload launcher.py</label>
+                    <input type="file" name="launcher_file" accept=".py" style="color: #888;" required>
+                </div>
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card" style="flex: 1; min-width: 300px;">
+        <div style="padding: 16px; border-bottom: 1px solid #1e1e1e;">
+            <h2 style="font-size: 16px; color: #f0f0f0;">Server Source</h2>
+        </div>
+        <div style="padding: 16px;">
+            <div id="server-info" style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 6px;">
+                <span style="color: #555;">Loading server info...</span>
+            </div>
+            <form method="POST" action="{{ url_for('api_upload_server') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                    <label>Upload server.py</label>
+                    <input type="file" name="server_file" accept=".py" style="color: #888;" required>
+                </div>
+                <button type="submit" class="btn btn-warning" onclick="return confirm('Replace server.py and restart the server? You will be disconnected briefly.')">Upload & Restart</button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -369,9 +389,31 @@
             .catch(function() {});
     }
 
+    function loadServerInfo() {
+        fetch("/api/server_info", { credentials: "same-origin" })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var el = document.getElementById("server-info");
+                if (!data.found) {
+                    el.innerHTML = '<span style="color: #cc4444; font-weight: 600;">server.py not found!</span>';
+                    return;
+                }
+                var modified = new Date(data.modified * 1000);
+                var dateStr = modified.toLocaleString();
+                var sizeKB = (data.size / 1024).toFixed(1);
+                el.innerHTML =
+                    '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
+                    '<div><span style="color: #888;">Size:</span> <span style="color: #f0f0f0;">' + sizeKB + ' KB</span></div>' +
+                    '<div><span style="color: #888;">Modified:</span> <span style="color: #f0f0f0;">' + dateStr + '</span></div>' +
+                    '</div>';
+            })
+            .catch(function() {});
+    }
+
     initSocket();
     checkActiveBuild();
     loadLauncherInfo();
+    loadServerInfo();
     loadOtaStatus();
     setInterval(loadOtaStatus, 5000);
 })();
