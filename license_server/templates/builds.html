@@ -56,11 +56,13 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">Build Configs ({{ configs|length }})</h2>
+        <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
     </div>
     {% if configs %}
-    <table>
+    <div class="scroll-table">
+    <table id="configs-table">
         <thead>
             <tr>
                 <th>App Name</th>
@@ -103,6 +105,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty-state">
         <p>No build configs yet</p>
@@ -112,20 +115,23 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">OTA Update Status</h2>
+        <input type="search" id="ota-search" placeholder="Search OTA..." class="filter-input" oninput="filterOta(this.value)">
     </div>
-    <div id="ota-status-area" style="padding: 16px;">
+    <div id="ota-status-area" class="scroll-table" style="padding: 16px; max-height: 420px;">
         <div style="color: #7a7a90;">Loading...</div>
     </div>
 </div>
 
 <div class="card">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
+    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">Build History</h2>
+        <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="filterTable('history-table', this.value)">
     </div>
     {% if builds %}
-    <table>
+    <div class="scroll-table">
+    <table id="history-table">
         <thead>
             <tr>
                 <th>Version</th>
@@ -135,6 +141,7 @@
                 <th>Finished</th>
                 <th>Error</th>
                 <th>Download</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -167,10 +174,20 @@
                     {% endfor %}
                     {% endif %}
                 </td>
+                <td class="actions-cell">
+                    {% if b.status not in ('pending', 'building') %}
+                    <form method="POST" action="{{ url_for('delete_build', build_id=b.id) }}" onsubmit="return confirm('Delete build v{{ b.version }}? This removes the database record and the .exe files from disk.')" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                    {% else %}
+                    <span style="color:#6a6a80; font-size: 12px;">—</span>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty-state">
         <p>No builds yet</p>
@@ -204,6 +221,33 @@
     .artifact-item:last-child { border-bottom: none; }
     .artifact-name { font-weight: 600; color: #e8e8ef; margin-bottom: 4px; }
     .artifact-status { font-size: 12px; color: #9a9ab0; }
+    .scroll-table {
+        max-height: 480px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+    .scroll-table table { margin: 0; }
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        background: #1c1c26;
+        z-index: 1;
+    }
+    .filter-input {
+        background: #16161e;
+        color: #e8e8ef;
+        border: 1px solid #2a2a38;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 220px;
+        outline: none;
+    }
+    .filter-input:focus { border-color: #ff7a1a; }
+    .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scroll-table::-webkit-scrollbar-track { background: #16161e; }
+    .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
+    .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
@@ -324,7 +368,7 @@
                     area.innerHTML = '<div style="color: #7a7a90;">No active licenses detected yet</div>';
                     return;
                 }
-                var html = '<table style="width:100%;"><thead><tr>';
+                var html = '<table id="ota-table" style="width:100%;"><thead><tr>';
                 html += '<th>App Name</th><th>License</th><th>Current</th><th>Latest</th><th>Status</th>';
                 html += '</tr></thead><tbody>';
                 for (var i = 0; i < data.users.length; i++) {
@@ -344,9 +388,26 @@
                 }
                 html += '</tbody></table>';
                 area.innerHTML = html;
+                var searchEl = document.getElementById("ota-search");
+                if (searchEl && searchEl.value) filterOta(searchEl.value);
             })
             .catch(function() {});
     }
+
+    window.filterTable = function(tableId, query) {
+        var table = document.getElementById(tableId);
+        if (!table) return;
+        var q = (query || "").toLowerCase().trim();
+        var rows = table.querySelectorAll("tbody tr");
+        for (var i = 0; i < rows.length; i++) {
+            var text = rows[i].textContent.toLowerCase();
+            rows[i].style.display = (!q || text.indexOf(q) !== -1) ? "" : "none";
+        }
+    };
+
+    window.filterOta = function(query) {
+        window.filterTable("ota-table", query);
+    };
 
     function loadLauncherInfo() {
         fetch("/api/launcher_info", { credentials: "same-origin" })

@@ -1231,7 +1231,7 @@ def builds_page():
         LEFT JOIN licenses l ON bc.license_id = l.id
         ORDER BY bc.created_at DESC
     """).fetchall()
-    past_builds = conn.execute("SELECT * FROM builds ORDER BY created_at DESC LIMIT 20").fetchall()
+    past_builds = conn.execute("SELECT * FROM builds ORDER BY created_at DESC LIMIT 500").fetchall()
     conn.close()
 
     all_artifacts = {}
@@ -1396,6 +1396,47 @@ def delete_build_config(config_id):
     conn.commit()
     conn.close()
     flash("Build config deleted", "success")
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/build/<int:build_id>/delete", methods=["POST"])
+@require_admin
+def delete_build(build_id):
+    conn = get_db()
+    build = conn.execute("SELECT id, version, status FROM builds WHERE id = ?", (build_id,)).fetchone()
+    if not build:
+        conn.close()
+        flash("Build not found", "error")
+        return redirect(url_for("builds_page"))
+
+    if build["status"] in ("pending", "building"):
+        conn.close()
+        flash("Cannot delete a build that is still running", "error")
+        return redirect(url_for("builds_page"))
+
+    version = build["version"]
+    conn.execute("DELETE FROM build_artifacts WHERE build_id = ?", (build_id,))
+    conn.execute("DELETE FROM builds WHERE id = ?", (build_id,))
+    conn.commit()
+    conn.close()
+
+    other = None
+    try:
+        conn2 = get_db()
+        other = conn2.execute("SELECT id FROM builds WHERE version = ? LIMIT 1", (version,)).fetchone()
+        conn2.close()
+    except Exception:
+        pass
+
+    if not other:
+        version_dir = os.path.join(BUILDS_DIR, version)
+        if os.path.isdir(version_dir):
+            try:
+                shutil.rmtree(version_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+    flash(f"Build v{version} deleted", "success")
     return redirect(url_for("builds_page"))
 
 
