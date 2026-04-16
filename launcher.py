@@ -442,11 +442,17 @@ class SplashScreen(QSplashScreen):
             if not movie.isValid():
                 self._draw_static_logo(logo_path, w)
                 return
-            movie.setScaledSize(QSize(self.LOGO_SIZE, self.LOGO_SIZE))
+            movie.jumpToFrame(0)
+            orig = movie.currentPixmap().size()
+            if orig.width() > 0 and orig.height() > 0:
+                scaled = orig.scaled(self.LOGO_SIZE, self.LOGO_SIZE, Qt.KeepAspectRatio)
+            else:
+                scaled = QSize(self.LOGO_SIZE, self.LOGO_SIZE)
+            movie.setScaledSize(scaled)
             lbl = QLabel(self)
             lbl.setStyleSheet("background: transparent;")
-            lbl.setFixedSize(self.LOGO_SIZE, self.LOGO_SIZE)
-            lbl.move((w - self.LOGO_SIZE) // 2, self.LOGO_Y)
+            lbl.setFixedSize(scaled)
+            lbl.move((w - scaled.width()) // 2, self.LOGO_Y)
             lbl.setMovie(movie)
             movie.start()
             self._logo_label = lbl
