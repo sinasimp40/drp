@@ -848,28 +848,62 @@ def apply_update_and_restart(new_exe_path):
         backup_path = current_exe + ".bak"
         bat_path = os.path.join(APP_DIR, "_update_swap.bat")
         pid = os.getpid()
+        mei_dir = getattr(sys, '_MEIPASS', '')
         bat_content = f'''@echo off
+setlocal
+
 :waitloop
 tasklist /fi "PID eq {pid}" 2>nul | find "{pid}" >nul
 if not errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto waitloop
 )
-timeout /t 2 /nobreak >nul
-for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" >nul 2>&1
+
+timeout /t 3 /nobreak >nul
+
+set "RETRIES=0"
+:cleanloop
+if %RETRIES% GEQ 5 goto afterclean
+set /a RETRIES+=1
+set "LOCKED=0"
+for /d %%i in ("%TEMP%\\_MEI*") do (
+    rd /s /q "%%i" >nul 2>&1
+    if exist "%%i" set "LOCKED=1"
+)
+if "%LOCKED%"=="1" (
+    timeout /t 2 /nobreak >nul
+    goto cleanloop
+)
+:afterclean
+
+if exist "{mei_dir}" (
+    rd /s /q "{mei_dir}" >nul 2>&1
+    if exist "{mei_dir}" (
+        timeout /t 3 /nobreak >nul
+        rd /s /q "{mei_dir}" >nul 2>&1
+    )
+)
+
 copy "{current_exe}" "{backup_path}" >nul 2>&1
 move /y "{new_exe_path}" "{current_exe}" >nul 2>&1
 if errorlevel 1 (
-    copy /y "{new_exe_path}" "{current_exe}" >nul 2>&1
+    timeout /t 2 /nobreak >nul
+    move /y "{new_exe_path}" "{current_exe}" >nul 2>&1
     if errorlevel 1 (
-        copy /y "{backup_path}" "{current_exe}" >nul 2>&1
-        del "{backup_path}" >nul 2>&1
-        start "" "{current_exe}"
-        del "%~f0" >nul 2>&1
-        exit /b 1
+        copy /y "{new_exe_path}" "{current_exe}" >nul 2>&1
+        if errorlevel 1 (
+            copy /y "{backup_path}" "{current_exe}" >nul 2>&1
+            del "{backup_path}" >nul 2>&1
+            start "" "{current_exe}"
+            del "%~f0" >nul 2>&1
+            exit /b 1
+        )
     )
 )
 del "{backup_path}" >nul 2>&1
+
+for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" >nul 2>&1
+
 start "" "{current_exe}"
 del "%~f0" >nul 2>&1
 '''
