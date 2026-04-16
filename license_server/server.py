@@ -998,8 +998,16 @@ def _run_single_build(build_id, config, version):
             src_icon = os.path.join(ICONS_DIR, config["icon_filename"])
             if os.path.isfile(src_icon):
                 dst_icon = os.path.join(work_dir, "icon.ico")
-                shutil.copy2(src_icon, dst_icon)
+                shutil.copyfile(src_icon, dst_icon)
                 icon_path = dst_icon
+                try:
+                    ih = hashlib.sha256()
+                    with open(src_icon, "rb") as _f:
+                        for _chunk in iter(lambda: _f.read(65536), b""):
+                            ih.update(_chunk)
+                    print(f"[BUILD] Config #{config_id}: icon bytes sha256={ih.hexdigest()[:16]}... ({os.path.getsize(src_icon)} bytes)")
+                except Exception:
+                    pass
 
         for splash_ext in [".gif", ".png"]:
             splash_src = None
