@@ -1,0 +1,253 @@
+
+PS C:\Users\Administrator> Set-NetTCPSetting -SettingName InternetCustom -CongestionProvider CTCP
+PS C:\Users\Administrator> Set-NetTCPSetting -SettingName Internet -CongestionProvider CTCP
+PS C:\Users\Administrator>
+PS C:\Users\Administrator> netsh int tcp set global autotuninglevel=normal
+Ok.
+
+PS C:\Users\Administrator> netsh int tcp set global rss=enabled
+Ok.
+
+PS C:\Users\Administrator> netsh int tcp set global chimney=disabled
+'chimney' is not a valid argument for this command.
+The syntax supplied for this command is not valid. Check help for the correct syntax.
+
+Usage: set global [[rss=]disabled|enabled|default]
+             [[autotuninglevel=]
+                disabled|highlyrestricted|restricted|normal|experimental]
+             [[congestionprovider=]none|ctcp|default]
+             [[ecncapability=]disabled|enabled|default]
+             [[timestamps=]disabled|enabled|default]
+             [[initialrto=]<300-3000>]
+             [[rsc=]disabled|enabled|default]
+             [[nonsackrttresiliency=]disabled|enabled|default]
+             [[maxsynretransmissions=]<2-8>]
+             [[fastopen=]disabled|enabled|default]
+             [[fastopenfallback=]disabled|enabled|default]
+             [[hystart=]disabled|enabled|default]
+             [[pacingprofile=]off|initialwindow|slowstart|always|default]
+
+Parameters:
+
+    Tag           Value
+    rss             - One of the following values:
+                      disabled: Disable receive-side scaling.
+                      enabled : Enable receive-side scaling.
+                      default : Restore receive-side scaling state to
+                          the system default.
+    autotuninglevel - One of the following values:
+                      disabled: Fix the receive window at its default
+                          value.
+                      highlyrestricted: Allow the receive window to
+                          grow beyond its default value, but do so
+                          very conservatively.
+                      restricted: Allow the receive window to grow
+                          beyond its default value, but limit such
+                          growth in some scenarios.
+                      normal: Allow the receive window to grow to
+                          accommodate almost all scenarios.
+                      experimental: Allow the receive window to grow
+                          to accommodate extreme scenarios.
+    congestionprovider - This parameter is deprecated. Please use
+                         netsh int tcp set supplemental instead.
+    ecncapability   - Enable/disable ECN Capability.
+                      default : Restore state to the system default.
+    timestamps      - Enable/disable RFC 1323 timestamps.
+                      default: Restore state to the system default.
+    initialrto      - Connect (SYN) retransmit time (in ms). default: 3000.
+    rsc             - Enable/disable receive segment coalescing.
+                      default: Restore state to the system default.
+    nonsackrttresiliency - Enable/disable rtt resiliency for non sack
+                      clients. default: disabled.
+    maxsynretransmissions - Connect retry attempts using SYN packets.
+                      default: 2.
+    fastopen        - Enable/disable TCP Fast Open.
+                      default: Restore state to the system default.
+    fastopenfallback - Enable/disable TCP Fast Open fallback.
+                      default: Restore state to the system default.
+    hystart         - Enable/disable the HyStart slow start algorithm.
+                      default: Restore state to the system default.
+    pacingprofile   - Set the periods during which pacing is enabled.
+                      One of the following values:
+                      off: Never pace.
+                      initialwindow: Pace the initial congestion window.
+                      slowstart: Pace only during slow start.
+                      always: Always pace.
+                      default: off.
+
+
+Remarks: Sets TCP parameters that affect all connections
+.
+
+Example:
+
+       set global rss=enabled autotuninglevel=normal
+
+
+PS C:\Users\Administrator> netsh int tcp set global ecncapability=enabled
+Ok.
+
+PS C:\Users\Administrator> netsh int tcp set global initialRto=2000
+Ok.
+
+PS C:\Users\Administrator>
+PS C:\Users\Administrator> netsh int tcp set global keepalivetime=7200000
+'keepalivetime' is not a valid argument for this command.
+The syntax supplied for this command is not valid. Check help for the correct syntax.
+
+Usage: set global [[rss=]disabled|enabled|default]
+             [[autotuninglevel=]
+                disabled|highlyrestricted|restricted|normal|experimental]
+             [[congestionprovider=]none|ctcp|default]
+             [[ecncapability=]disabled|enabled|default]
+             [[timestamps=]disabled|enabled|default]
+             [[initialrto=]<300-3000>]
+             [[rsc=]disabled|enabled|default]
+             [[nonsackrttresiliency=]disabled|enabled|default]
+             [[maxsynretransmissions=]<2-8>]
+             [[fastopen=]disabled|enabled|default]
+             [[fastopenfallback=]disabled|enabled|default]
+             [[hystart=]disabled|enabled|default]
+             [[pacingprofile=]off|initialwindow|slowstart|always|default]
+
+Parameters:
+
+    Tag           Value
+    rss             - One of the following values:
+                      disabled: Disable receive-side scaling.
+                      enabled : Enable receive-side scaling.
+                      default : Restore receive-side scaling state to
+                          the system default.
+    autotuninglevel - One of the following values:
+                      disabled: Fix the receive window at its default
+                          value.
+                      highlyrestricted: Allow the receive window to
+                          grow beyond its default value, but do so
+                          very conservatively.
+                      restricted: Allow the receive window to grow
+                          beyond its default value, but limit such
+                          growth in some scenarios.
+                      normal: Allow the receive window to grow to
+                          accommodate almost all scenarios.
+                      experimental: Allow the receive window to grow
+                          to accommodate extreme scenarios.
+    congestionprovider - This parameter is deprecated. Please use
+                         netsh int tcp set supplemental instead.
+    ecncapability   - Enable/disable ECN Capability.
+                      default : Restore state to the system default.
+    timestamps      - Enable/disable RFC 1323 timestamps.
+                      default: Restore state to the system default.
+    initialrto      - Connect (SYN) retransmit time (in ms). default: 3000.
+    rsc             - Enable/disable receive segment coalescing.
+                      default: Restore state to the system default.
+    nonsackrttresiliency - Enable/disable rtt resiliency for non sack
+                      clients. default: disabled.
+    maxsynretransmissions - Connect retry attempts using SYN packets.
+                      default: 2.
+    fastopen        - Enable/disable TCP Fast Open.
+                      default: Restore state to the system default.
+    fastopenfallback - Enable/disable TCP Fast Open fallback.
+                      default: Restore state to the system default.
+    hystart         - Enable/disable the HyStart slow start algorithm.
+                      default: Restore state to the system default.
+    pacingprofile   - Set the periods during which pacing is enabled.
+                      One of the following values:
+                      off: Never pace.
+                      initialwindow: Pace the initial congestion window.
+                      slowstart: Pace only during slow start.
+                      always: Always pace.
+                      default: off.
+
+
+Remarks: Sets TCP parameters that affect all connections
+.
+
+Example:
+
+       set global rss=enabled autotuninglevel=normal
+
+
+PS C:\Users\Administrator> netsh int tcp set global keepaliveinterval=1000
+'keepaliveinterval' is not a valid argument for this command.
+The syntax supplied for this command is not valid. Check help for the correct syntax.
+
+Usage: set global [[rss=]disabled|enabled|default]
+             [[autotuninglevel=]
+                disabled|highlyrestricted|restricted|normal|experimental]
+             [[congestionprovider=]none|ctcp|default]
+             [[ecncapability=]disabled|enabled|default]
+             [[timestamps=]disabled|enabled|default]
+             [[initialrto=]<300-3000>]
+             [[rsc=]disabled|enabled|default]
+             [[nonsackrttresiliency=]disabled|enabled|default]
+             [[maxsynretransmissions=]<2-8>]
+             [[fastopen=]disabled|enabled|default]
+             [[fastopenfallback=]disabled|enabled|default]
+             [[hystart=]disabled|enabled|default]
+             [[pacingprofile=]off|initialwindow|slowstart|always|default]
+
+Parameters:
+
+    Tag           Value
+    rss             - One of the following values:
+                      disabled: Disable receive-side scaling.
+                      enabled : Enable receive-side scaling.
+                      default : Restore receive-side scaling state to
+                          the system default.
+    autotuninglevel - One of the following values:
+                      disabled: Fix the receive window at its default
+                          value.
+                      highlyrestricted: Allow the receive window to
+                          grow beyond its default value, but do so
+                          very conservatively.
+                      restricted: Allow the receive window to grow
+                          beyond its default value, but limit such
+                          growth in some scenarios.
+                      normal: Allow the receive window to grow to
+                          accommodate almost all scenarios.
+                      experimental: Allow the receive window to grow
+                          to accommodate extreme scenarios.
+    congestionprovider - This parameter is deprecated. Please use
+                         netsh int tcp set supplemental instead.
+    ecncapability   - Enable/disable ECN Capability.
+                      default : Restore state to the system default.
+    timestamps      - Enable/disable RFC 1323 timestamps.
+                      default: Restore state to the system default.
+    initialrto      - Connect (SYN) retransmit time (in ms). default: 3000.
+    rsc             - Enable/disable receive segment coalescing.
+                      default: Restore state to the system default.
+    nonsackrttresiliency - Enable/disable rtt resiliency for non sack
+                      clients. default: disabled.
+    maxsynretransmissions - Connect retry attempts using SYN packets.
+                      default: 2.
+    fastopen        - Enable/disable TCP Fast Open.
+                      default: Restore state to the system default.
+    fastopenfallback - Enable/disable TCP Fast Open fallback.
+                      default: Restore state to the system default.
+    hystart         - Enable/disable the HyStart slow start algorithm.
+                      default: Restore state to the system default.
+    pacingprofile   - Set the periods during which pacing is enabled.
+                      One of the following values:
+                      off: Never pace.
+                      initialwindow: Pace the initial congestion window.
+                      slowstart: Pace only during slow start.
+                      always: Always pace.
+                      default: off.
+
+
+Remarks: Sets TCP parameters that affect all connections
+.
+
+Example:
+
+       set global rss=enabled autotuninglevel=normal
+
+
+PS C:\Users\Administrator> Get-NetTCPSetting -SettingName Internet | Select SettingName, CongestionProvider, AutoTuningLevelLocal
+
+SettingName CongestionProvider AutoTuningLevelLocal
+----------- ------------------ --------------------
+Internet                  CTCP               Normal
+
+
+PS C:\Users\Administrator>
