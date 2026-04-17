@@ -51,20 +51,25 @@
                 <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
             </h2>
         </div>
-        <div id="build-artifacts-list" style="padding: 16px;"></div>
+        <div id="build-artifacts-list" style="padding: 8px 16px; max-height: 360px; overflow-y: auto;"></div>
     </div>
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
     <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">Build Configs ({{ configs|length }})</h2>
-        <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" id="configs-bulk-btn" class="btn btn-sm" style="background:#2a6fff; color:#fff; display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
+            <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
+        </div>
     </div>
     {% if configs %}
+    <form id="configs-bulk-form" method="POST" action="{{ url_for('bulk_edit_build_configs') }}">
     <div class="scroll-table">
     <table id="configs-table">
         <thead>
             <tr>
+                <th style="width:36px;"><input type="checkbox" id="configs-select-all" onclick="toggleAll('configs-table','config_ids', this.checked); updateConfigsBulkBtn()"></th>
                 <th>App Name</th>
                 <th>License</th>
                 <th>Path</th>
@@ -76,6 +81,7 @@
         <tbody>
             {% for c in configs %}
             <tr>
+                <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
                 <td style="font-weight: 600; color: #ff8c33;">{{ c.app_name }}</td>
                 <td>
                     <span class="key-text" style="font-size: 11px;">{{ c.license_key }}</span>
@@ -106,12 +112,36 @@
         </tbody>
     </table>
     </div>
+    </form>
     {% else %}
     <div class="empty-state">
         <p>No build configs yet</p>
         <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">Create your first config</a>
     </div>
     {% endif %}
+</div>
+
+<div id="bulk-edit-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+        <h3 style="margin-top:0; color:#ff8c33;">Bulk Edit Configs</h3>
+        <p style="color:#9a9ab0; font-size:13px;">Updating <span id="bulk-edit-count">0</span> selected config(s). Tick a box to apply that field to every selected config; leave un-ticked to keep each config's existing value.</p>
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="bulk-update-server-url" onclick="syncBulkEditFields()"> Update Server URL
+            </label>
+            <input type="text" id="bulk-license-server-url" placeholder="https://dprs.b-cdn.net/" disabled>
+        </div>
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="bulk-update-secret" onclick="syncBulkEditFields()"> Update Shared Secret
+            </label>
+            <input type="text" id="bulk-license-secret" placeholder="DENFI_LICENSE_SECRET_KEY_2024" disabled>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+            <button type="button" class="btn btn-sm" style="background:#2a2a38; color:#e8e8ef;" onclick="closeBulkEditModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="submitBulkEdit()">Apply Changes</button>
+        </div>
+    </div>
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
@@ -127,13 +157,18 @@
 <div class="card">
     <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">Build History</h2>
-        <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="filterTable('history-table', this.value)">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" id="builds-bulk-delete-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="submitBulkDeleteBuilds()">Delete Selected (<span id="builds-selected-count">0</span>)</button>
+            <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="filterTable('history-table', this.value)">
+        </div>
     </div>
     {% if builds %}
+    <form id="builds-bulk-form" method="POST" action="{{ url_for('bulk_delete_builds') }}">
     <div class="scroll-table">
     <table id="history-table">
         <thead>
             <tr>
+                <th style="width:36px;"><input type="checkbox" id="builds-select-all" onclick="toggleAll('history-table','build_ids', this.checked); updateBuildsBulkBtn()"></th>
                 <th>Version</th>
                 <th>Status</th>
                 <th>Progress</th>
@@ -147,6 +182,11 @@
         <tbody>
             {% for b in builds %}
             <tr data-build-id="{{ b.id }}">
+                <td>
+                    {% if b.status not in ('pending', 'building') %}
+                    <input type="checkbox" name="build_ids" value="{{ b.id }}" class="build-checkbox" onclick="updateBuildsBulkBtn()">
+                    {% endif %}
+                </td>
                 <td style="font-weight: 600; color: #ff8c33;">v{{ b.version }}</td>
                 <td>
                     {% if b.status == 'completed' %}
@@ -188,6 +228,7 @@
         </tbody>
     </table>
     </div>
+    </form>
     {% else %}
     <div class="empty-state">
         <p>No builds yet</p>
@@ -248,6 +289,23 @@
     .scroll-table::-webkit-scrollbar-track { background: #16161e; }
     .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
     .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
+    .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-card {
+        background: #1c1c26; border: 1px solid #2a2a38; border-radius: 8px;
+        padding: 20px; min-width: 380px; max-width: 480px; width: 90%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal-card .form-group { margin-bottom: 12px; }
+    .modal-card input[type="text"] {
+        width: 100%; background: #16161e; color: #e8e8ef;
+        border: 1px solid #2a2a38; border-radius: 6px; padding: 8px 10px;
+        font-size: 13px; outline: none; margin-top: 4px;
+    }
+    .modal-card input[type="text"]:focus { border-color: #ff7a1a; }
+    .modal-card input[type="text"]:disabled { opacity: 0.45; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
@@ -407,6 +465,90 @@
 
     window.filterOta = function(query) {
         window.filterTable("ota-table", query);
+    };
+
+    window.toggleAll = function(tableId, name, checked) {
+        var table = document.getElementById(tableId);
+        if (!table) return;
+        var boxes = table.querySelectorAll('input[name="' + name + '"]');
+        for (var i = 0; i < boxes.length; i++) { boxes[i].checked = checked; }
+    };
+
+    window.updateConfigsBulkBtn = function() {
+        var boxes = document.querySelectorAll('input[name="config_ids"]:checked');
+        var btn = document.getElementById("configs-bulk-btn");
+        var lbl = document.getElementById("configs-selected-count");
+        if (!btn || !lbl) return;
+        lbl.textContent = boxes.length;
+        btn.style.display = boxes.length > 0 ? "" : "none";
+    };
+
+    window.updateBuildsBulkBtn = function() {
+        var boxes = document.querySelectorAll('input[name="build_ids"]:checked');
+        var btn = document.getElementById("builds-bulk-delete-btn");
+        var lbl = document.getElementById("builds-selected-count");
+        if (!btn || !lbl) return;
+        lbl.textContent = boxes.length;
+        btn.style.display = boxes.length > 0 ? "" : "none";
+    };
+
+    window.openBulkEditModal = function() {
+        var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
+        if (count === 0) return;
+        document.getElementById("bulk-edit-count").textContent = count;
+        document.getElementById("bulk-update-server-url").checked = false;
+        document.getElementById("bulk-update-secret").checked = false;
+        document.getElementById("bulk-license-server-url").value = "";
+        document.getElementById("bulk-license-secret").value = "";
+        syncBulkEditFields();
+        document.getElementById("bulk-edit-modal").style.display = "flex";
+    };
+
+    window.closeBulkEditModal = function() {
+        document.getElementById("bulk-edit-modal").style.display = "none";
+    };
+
+    window.syncBulkEditFields = function() {
+        document.getElementById("bulk-license-server-url").disabled =
+            !document.getElementById("bulk-update-server-url").checked;
+        document.getElementById("bulk-license-secret").disabled =
+            !document.getElementById("bulk-update-secret").checked;
+    };
+
+    window.submitBulkEdit = function() {
+        var updateUrl = document.getElementById("bulk-update-server-url").checked;
+        var updateSecret = document.getElementById("bulk-update-secret").checked;
+        if (!updateUrl && !updateSecret) {
+            alert("Tick at least one field to update.");
+            return;
+        }
+        var form = document.getElementById("configs-bulk-form");
+        var existing = form.querySelectorAll('input.bulk-extra');
+        for (var i = 0; i < existing.length; i++) existing[i].remove();
+        function addHidden(name, value) {
+            var el = document.createElement("input");
+            el.type = "hidden"; el.name = name; el.value = value;
+            el.className = "bulk-extra";
+            form.appendChild(el);
+        }
+        if (updateUrl) {
+            addHidden("update_server_url", "on");
+            addHidden("license_server_url", document.getElementById("bulk-license-server-url").value);
+        }
+        if (updateSecret) {
+            addHidden("update_secret", "on");
+            addHidden("license_secret", document.getElementById("bulk-license-secret").value);
+        }
+        var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
+        if (!confirm("Apply bulk edit to " + count + " config(s)? This is immediate. You'll still need to Rebuild each one for the changes to ship in the .exe.")) return;
+        form.submit();
+    };
+
+    window.submitBulkDeleteBuilds = function() {
+        var count = document.querySelectorAll('input[name="build_ids"]:checked').length;
+        if (count === 0) return;
+        if (!confirm("Delete " + count + " build(s)? This removes the database records and the .exe files from disk. Cannot be undone.")) return;
+        document.getElementById("builds-bulk-form").submit();
     };
 
     function loadLauncherInfo() {

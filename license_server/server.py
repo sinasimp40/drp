@@ -1500,6 +1500,92 @@ def delete_build_config(config_id):
     return redirect(url_for("builds_page"))
 
 
+@app.route("/build_configs/bulk_edit", methods=["POST"])
+@require_admin
+def bulk_edit_build_configs():
+    config_ids = request.form.getlist("config_ids")
+    config_ids = [int(x) for x in config_ids if str(x).strip().isdigit()]
+    if not config_ids:
+        flash("No configs selected", "error")
+        return redirect(url_for("builds_page"))
+
+    update_url = request.form.get("update_server_url") == "on"
+    update_secret = request.form.get("update_secret") == "on"
+    if not (update_url or update_secret):
+        flash("Pick at least one field to update (Server URL and/or Shared Secret)", "error")
+        return redirect(url_for("builds_page"))
+
+    new_url = request.form.get("license_server_url", "").strip()
+    new_secret = request.form.get("license_secret", "").strip()
+
+    conn = get_db()
+    placeholders = ",".join("?" * len(config_ids))
+    sets = []
+    params = []
+    if update_url:
+        sets.append("license_server_url = ?")
+        params.append(new_url)
+    if update_secret:
+        sets.append("license_secret = ?")
+        params.append(new_secret)
+    sets.append("updated_at = ?")
+    params.append(time.time())
+    sql = f"UPDATE build_configs SET {', '.join(sets)} WHERE id IN ({placeholders})"
+    conn.execute(sql, (*params, *config_ids))
+    conn.commit()
+    conn.close()
+    flash(f"Updated {len(config_ids)} build config(s)", "success")
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/builds/bulk_delete", methods=["POST"])
+@require_admin
+def bulk_delete_builds():
+    build_ids = request.form.getlist("build_ids")
+    build_ids = [int(x) for x in build_ids if str(x).strip().isdigit()]
+    if not build_ids:
+        flash("No builds selected", "error")
+        return redirect(url_for("builds_page"))
+
+    conn = get_db()
+    placeholders = ",".join("?" * len(build_ids))
+    rows = conn.execute(
+        f"SELECT id, version, status FROM builds WHERE id IN ({placeholders})",
+        build_ids
+    ).fetchall()
+
+    deletable = [r for r in rows if r["status"] not in ("pending", "building")]
+    skipped = len(rows) - len(deletable)
+    if not deletable:
+        conn.close()
+        flash("No builds were eligible to delete (all running)", "error")
+        return redirect(url_for("builds_page"))
+
+    deletable_ids = [r["id"] for r in deletable]
+    versions_in_batch = {r["version"] for r in deletable}
+    del_ph = ",".join("?" * len(deletable_ids))
+    conn.execute(f"DELETE FROM build_artifacts WHERE build_id IN ({del_ph})", deletable_ids)
+    conn.execute(f"DELETE FROM builds WHERE id IN ({del_ph})", deletable_ids)
+    conn.commit()
+
+    for version in versions_in_batch:
+        other = conn.execute("SELECT id FROM builds WHERE version = ? LIMIT 1", (version,)).fetchone()
+        if not other:
+            version_dir = os.path.join(BUILDS_DIR, version)
+            if os.path.isdir(version_dir):
+                try:
+                    shutil.rmtree(version_dir, ignore_errors=True)
+                except Exception:
+                    pass
+    conn.close()
+
+    msg = f"Deleted {len(deletable)} build(s)"
+    if skipped:
+        msg += f" (skipped {skipped} still running)"
+    flash(msg, "success")
+    return redirect(url_for("builds_page"))
+
+
 @app.route("/build/<int:build_id>/delete", methods=["POST"])
 @require_admin
 def delete_build(build_id):
