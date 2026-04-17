@@ -678,16 +678,35 @@ def get_license_file():
     return os.path.join(APP_DIR, ".license_key")
 
 
+def _get_stable_xor_key():
+    seed = "DENFI_STABLE_LICENSE_FILE_KEY_V1"
+    return hashlib.md5(seed.encode("utf-8")).digest()
+
+
 def _get_file_xor_key():
     seed = APP_NAME + "LIC" + str(len(_LICENSE_SECRET_XOR))
     return hashlib.md5(seed.encode("utf-8")).digest()
 
 
+def _xor_with(raw_bytes, xor_key):
+    return bytes([raw_bytes[i] ^ xor_key[i % len(xor_key)] for i in range(len(raw_bytes))])
+
+
 def _encrypt_key(plaintext):
-    xor_key = _get_file_xor_key()
-    data = plaintext.encode("utf-8")
-    encrypted = bytes([data[i] ^ xor_key[i % len(xor_key)] for i in range(len(data))])
-    return encrypted
+    xor_key = _get_stable_xor_key()
+    return _xor_with(plaintext.encode("utf-8"), xor_key)
+
+
+def _try_decode(raw_bytes, xor_key):
+    import re
+    decrypted = _xor_with(raw_bytes, xor_key)
+    try:
+        result = decrypted.decode("utf-8", errors="replace").strip()
+    except Exception:
+        return ""
+    if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', result):
+        return result
+    return ""
 
 
 def _decrypt_key(raw_bytes):
@@ -698,14 +717,10 @@ def _decrypt_key(raw_bytes):
         text = ""
     if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', text):
         return text
-    xor_key = _get_file_xor_key()
-    decrypted = bytes([raw_bytes[i] ^ xor_key[i % len(xor_key)] for i in range(len(raw_bytes))])
-    try:
-        result = decrypted.decode("utf-8", errors="replace").strip()
-    except Exception:
-        return ""
-    if re.match(r'^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$', result):
-        return result
+    for xor_key in (_get_stable_xor_key(), _get_file_xor_key()):
+        result = _try_decode(raw_bytes, xor_key)
+        if result:
+            return result
     return ""
 
 
