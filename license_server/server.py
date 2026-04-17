@@ -1913,6 +1913,7 @@ def api_update_check():
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config:
         conn.close()
+        print(f"[OTA] NO_MATCH key={key[:8]}... app='{client_app_name}' cid={client_config_id} hash={client_config_hash_in[:12]}...")
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
@@ -1926,6 +1927,7 @@ def api_update_check():
     conn.close()
 
     if not artifact:
+        print(f"[OTA] NO_ARTIFACT cfg#{config['id']} '{config['app_name']}'")
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
@@ -1940,6 +1942,8 @@ def api_update_check():
             config_changed = True
         elif server_config_hash != client_config_hash:
             config_changed = True
+
+    print(f"[OTA] cfg#{config['id']} '{config['app_name']}' client_v={current_version} latest_v={latest_version} client_hash={client_config_hash[:12]}... server_hash={server_config_hash[:12]}... ver_newer={version_newer} cfg_changed={config_changed}")
 
     if not version_newer and not config_changed:
         resp = {"update_available": False, "latest_version": latest_version, "config_hash": server_config_hash}
