@@ -151,6 +151,18 @@ def init_db():
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE build_artifacts ADD COLUMN config_hash TEXT DEFAULT ''")
         conn.commit()
+    try:
+        conn.execute("SELECT app_name_snapshot FROM build_artifacts LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE build_artifacts ADD COLUMN app_name_snapshot TEXT DEFAULT ''")
+        conn.commit()
+        conn.execute("""UPDATE build_artifacts
+                        SET app_name_snapshot = COALESCE(
+                            (SELECT app_name FROM build_configs WHERE build_configs.id = build_artifacts.build_config_id),
+                            ''
+                        )
+                        WHERE app_name_snapshot = '' OR app_name_snapshot IS NULL""")
+        conn.commit()
     conn.commit()
     try:
         conn.execute("SELECT embedded_key FROM build_configs LIMIT 1")
@@ -1125,8 +1137,8 @@ def _run_single_build(build_id, config, version):
         cfg_hash = _compute_config_hash(config)
         conn = get_db()
         conn.execute(
-            "UPDATE build_artifacts SET status='completed', progress=100, exe_filename=?, file_size=?, config_hash=?, completed_at=? WHERE build_id=? AND build_config_id=?",
-            (os.path.basename(exe_path), file_size, cfg_hash, time.time(), build_id, config_id)
+            "UPDATE build_artifacts SET status='completed', progress=100, exe_filename=?, file_size=?, config_hash=?, app_name_snapshot=?, completed_at=? WHERE build_id=? AND build_config_id=?",
+            (os.path.basename(exe_path), file_size, cfg_hash, config.get("app_name", ""), time.time(), build_id, config_id)
         )
         conn.commit()
         conn.close()
@@ -1958,6 +1970,15 @@ def api_update_check():
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
     if not config and client_app_name:
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
+    if not config and client_app_name:
+        row = conn.execute(
+            "SELECT bc.id AS id, bc.app_name AS app_name "
+            "FROM build_artifacts ba JOIN build_configs bc ON ba.build_config_id = bc.id "
+            "WHERE ba.app_name_snapshot = ? COLLATE NOCASE ORDER BY ba.id DESC LIMIT 1",
+            (client_app_name,)
+        ).fetchone()
+        if row:
+            config = row
     if not config:
         conn.close()
         msg = f"NO_MATCH key={key[:8]}... app='{client_app_name}' cid={client_config_id} hash={client_config_hash_in[:16]}"
