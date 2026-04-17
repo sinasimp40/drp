@@ -6,6 +6,9 @@
     <h1>Active Licenses <span id="live-dot" class="live-indicator"></span></h1>
     <div style="display: flex; gap: 10px; align-items: center;">
         <input type="search" id="dashboard-search" placeholder="Search licenses..." class="filter-input" oninput="window.applyDashboardFilter && window.applyDashboardFilter()">
+        <form method="POST" action="{{ url_for('unsuspend_all_licenses') }}" onsubmit="return confirm('Unsuspend ALL currently-suspended licenses?\n\nUse this to recover from the CDN IP-detection bug. Each license is reset to pending and will re-register the customer\\'s real IP next time their launcher connects. Their remaining time is preserved.');" style="display:inline;">
+            <button type="submit" class="btn btn-warning">Recover Suspended (CDN fix)</button>
+        </form>
         <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
     </div>
 </div>

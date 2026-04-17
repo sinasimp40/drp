@@ -268,6 +268,18 @@ def is_online(last_heartbeat):
     return (time.time() - last_heartbeat) < HEARTBEAT_TIMEOUT
 
 
+def _get_client_ip():
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        first = xff.split(",")[0].strip()
+        if first:
+            return first
+    real = request.headers.get("X-Real-IP", "").strip()
+    if real:
+        return real
+    return request.remote_addr
+
+
 def _is_same_subnet(ip1, ip2):
     try:
         parts1 = ip1.split(".")[:3]
@@ -336,7 +348,7 @@ def api_validate():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     if row["status"] == "pending":
-        client_ip = request.remote_addr
+        client_ip = _get_client_ip()
         expires_at = activate_license(conn, row, client_ip)
         remaining = expires_at - time.time()
         conn.close()
@@ -361,7 +373,7 @@ def api_validate():
             resp = {"valid": False, "error": "License has expired"}
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
-        client_ip = request.remote_addr
+        client_ip = _get_client_ip()
         if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
             conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
             conn.commit()
@@ -453,7 +465,7 @@ def api_heartbeat():
         resp = {"valid": False, "error": "License has expired"}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
-    client_ip = request.remote_addr
+    client_ip = _get_client_ip()
     if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
         conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
         conn.commit()
@@ -650,6 +662,39 @@ def delete_license(license_id):
     conn.commit()
     conn.close()
     flash("License deleted", "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/unsuspend_all", methods=["POST"])
+@require_admin
+def unsuspend_all_licenses():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM licenses WHERE status = 'suspended'").fetchall()
+    now = time.time()
+    recovered = 0
+    expired = 0
+    for row in rows:
+        remaining = 0
+        if row["expires_at"]:
+            remaining = max(0, row["expires_at"] - now)
+        if remaining > 0:
+            conn.execute(
+                "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ? WHERE id = ?",
+                (int(remaining), row["id"])
+            )
+            recovered += 1
+        else:
+            conn.execute(
+                "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL WHERE id = ?",
+                (row["id"],)
+            )
+            expired += 1
+    conn.commit()
+    conn.close()
+    if recovered or expired:
+        flash(f"Recovered {recovered} license(s); {expired} had no time left and were marked expired. Customers will re-register their real IP on next launch.", "success")
+    else:
+        flash("No suspended licenses to recover.", "warning")
     return redirect(request.referrer or url_for("dashboard"))
 
 
