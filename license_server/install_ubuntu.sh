@@ -1,26 +1,42 @@
 #!/usr/bin/env bash
 set -e
 
-PORT="${PORT:-3842}"
-ADMIN_PASSWORD="${LICENSE_ADMIN_PASSWORD:-admin}"
-LICENSE_SECRET="${LICENSE_SHARED_SECRET:-DENFI_LICENSE_SECRET_KEY_2024}"
 SERVICE_NAME="license-server"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="${SUDO_USER:-$(whoami)}"
-
-echo "=========================================="
-echo " Denfi License Server installer (Ubuntu)"
-echo "=========================================="
-echo " Install dir : $SCRIPT_DIR"
-echo " Run as user : $SERVICE_USER"
-echo " Port        : $PORT"
-echo " Admin pass  : $ADMIN_PASSWORD"
-echo "=========================================="
 
 if [ "$EUID" -ne 0 ]; then
     echo "ERROR: Run as root: sudo bash install_ubuntu.sh"
     exit 1
 fi
+
+echo "=========================================="
+echo " Denfi License Server installer (Ubuntu)"
+echo "=========================================="
+echo ""
+
+read -rp "Port to run on [3842]: " INPUT_PORT
+PORT="${INPUT_PORT:-${PORT:-3842}}"
+
+read -rp "Admin password [admin]: " INPUT_PASS
+ADMIN_PASSWORD="${INPUT_PASS:-${LICENSE_ADMIN_PASSWORD:-admin}}"
+
+read -rp "Shared license secret [DENFI_LICENSE_SECRET_KEY_2024]: " INPUT_SECRET
+LICENSE_SECRET="${INPUT_SECRET:-${LICENSE_SHARED_SECRET:-DENFI_LICENSE_SECRET_KEY_2024}}"
+
+echo ""
+echo "------------------------------------------"
+echo " Install dir : $SCRIPT_DIR"
+echo " Run as user : $SERVICE_USER"
+echo " Port        : $PORT"
+echo " Admin pass  : $ADMIN_PASSWORD"
+echo " Shared key  : $LICENSE_SECRET"
+echo "------------------------------------------"
+read -rp "Continue with install? [Y/n]: " CONFIRM
+case "${CONFIRM:-Y}" in
+    [yY]|[yY][eE][sS]) ;;
+    *) echo "Aborted."; exit 1 ;;
+esac
 
 echo "[1/6] Updating apt and installing system packages..."
 apt-get update -y
