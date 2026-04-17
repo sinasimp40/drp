@@ -364,6 +364,12 @@ def api_validate():
 
     if row["status"] == "active":
         now = time.time()
+        if row["expires_at"] is None:
+            conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
+            conn.commit()
+            conn.close()
+            resp = {"valid": False, "error": "License has expired"}
+            return jsonify({"data": resp, "signature": sign_response(resp)})
         remaining = row["expires_at"] - now
 
         if remaining <= 0:
@@ -456,6 +462,12 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     now = time.time()
+    if row["expires_at"] is None:
+        conn.execute("UPDATE licenses SET status = 'expired' WHERE id = ?", (row["id"],))
+        conn.commit()
+        conn.close()
+        resp = {"valid": False, "error": "License has expired"}
+        return jsonify({"data": resp, "signature": sign_response(resp)})
     remaining = row["expires_at"] - now
 
     if remaining <= 0:
