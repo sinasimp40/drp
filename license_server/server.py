@@ -38,6 +38,14 @@ ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_icon
 SOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _build_progress = {}
 _build_lock = threading.Lock()
+_recent_ota_log = []
+_recent_ota_lock = threading.Lock()
+
+def _record_ota(entry):
+    with _recent_ota_lock:
+        _recent_ota_log.append(entry)
+        if len(_recent_ota_log) > 50:
+            del _recent_ota_log[:len(_recent_ota_log)-50]
 _download_tokens = {}
 _download_progress = {}
 
@@ -1252,6 +1260,45 @@ def splash_logo_file():
     return "No splash logo found", 404
 
 
+@app.route("/ota_log")
+@require_admin
+def ota_log_page():
+    with _recent_ota_lock:
+        entries = list(reversed(_recent_ota_log))
+    rows_html = ""
+    for e in entries:
+        ts_str = time.strftime("%H:%M:%S", time.localtime(e.get("ts", 0)))
+        result = e.get("result", "?")
+        color = {"update": "#10b981", "no_update": "#f59e0b", "no_match": "#ef4444"}.get(result, "#6b7280")
+        rows_html += f"""<tr>
+            <td>{ts_str}</td>
+            <td><span style="background:{color};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">{result.upper()}</span></td>
+            <td>{e.get("key","")}</td>
+            <td>{e.get("app_name","") or "<i>(empty)</i>"}</td>
+            <td>{e.get("client_config_id", e.get("config_id","")) or "<i>0</i>"}</td>
+            <td><code>{e.get("client_hash", e.get("config_hash",""))}</code></td>
+            <td><code>{e.get("server_hash","")}</code></td>
+            <td>{e.get("matched_config_id","")} {('('+e.get("matched_app_name","")+')') if e.get("matched_app_name") else ""}</td>
+            <td>{e.get("current_version","")} → {e.get("latest_version","")}</td>
+            <td>cfg_changed={e.get("cfg_changed","")} ver_newer={e.get("ver_newer","")}</td>
+        </tr>"""
+    if not rows_html:
+        rows_html = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#888;">No OTA requests recorded yet. Run an old launcher to capture traffic.</td></tr>'
+    return f"""<!doctype html><html><head><title>OTA Log</title>
+<meta http-equiv="refresh" content="3">
+<style>body{{font-family:Segoe UI,sans-serif;background:#1a1a1a;color:#e0e0e0;padding:20px;}}
+table{{width:100%;border-collapse:collapse;font-size:13px;}}
+th,td{{padding:8px;border-bottom:1px solid #333;text-align:left;vertical-align:top;}}
+th{{background:#252525;}}code{{background:#2a2a2a;padding:2px 4px;border-radius:3px;font-size:11px;}}
+a{{color:#60a5fa;}}</style></head><body>
+<h1>Recent OTA Update Checks</h1>
+<p><a href="/builds">← back to builds</a> &nbsp; auto-refreshes every 3s &nbsp; (last {len(entries)} requests)</p>
+<table><thead><tr>
+<th>Time</th><th>Result</th><th>Key</th><th>App Name (sent)</th><th>cfg_id sent</th>
+<th>Client hash</th><th>Server hash</th><th>Matched config</th><th>Version</th><th>Notes</th>
+</tr></thead><tbody>{rows_html}</tbody></table></body></html>"""
+
+
 @app.route("/builds")
 @require_admin
 def builds_page():
@@ -1913,7 +1960,9 @@ def api_update_check():
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config:
         conn.close()
-        print(f"[OTA] NO_MATCH key={key[:8]}... app='{client_app_name}' cid={client_config_id} hash={client_config_hash_in[:12]}...")
+        msg = f"NO_MATCH key={key[:8]}... app='{client_app_name}' cid={client_config_id} hash={client_config_hash_in[:16]}"
+        print(f"[OTA] {msg}")
+        _record_ota({"ts": time.time(), "result": "no_match", "key": key[:8]+"...", "app_name": client_app_name, "config_id": client_config_id, "config_hash": client_config_hash_in[:16], "current_version": current_version, "msg": msg})
         resp = {"update_available": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
@@ -1943,7 +1992,10 @@ def api_update_check():
         elif server_config_hash != client_config_hash:
             config_changed = True
 
-    print(f"[OTA] cfg#{config['id']} '{config['app_name']}' client_v={current_version} latest_v={latest_version} client_hash={client_config_hash[:12]}... server_hash={server_config_hash[:12]}... ver_newer={version_newer} cfg_changed={config_changed}")
+    decision = "UPDATE" if (version_newer or config_changed) else "NO_UPDATE"
+    msg = f"cfg#{config['id']} '{config['app_name']}' client_v={current_version} latest_v={latest_version} client_hash={client_config_hash[:16]} server_hash={server_config_hash[:16]} ver_newer={version_newer} cfg_changed={config_changed} -> {decision}"
+    print(f"[OTA] {msg}")
+    _record_ota({"ts": time.time(), "result": decision.lower(), "key": key[:8]+"...", "app_name": client_app_name, "matched_config_id": config["id"], "matched_app_name": config["app_name"], "client_config_id": client_config_id, "current_version": current_version, "latest_version": latest_version, "client_hash": client_config_hash[:16], "server_hash": server_config_hash[:16], "ver_newer": version_newer, "cfg_changed": config_changed, "msg": msg})
 
     if not version_newer and not config_changed:
         resp = {"update_available": False, "latest_version": latest_version, "config_hash": server_config_hash}
