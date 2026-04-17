@@ -1533,8 +1533,81 @@ def bulk_edit_build_configs():
     sql = f"UPDATE build_configs SET {', '.join(sets)} WHERE id IN ({placeholders})"
     conn.execute(sql, (*params, *config_ids))
     conn.commit()
+
+    then_rebuild = request.form.get("then_rebuild") == "on"
+    if not then_rebuild:
+        conn.close()
+        flash(f"Updated {len(config_ids)} build config(s)", "success")
+        return redirect(url_for("builds_page"))
+
+    rebuild_version = request.form.get("rebuild_version", "").strip()
+    if not re.match(r'^\d+\.\d+\.\d+$', rebuild_version):
+        conn.close()
+        flash(f"Updated {len(config_ids)} config(s) but rebuild was skipped — version must be X.Y.Z", "error")
+        return redirect(url_for("builds_page"))
+
+    active_build = conn.execute("SELECT id FROM builds WHERE status IN ('pending', 'building') LIMIT 1").fetchone()
+    if active_build:
+        conn.close()
+        flash(f"Updated {len(config_ids)} config(s) but rebuild was skipped — another build is in progress", "error")
+        return redirect(url_for("builds_page"))
+
+    expire_active_licenses(conn)
+    configs = conn.execute(f"""
+        SELECT bc.*, l.license_key, l.status as license_status
+        FROM build_configs bc
+        LEFT JOIN licenses l ON bc.license_id = l.id
+        WHERE bc.id IN ({placeholders})
+    """, config_ids).fetchall()
+
+    config_list = []
+    skipped = 0
+    for c in configs:
+        if c["license_status"] not in ('active', None):
+            skipped += 1
+            continue
+        config_list.append({
+            "id": c["id"], "app_name": c["app_name"],
+            "hardcoded_path": c["hardcoded_path"],
+            "license_server_url": c["license_server_url"],
+            "license_secret": c["license_secret"],
+            "icon_filename": c["icon_filename"],
+            "embedded_key": c["embedded_key"] or (c["license_key"] or ""),
+            "license_id": c["license_id"],
+        })
+
+    if not config_list:
+        conn.close()
+        flash(f"Updated {len(config_ids)} config(s) but rebuild was skipped — no eligible configs (all licenses inactive)", "error")
+        return redirect(url_for("builds_page"))
+
+    now = time.time()
+    cursor = conn.execute(
+        "INSERT INTO builds (version, status, total_configs, created_at) VALUES (?, 'pending', ?, ?)",
+        (rebuild_version, len(config_list), now)
+    )
+    build_id = cursor.lastrowid
+    for cfg in config_list:
+        conn.execute(
+            "INSERT INTO build_artifacts (build_id, build_config_id, license_id, status) VALUES (?, ?, ?, 'pending')",
+            (build_id, cfg["id"], cfg["license_id"])
+        )
+    conn.commit()
     conn.close()
-    flash(f"Updated {len(config_ids)} build config(s)", "success")
+
+    with _build_lock:
+        _build_progress[build_id] = {
+            "status": "pending", "version": rebuild_version,
+            "total": len(config_list), "completed": 0,
+            "artifacts": {}, "error": "",
+        }
+
+    threading.Thread(target=_run_build_all, args=(build_id, rebuild_version, config_list), daemon=True).start()
+
+    msg = f"Updated {len(config_ids)} config(s) and started rebuild v{rebuild_version} for {len(config_list)} of them"
+    if skipped:
+        msg += f" (skipped {skipped} with inactive licenses)"
+    flash(msg, "success")
     return redirect(url_for("builds_page"))
 
 
