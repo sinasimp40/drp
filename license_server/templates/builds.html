@@ -1,27 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Builds - License Admin{% endblock %}
+{% block topbar_title %}Build Management{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{{ url_for('splash_preview') }}" class="btn btn-secondary btn-sm" target="_blank">Splash Preview</a>
+    <a href="{{ url_for('create_build_config') }}" class="btn btn-primary btn-sm">+ New Config</a>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Build Management</h1>
-    <div style="display: flex; gap: 10px;">
-        <a href="{{ url_for('splash_preview') }}" class="btn" style="background: #2a2a38; color: #e8e8ef;" target="_blank">Splash Preview</a>
-        <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">+ New Config</a>
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <h2>Launcher Source</h2>
     </div>
-</div>
-
-<div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
-        <h2 style="font-size: 16px; color: #f0f0f5;">Launcher Source</h2>
-    </div>
-    <div style="padding: 16px;">
-        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: #16161e; border-radius: 6px;">
-            <span style="color: #7a7a90;">Loading launcher info...</span>
+    <div class="card-body">
+        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 6px;">
+            <span style="color: var(--text-mute);">Loading launcher info...</span>
         </div>
         <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
                 <label>Upload launcher.py</label>
-                <input type="file" name="launcher_file" accept=".py" style="color: #9a9ab0;" required>
+                <input type="file" name="launcher_file" accept=".py" style="color: var(--text-dim);" required>
             </div>
             <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
         </form>
@@ -29,9 +27,7 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between;">
-        <h2 style="font-size: 16px; color: #f0f0f5;">Trigger Build</h2>
-    </div>
+    <div class="card-header"><h2>Trigger Build</h2></div>
     <div style="padding: 16px;">
         <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
             <div class="form-group" style="margin-bottom: 0; flex: 0 0 200px;">
@@ -45,9 +41,9 @@
 
 <div id="build-progress-area" style="margin-bottom: 24px; display: none;">
     <div class="card">
-        <div style="padding: 16px; border-bottom: 1px solid #2a2a38;">
-            <h2 style="font-size: 16px; color: #f0f0f5;">
-                Build Progress <span id="build-version-label" style="color: #ff7a1a;"></span>
+        <div style="padding: 16px; border-bottom: 1px solid var(--border-soft);">
+            <h2>
+                Build Progress <span id="build-version-label" style="color: var(--accent);"></span>
                 <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
             </h2>
         </div>
@@ -56,10 +52,10 @@
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-        <h2 style="font-size: 16px; color: #f0f0f5;">Build Configs ({{ configs|length }})</h2>
+    <div class="card-header">
+        <h2>Build Configs ({{ configs|length }})</h2>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button type="button" id="configs-rebuild-btn" class="btn btn-sm" style="background:#ff6a00; color:#fff; display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
+            <button type="button" id="configs-rebuild-btn" class="btn btn-sm" style="background:var(--accent-low); color:#fff; display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
             <button type="button" id="configs-bulk-btn" class="btn btn-sm" style="background:#2a6fff; color:#fff; display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
             <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
         </div>
@@ -83,22 +79,22 @@
             {% for c in configs %}
             <tr>
                 <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
-                <td style="font-weight: 600; color: #ff8c33;">{{ c.app_name }}</td>
+                <td style="font-weight: 600; color: var(--accent-hi);">{{ c.app_name }}</td>
                 <td>
                     <span class="key-text" style="font-size: 11px;">{{ c.license_key }}</span>
                     {% if c.license_note %}
                     <div class="ip-info">{{ c.license_note }}</div>
                     {% endif %}
                 </td>
-                <td style="font-size: 12px; color: #9a9ab0;">{{ c.hardcoded_path or 'Not set' }}</td>
+                <td style="font-size: 12px; color: var(--text-dim);">{{ c.hardcoded_path or 'Not set' }}</td>
                 <td>
                     {% if c.has_icon %}
-                    <span style="color: #44cc44;">Yes</span>
+                    <span style="color: var(--good);">Yes</span>
                     {% else %}
-                    <span style="color: #6a6a80;">No</span>
+                    <span style="color: var(--text-mute);">No</span>
                     {% endif %}
                 </td>
-                <td style="font-size: 12px; color: #9a9ab0;">{{ c.license_server_url or 'Not set' }}</td>
+                <td style="font-size: 12px; color: var(--text-dim);">{{ c.license_server_url or 'Not set' }}</td>
                 <td class="actions-cell">
                     <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <form method="POST" action="{{ url_for('rebuild_single_config', config_id=c.id) }}" onsubmit="return confirm('Rebuild this config with the latest version?')" style="display: inline;">
@@ -124,8 +120,8 @@
 
 <div id="bulk-edit-modal" class="modal-backdrop" style="display:none;">
     <div class="modal-card">
-        <h3 style="margin-top:0; color:#ff8c33;">Bulk Edit Configs</h3>
-        <p style="color:#9a9ab0; font-size:13px;">Updating <span id="bulk-edit-count">0</span> selected config(s). Tick a box to apply that field to every selected config; leave un-ticked to keep each config's existing value.</p>
+        <h3 style="margin-top:0; color:var(--accent-hi);">Bulk Edit Configs</h3>
+        <p style="color:var(--text-dim); font-size:13px;">Updating <span id="bulk-edit-count">0</span> selected config(s). Tick a box to apply that field to every selected config; leave un-ticked to keep each config's existing value.</p>
         <div class="form-group">
             <label style="display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="bulk-update-server-url" onclick="syncBulkEditFields()"> Update Server URL
@@ -138,33 +134,33 @@
             </label>
             <input type="text" id="bulk-license-secret" placeholder="DENFI_LICENSE_SECRET_KEY_2024" disabled>
         </div>
-        <hr style="border:none; border-top:1px solid #2a2a38; margin:16px 0;">
+        <hr style="border:none; border-top:1px solid var(--border-soft); margin:16px 0;">
         <div class="form-group">
             <label style="display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="bulk-then-rebuild"> Rebuild selected configs after applying
             </label>
-            <p style="color:#7a7a90; font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>). Bump <code>APP_VERSION</code> in launcher.py and re-upload to change it.</p>
+            <p style="color:var(--text-mute); font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>). Bump <code>APP_VERSION</code> in launcher.py and re-upload to change it.</p>
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
-            <button type="button" class="btn btn-sm" style="background:#2a2a38; color:#e8e8ef;" onclick="closeBulkEditModal()">Cancel</button>
+            <button type="button" class="btn btn-sm" style="background:var(--border-soft); color:var(--text);" onclick="closeBulkEditModal()">Cancel</button>
             <button type="button" class="btn btn-sm btn-primary" onclick="submitBulkEdit()">Apply Changes</button>
         </div>
     </div>
 </div>
 
 <div class="card" style="margin-bottom: 24px;">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-        <h2 style="font-size: 16px; color: #f0f0f5;">OTA Update Status</h2>
+    <div class="card-header">
+        <h2>OTA Update Status</h2>
         <input type="search" id="ota-search" placeholder="Search OTA..." class="filter-input" oninput="filterOta(this.value)">
     </div>
     <div id="ota-status-area" class="scroll-table" style="padding: 16px; max-height: 420px;">
-        <div style="color: #7a7a90;">Loading...</div>
+        <div style="color: var(--text-mute);">Loading...</div>
     </div>
 </div>
 
 <div class="card">
-    <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-        <h2 style="font-size: 16px; color: #f0f0f5;">Build History</h2>
+    <div class="card-header">
+        <h2>Build History</h2>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button type="button" id="builds-bulk-delete-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="submitBulkDeleteBuilds()">Delete Selected (<span id="builds-selected-count">0</span>)</button>
             <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="filterTable('history-table', this.value)">
@@ -195,7 +191,7 @@
                     <input type="checkbox" name="build_ids" value="{{ b.id }}" class="build-checkbox" onclick="updateBuildsBulkBtn()">
                     {% endif %}
                 </td>
-                <td style="font-weight: 600; color: #ff8c33;">v{{ b.version }}</td>
+                <td style="font-weight: 600; color: var(--accent-hi);">v{{ b.version }}</td>
                 <td>
                     {% if b.status == 'completed' %}
                     <span class="badge badge-online">Completed</span>
@@ -210,7 +206,7 @@
                 <td>{{ b.completed }}/{{ b.total }}</td>
                 <td>{{ b.started }}</td>
                 <td>{{ b.finished }}</td>
-                <td style="color: #cc4444; font-size: 12px;">{{ b.error }}</td>
+                <td style="color: var(--bad); font-size: 12px;">{{ b.error }}</td>
                 <td>
                     {% if b.status == 'completed' and b.artifacts %}
                     {% for art in b.artifacts %}
@@ -228,7 +224,7 @@
                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                     </form>
                     {% else %}
-                    <span style="color:#6a6a80; font-size: 12px;">—</span>
+                    <span style="color:var(--text-mute); font-size: 12px;">—</span>
                     {% endif %}
                 </td>
             </tr>
@@ -248,7 +244,7 @@
 {% block scripts %}
 <style>
     .progress-bar-container {
-        background: #222230;
+        background: var(--border-soft);
         border-radius: 4px;
         height: 20px;
         overflow: hidden;
@@ -260,16 +256,16 @@
         border-radius: 4px;
         transition: width 0.3s ease;
     }
-    .progress-bar-fill.building { background: linear-gradient(90deg, #ff7a1a, #ff9d4d); }
-    .progress-bar-fill.completed { background: #55dd66; }
-    .progress-bar-fill.failed { background: #ee5555; }
+    .progress-bar-fill.building { background: linear-gradient(90deg, var(--accent), var(--accent-hi)); }
+    .progress-bar-fill.completed { background: var(--good); }
+    .progress-bar-fill.failed { background: var(--bad); }
     .artifact-item {
         padding: 12px;
-        border-bottom: 1px solid #222230;
+        border-bottom: 1px solid var(--border-soft);
     }
     .artifact-item:last-child { border-bottom: none; }
-    .artifact-name { font-weight: 600; color: #e8e8ef; margin-bottom: 4px; }
-    .artifact-status { font-size: 12px; color: #9a9ab0; }
+    .artifact-name { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .artifact-status { font-size: 12px; color: var(--text-dim); }
     .scroll-table {
         max-height: 480px;
         overflow-y: auto;
@@ -279,40 +275,40 @@
     .scroll-table thead th {
         position: sticky;
         top: 0;
-        background: #1c1c26;
+        background: var(--panel);
         z-index: 1;
     }
     .filter-input {
-        background: #16161e;
-        color: #e8e8ef;
-        border: 1px solid #2a2a38;
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border-soft);
         border-radius: 6px;
         padding: 6px 10px;
         font-size: 13px;
         min-width: 220px;
         outline: none;
     }
-    .filter-input:focus { border-color: #ff7a1a; }
+    .filter-input:focus { border-color: var(--accent); }
     .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
-    .scroll-table::-webkit-scrollbar-track { background: #16161e; }
-    .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
-    .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
+    .scroll-table::-webkit-scrollbar-track { background: var(--panel-2); }
+    .scroll-table::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+    .scroll-table::-webkit-scrollbar-thumb:hover { background: #34343e; }
     .modal-backdrop {
         position: fixed; inset: 0; background: rgba(0,0,0,0.6);
         z-index: 9999; display: flex; align-items: center; justify-content: center;
     }
     .modal-card {
-        background: #1c1c26; border: 1px solid #2a2a38; border-radius: 8px;
+        background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px;
         padding: 20px; min-width: 380px; max-width: 480px; width: 90%;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     .modal-card .form-group { margin-bottom: 12px; }
     .modal-card input[type="text"] {
-        width: 100%; background: #16161e; color: #e8e8ef;
-        border: 1px solid #2a2a38; border-radius: 6px; padding: 8px 10px;
+        width: 100%; background: var(--panel-2); color: var(--text);
+        border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px 10px;
         font-size: 13px; outline: none; margin-top: 4px;
     }
-    .modal-card input[type="text"]:focus { border-color: #ff7a1a; }
+    .modal-card input[type="text"]:focus { border-color: var(--accent); }
     .modal-card input[type="text"]:disabled { opacity: 0.45; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
@@ -408,11 +404,11 @@
                 html += '</div>';
                 html += '<div class="artifact-status">';
                 if (art.status === "completed") {
-                    html += '<span style="color: #55dd66;">Completed</span>';
+                    html += '<span style="color: var(--good);">Completed</span>';
                     if (art.filename) html += ' — ' + art.filename;
                     if (art.size) html += ' (' + (art.size / 1024 / 1024).toFixed(1) + ' MB)';
                 } else if (art.status === "failed") {
-                    html += '<span style="color: #ee5555;">Failed: ' + (art.error || "Unknown error") + '</span>';
+                    html += '<span style="color: var(--bad);">Failed: ' + (art.error || "Unknown error") + '</span>';
                 } else {
                     html += 'Building... ' + pct + '%';
                 }
@@ -420,9 +416,9 @@
             }
         }
         if (data.error) {
-            html += '<div style="padding: 12px; color: #ee5555;">' + data.error + '</div>';
+            html += '<div style="padding: 12px; color: var(--bad);">' + data.error + '</div>';
         }
-        list.innerHTML = html || '<div style="padding: 12px; color: #7a7a90;">Waiting...</div>';
+        list.innerHTML = html || '<div style="padding: 12px; color: var(--text-mute);">Waiting...</div>';
     }
 
     function loadOtaStatus() {
@@ -431,7 +427,7 @@
             .then(function(data) {
                 var area = document.getElementById("ota-status-area");
                 if (!data.users || data.users.length === 0) {
-                    area.innerHTML = '<div style="color: #7a7a90;">No active licenses detected yet</div>';
+                    area.innerHTML = '<div style="color: var(--text-mute);">No active licenses detected yet</div>';
                     return;
                 }
                 var html = '<table id="ota-table" style="width:100%;"><thead><tr>';
@@ -439,13 +435,13 @@
                 html += '</tr></thead><tbody>';
                 for (var i = 0; i < data.users.length; i++) {
                     var u = data.users[i];
-                    var stateColor = '#7a7a90';
+                    var stateColor = 'var(--text-mute)';
                     var stateLabel = u.ota_state;
-                    if (u.ota_state === 'updated') { stateColor = '#55dd66'; stateLabel = 'Up to date'; }
-                    else if (u.ota_state === 'downloading') { stateColor = '#ff7a1a'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
-                    else if (u.ota_state === 'outdated') { stateColor = '#ee5555'; stateLabel = 'Outdated'; }
+                    if (u.ota_state === 'updated') { stateColor = 'var(--good)'; stateLabel = 'Up to date'; }
+                    else if (u.ota_state === 'downloading') { stateColor = 'var(--accent)'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
+                    else if (u.ota_state === 'outdated') { stateColor = 'var(--bad)'; stateLabel = 'Outdated'; }
                     html += '<tr>';
-                    html += '<td style="font-weight:600;color:#ff8c33;">' + u.app_name + '</td>';
+                    html += '<td style="font-weight:600;color:var(--accent-hi);">' + u.app_name + '</td>';
                     html += '<td><span class="key-text" style="font-size:11px;">' + u.license_key + '</span></td>';
                     html += '<td>' + u.current_version + '</td>';
                     html += '<td>' + u.latest_version + '</td>';
@@ -599,7 +595,7 @@
             .then(function(data) {
                 var el = document.getElementById("launcher-info");
                 if (!data.found) {
-                    el.innerHTML = '<span style="color: #ee5555; font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
+                    el.innerHTML = '<span style="color: var(--bad); font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
                     return;
                 }
                 var modified = new Date(data.modified * 1000);
@@ -607,10 +603,10 @@
                 var sizeKB = (data.size / 1024).toFixed(1);
                 el.innerHTML =
                     '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
-                    '<div><span style="color: #9a9ab0;">Version:</span> <span style="color: #ff9d4d; font-weight: 600;">' + data.version + '</span></div>' +
-                    '<div><span style="color: #9a9ab0;">App Name:</span> <span style="color: #e8e8ef;">' + data.app_name + '</span></div>' +
-                    '<div><span style="color: #9a9ab0;">Size:</span> <span style="color: #e8e8ef;">' + sizeKB + ' KB</span></div>' +
-                    '<div><span style="color: #9a9ab0;">Modified:</span> <span style="color: #e8e8ef;">' + dateStr + '</span></div>' +
+                    '<div><span style="color: var(--text-dim);">Version:</span> <span style="color: var(--accent-hi); font-weight: 600;">' + data.version + '</span></div>' +
+                    '<div><span style="color: var(--text-dim);">App Name:</span> <span style="color: var(--text);">' + data.app_name + '</span></div>' +
+                    '<div><span style="color: var(--text-dim);">Size:</span> <span style="color: var(--text);">' + sizeKB + ' KB</span></div>' +
+                    '<div><span style="color: var(--text-dim);">Modified:</span> <span style="color: var(--text);">' + dateStr + '</span></div>' +
                     '</div>';
                 var versionInput = document.getElementById("build-version-input");
                 if (versionInput && !versionInput.value) {
