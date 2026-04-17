@@ -989,6 +989,17 @@ def _run_single_build(build_id, config, version):
     exe_name = _sanitize_exe_name(config.get("app_name", "DenfiRoblox"))
     output_dir = os.path.join(BUILDS_DIR, version, str(config_id))
     os.makedirs(output_dir, exist_ok=True)
+    try:
+        for _stale in os.listdir(output_dir):
+            _stale_path = os.path.join(output_dir, _stale)
+            if os.path.isfile(_stale_path):
+                try:
+                    os.remove(_stale_path)
+                    print(f"[BUILD] Removed stale file: {_stale_path}")
+                except Exception as _re:
+                    print(f"[BUILD] Could not remove {_stale_path}: {_re}")
+    except Exception as _le:
+        print(f"[BUILD] Could not list {output_dir}: {_le}")
     work_dir = os.path.join(BUILDS_DIR, "_work", f"{build_id}_{config_id}")
     os.makedirs(work_dir, exist_ok=True)
 
