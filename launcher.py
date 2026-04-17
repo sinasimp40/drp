@@ -19,7 +19,7 @@ from PyQt5.QtGui import (
 )
 
 APP_NAME = "DENFI ROBLOX"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 HARDCODED_PATH = ""
 LICENSE_SERVER_URL = ""
 _LICENSE_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x1b,0x1e,0x14,0x12,0x19,0x04,0x12,0x08,0x04,0x12,0x14,0x05,0x12,0x03,0x08,0x1c,0x12,0x0e,0x08,0x65,0x67,0x65,0x63]
@@ -947,6 +947,7 @@ def apply_update_and_restart(new_exe_path):
         return False
     if not getattr(sys, 'frozen', False):
         return False
+    backup_path = None
     try:
         current_exe = sys.executable
         backup_path = current_exe + ".bak"
@@ -969,9 +970,31 @@ def apply_update_and_restart(new_exe_path):
         except Exception:
             pass
 
+        try:
+            release_launcher_lock()
+        except Exception:
+            pass
+
+        try:
+            DETACHED_PROCESS = 0x00000008
+            CREATE_NEW_PROCESS_GROUP = 0x00000200
+            CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+            flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB
+            subprocess.Popen(
+                [current_exe],
+                creationflags=flags,
+                close_fds=True,
+                cwd=os.path.dirname(current_exe) or None,
+            )
+        except Exception:
+            try:
+                subprocess.Popen([current_exe], close_fds=True)
+            except Exception:
+                pass
+
         return True
     except Exception:
-        if os.path.exists(backup_path) and not os.path.exists(current_exe):
+        if backup_path and os.path.exists(backup_path) and not os.path.exists(current_exe):
             try:
                 os.rename(backup_path, current_exe)
             except Exception:
@@ -1448,12 +1471,10 @@ def main():
                 splash.set_progress(95, f"Installing v{new_version}...")
                 app.processEvents()
                 if apply_update_and_restart(new_exe):
-                    splash.set_progress(100, f"Update v{new_version} installed!")
+                    splash.set_progress(100, f"Restarting into v{new_version}...")
                     app.processEvents()
-                    splash.hide()
-                    dlg = UpdateInstalledDialog(version=new_version)
-                    dlg.exec_()
-                    release_launcher_lock()
+                    QTimer.singleShot(800, app.quit)
+                    app.exec_()
                     sys.exit(0)
                 else:
                     splash.set_progress(8, "Update failed, continuing...")
