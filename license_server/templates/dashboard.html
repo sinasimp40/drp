@@ -1,19 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - License Admin{% endblock %}
+{% block topbar_title %}Licenses <span class="live-indicator">Live</span>{% endblock %}
+
+{% block topbar_actions %}
+    <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="dashboard-search" placeholder="Search keys, IPs, notes..." class="filter-input search-input" oninput="window.applyDashboardFilter && window.applyDashboardFilter()">
+    </div>
+    <form method="POST" action="{{ url_for('unsuspend_all_licenses') }}" onsubmit="return confirm('Unsuspend ALL currently-suspended licenses?\n\nUse this to recover from the CDN IP-detection bug. Each license is reset to pending and will re-register the customer\'s real IP next time their launcher connects. Their remaining time is preserved.');" style="display:inline;">
+        <button type="submit" class="btn btn-secondary btn-sm">Recover Suspended</button>
+    </form>
+    <a href="{{ url_for('create_license') }}" class="btn btn-primary btn-sm">+ Create Key</a>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Active Licenses <span id="live-dot" class="live-indicator"></span></h1>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <input type="search" id="dashboard-search" placeholder="Search licenses..." class="filter-input" oninput="window.applyDashboardFilter && window.applyDashboardFilter()">
-        <form method="POST" action="{{ url_for('unsuspend_all_licenses') }}" onsubmit="return confirm('Unsuspend ALL currently-suspended licenses?\n\nUse this to recover from the CDN IP-detection bug. Each license is reset to pending and will re-register the customer\\'s real IP next time their launcher connects. Their remaining time is preserved.');" style="display:inline;">
-            <button type="submit" class="btn btn-warning">Recover Suspended (CDN fix)</button>
-        </form>
-        <a href="{{ url_for('create_license') }}" class="btn btn-primary">+ Create Key</a>
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        </div>
+        <div class="kpi-label">Total Licenses</div>
+        <div class="kpi-value" id="kpi-total">{{ kpis.total }}</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="kpi-label">Online Now</div>
+        <div class="kpi-value good" id="kpi-online">{{ kpis.online }}</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="kpi-label">Suspended</div>
+        <div class="kpi-value warn" id="kpi-suspended">{{ kpis.suspended }}</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-label">Expiring &lt; 24h</div>
+        <div class="kpi-value bad" id="kpi-expiring">{{ kpis.expiring }}</div>
     </div>
 </div>
 
 <div class="card">
+    <div class="card-header">
+        <h2>All Licenses</h2>
+    </div>
     <div id="license-table-container" class="scroll-table">
         {% if licenses %}
         <table id="licenses-table">
@@ -25,9 +60,9 @@
                     <th>Time Remaining</th>
                     <th>IP (Registered)</th>
                     <th>Last Seen</th>
-                    <th>Version</th>
+                    <th>Ver</th>
                     <th>Note</th>
-                    <th>Actions</th>
+                    <th style="text-align:right;">Actions</th>
                 </tr>
             </thead>
             <tbody id="license-tbody">
@@ -47,39 +82,47 @@
                     </td>
                     <td>
                         {% if lic.status == 'pending' %}
-                        <span style="color: #666;">Not yet</span>
+                        <span style="color:#5a5a6e; font-style: italic;">Not yet</span>
                         {% else %}
                         {{ lic.activated }}
                         {% endif %}
                     </td>
                     <td class="time-remaining" data-seconds="{{ lic.remaining_seconds }}" data-status="{{ lic.status }}">
                         {% if lic.status == 'pending' %}
-                        {{ lic.remaining }} <span style="color: #666; font-size: 11px;">(waiting)</span>
+                        {{ lic.remaining }} <span style="color:#5a5a6e; font-size: 11px;">(waiting)</span>
                         {% else %}
                         {{ lic.remaining }}
                         {% endif %}
                     </td>
                     <td>
                         {{ lic.last_ip }}
-                        {% if lic.registered_ip != 'N/A' %}
-                        <div class="ip-info">Registered: {{ lic.registered_ip }}</div>
+                        {% if lic.registered_ip != 'N/A' and lic.registered_ip != lic.last_ip %}
+                        <div class="ip-info">Reg: {{ lic.registered_ip }}</div>
                         {% endif %}
                     </td>
-                    <td>{{ lic.last_heartbeat }}</td>
-                    <td><span style="color: {% if lic.version %}#ff8c33{% else %}#555{% endif %}; font-size: 12px;">{{ lic.version or '-' }}</span></td>
-                    <td>{{ lic.note }}</td>
-                    <td class="actions-cell">
-                        {% if lic.status == 'suspended' %}
-                        <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate.')">
-                            <button type="submit" class="btn btn-success btn-sm">Unsuspend</button>
-                        </form>
-                        {% endif %}
-                        <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
-                            <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
+                    <td style="color:#9a9ab0;">{{ lic.last_heartbeat }}</td>
+                    <td><span style="color: {% if lic.version %}#ff9d4d{% else %}#3a3a48{% endif %}; font-size: 12px; font-family: 'SF Mono','Consolas',monospace;">{{ lic.version or '-' }}</span></td>
+                    <td style="max-width: 220px;">{{ lic.note }}</td>
+                    <td>
+                        <div class="row-actions">
+                            {% if lic.status == 'suspended' %}
+                            <form method="POST" action="{{ url_for('unsuspend_license', license_id=lic.id) }}" onsubmit="return confirm('Unsuspend this license? The user will need to re-activate.')">
+                                <button type="submit" class="icon-btn good" title="Unsuspend" aria-label="Unsuspend">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('revoke_license', license_id=lic.id) }}" onsubmit="return confirm('Revoke this license?')">
+                                <button type="submit" class="icon-btn bad" title="Revoke" aria-label="Revoke">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('delete_license', license_id=lic.id) }}" onsubmit="return confirm('Delete this license?')">
+                                <button type="submit" class="icon-btn bad" title="Delete" aria-label="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -97,49 +140,90 @@
 
 {% block scripts %}
 <style>
-    .live-indicator {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background: #44cc44;
-        border-radius: 50%;
-        margin-left: 8px;
-        animation: pulse-live 2s infinite;
-        vertical-align: middle;
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
     }
-    @keyframes pulse-live {
-        0%, 100% { opacity: 1; box-shadow: 0 0 4px #44cc44; }
-        50% { opacity: 0.4; box-shadow: none; }
+    @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+    .kpi-card {
+        background: var(--panel);
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        padding: 18px;
     }
+    .kpi-icon {
+        width: 32px; height: 32px;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border-soft);
+        display: inline-flex;
+        align-items: center; justify-content: center;
+        margin-bottom: 14px;
+    }
+    .kpi-icon svg { width: 16px; height: 16px; color: #9a9ab0; }
+    .kpi-label { font-size: 12px; color: #6a6a80; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: 600; color: #f3f3f8; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .kpi-value.good { color: var(--good); }
+    .kpi-value.warn { color: var(--warn); }
+    .kpi-value.bad  { color: var(--bad); }
+
+    .scroll-table { overflow-x: auto; }
+    .scroll-table table { margin: 0; }
+
+    .filter-input {
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 7px 12px;
+        font-size: 13px;
+        outline: none;
+        font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,140,51,0.12); }
+    .search-wrap { position: relative; }
+    .search-input { padding-left: 32px; min-width: 240px; }
+    @media (max-width: 560px) { .search-input { min-width: 0; width: 100%; } .search-wrap { flex: 1; } }
+    .search-icon {
+        position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+        width: 14px; height: 14px; color: #6a6a80; pointer-events: none;
+    }
+
+    .row-actions {
+        display: inline-flex;
+        gap: 4px;
+        justify-content: flex-end;
+        opacity: 0.4;
+        transition: opacity 0.15s;
+    }
+    tr:hover .row-actions { opacity: 1; }
+    .icon-btn {
+        width: 28px; height: 28px;
+        border: none; background: transparent;
+        border-radius: 5px;
+        color: #8a8aa0;
+        cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: all 0.15s;
+        padding: 0;
+    }
+    .icon-btn svg { width: 14px; height: 14px; display: block; }
+    .icon-btn:hover { background: rgba(255,255,255,0.05); color: #f3f3f8; }
+    .icon-btn.good:hover { color: var(--good); }
+    .icon-btn.bad:hover  { color: var(--bad); }
+    .icon-btn.warn:hover { color: var(--warn); }
+
     .fade-update { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
-    .scroll-table {
-        max-height: 70vh;
-        overflow-y: auto;
-        overflow-x: auto;
-    }
-    .scroll-table table { margin: 0; }
-    .scroll-table thead th {
-        position: sticky;
-        top: 0;
-        background: #1c1c26;
-        z-index: 1;
-    }
-    .filter-input {
-        background: #16161e;
-        color: #e8e8ef;
-        border: 1px solid #2a2a38;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 13px;
-        min-width: 240px;
-        outline: none;
-    }
-    .filter-input:focus { border-color: #ff7a1a; }
-    .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
-    .scroll-table::-webkit-scrollbar-track { background: #16161e; }
-    .scroll-table::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 5px; }
-    .scroll-table::-webkit-scrollbar-thumb:hover { background: #4a4a58; }
+
+    td > .time-remaining { font-weight: 500; }
+    tr[data-status="active"] .time-remaining { color: #d8d8e4; }
+    tr[data-remaining="0"] .time-remaining,
+    tr[data-status="active"][data-remaining][data-remaining^="-"] .time-remaining { color: var(--bad); }
 </style>
 <script>
 (function() {
@@ -147,6 +231,10 @@
     var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');
     var deleteUrl = "{{ url_for('delete_license', license_id=0) }}".replace('/0', '');
     var unsuspendUrl = "{{ url_for('unsuspend_license', license_id=0) }}".replace('/0', '');
+
+    var ICON_PLAY   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    var ICON_REVOKE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    var ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
 
     function formatDuration(seconds) {
         if (seconds <= 0) return "Expired";
@@ -175,27 +263,30 @@
         tr.setAttribute("data-status", lic.status);
 
         var activatedText = lic.status === 'pending'
-            ? '<span style="color: #666;">Not yet</span>'
+            ? '<span style="color:#5a5a6e; font-style: italic;">Not yet</span>'
             : lic.activated;
 
         var remainingText = lic.status === 'pending'
-            ? lic.remaining + ' <span style="color: #666; font-size: 11px;">(waiting)</span>'
+            ? lic.remaining + ' <span style="color:#5a5a6e; font-size:11px;">(waiting)</span>'
             : lic.remaining;
 
         var ipText = lic.last_ip;
-        if (lic.registered_ip && lic.registered_ip !== 'N/A') {
-            ipText += '<div class="ip-info">Registered: ' + lic.registered_ip + '</div>';
+        if (lic.registered_ip && lic.registered_ip !== 'N/A' && lic.registered_ip !== lic.last_ip) {
+            ipText += '<div class="ip-info">Reg: ' + lic.registered_ip + '</div>';
         }
 
-        var actionsHtml = '';
+        var actionsHtml = '<div class="row-actions">';
         if (lic.status === 'suspended') {
             actionsHtml += '<form method="POST" action="' + unsuspendUrl + '/' + lic.id + '" onsubmit="return confirm(\'Unsuspend this license? The user will need to re-activate.\')">' +
-                '<button type="submit" class="btn btn-success btn-sm">Unsuspend</button></form>';
+                '<button type="submit" class="icon-btn good" title="Unsuspend" aria-label="Unsuspend">' + ICON_PLAY + '</button></form>';
         }
         actionsHtml += '<form method="POST" action="' + revokeUrl + '/' + lic.id + '" onsubmit="return confirm(\'Revoke this license?\')">' +
-            '<button type="submit" class="btn btn-danger btn-sm">Revoke</button></form>';
+            '<button type="submit" class="icon-btn bad" title="Revoke" aria-label="Revoke">' + ICON_REVOKE + '</button></form>';
         actionsHtml += '<form method="POST" action="' + deleteUrl + '/' + lic.id + '" onsubmit="return confirm(\'Delete this license?\')">' +
-            '<button type="submit" class="btn btn-danger btn-sm">Delete</button></form>';
+            '<button type="submit" class="icon-btn bad" title="Delete" aria-label="Delete">' + ICON_DELETE + '</button></form>';
+        actionsHtml += '</div>';
+
+        var verColor = lic.version ? '#ff9d4d' : '#3a3a48';
 
         tr.innerHTML =
             '<td><span class="key-text">' + lic.key + '</span></td>' +
@@ -203,10 +294,10 @@
             '<td>' + activatedText + '</td>' +
             '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '" data-status="' + lic.status + '">' + remainingText + '</td>' +
             '<td>' + ipText + '</td>' +
-            '<td>' + lic.last_heartbeat + '</td>' +
-            '<td><span style="color: ' + (lic.version ? '#ff8c33' : '#555') + '; font-size: 12px;">' + (lic.version || '-') + '</span></td>' +
-            '<td>' + (lic.note || '') + '</td>' +
-            '<td class="actions-cell">' + actionsHtml + '</td>';
+            '<td style="color:#9a9ab0;">' + lic.last_heartbeat + '</td>' +
+            '<td><span style="color:' + verColor + '; font-size:12px; font-family:SF Mono,Consolas,monospace;">' + (lic.version || '-') + '</span></td>' +
+            '<td style="max-width:220px;">' + (lic.note || '') + '</td>' +
+            '<td>' + actionsHtml + '</td>';
         return tr;
     }
 
@@ -214,6 +305,12 @@
         fetch("/api/dashboard_data", { credentials: "same-origin" })
             .then(function(r) { return r.json(); })
             .then(function(data) {
+                if (data.kpis) {
+                    document.getElementById("kpi-total").textContent = data.kpis.total;
+                    document.getElementById("kpi-online").textContent = data.kpis.online;
+                    document.getElementById("kpi-suspended").textContent = data.kpis.suspended;
+                    document.getElementById("kpi-expiring").textContent = data.kpis.expiring;
+                }
                 var container = document.getElementById("license-table-container");
                 if (!data.licenses || data.licenses.length === 0) {
                     container.innerHTML =
@@ -231,7 +328,8 @@
                     table.innerHTML =
                         '<thead><tr>' +
                             '<th>License Key</th><th>Status</th><th>Activated</th><th>Time Remaining</th>' +
-                            '<th>IP (Registered)</th><th>Last Seen</th><th>Version</th><th>Note</th><th>Actions</th>' +
+                            '<th>IP (Registered)</th><th>Last Seen</th><th>Ver</th><th>Note</th>' +
+                            '<th style="text-align:right;">Actions</th>' +
                         '</tr></thead><tbody id="license-tbody"></tbody>';
                     container.innerHTML = "";
                     container.appendChild(table);

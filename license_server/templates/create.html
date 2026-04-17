@@ -1,32 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Create License - License Admin{% endblock %}
+{% block topbar_title %}Create License Key{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Create License Key</h1>
-</div>
-
-<div class="card" style="padding: 24px;">
-    <form method="POST">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Duration</label>
-                <input type="number" name="duration_value" value="24" min="1" max="9999" required>
+<div style="max-width: 600px;">
+    <div class="card" style="padding: 24px;">
+        <form method="POST">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Duration</label>
+                    <input type="number" name="duration_value" value="24" min="1" max="9999" required>
+                </div>
+                <div class="form-group">
+                    <label>Unit</label>
+                    <select name="duration_unit">
+                        <option value="minutes">Minutes</option>
+                        <option value="hours" selected>Hours</option>
+                        <option value="days">Days</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group">
-                <label>Unit</label>
-                <select name="duration_unit">
-                    <option value="minutes">Minutes</option>
-                    <option value="hours" selected>Hours</option>
-                    <option value="days">Days</option>
-                </select>
+                <label>Note (optional)</label>
+                <input type="text" name="note" placeholder="e.g. Customer name, purpose...">
             </div>
-        </div>
-        <div class="form-group">
-            <label>Note (optional)</label>
-            <input type="text" name="note" placeholder="e.g. Customer name, purpose...">
-        </div>
-        <button type="submit" class="btn btn-primary">Generate License Key</button>
-    </form>
+            <button type="submit" class="btn btn-primary">Generate License Key</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

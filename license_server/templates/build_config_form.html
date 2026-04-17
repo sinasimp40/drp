@@ -1,64 +1,63 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if config else 'Create' }} Build Config - License Admin{% endblock %}
+{% block topbar_title %}{{ 'Edit' if config else 'Create' }} Build Config{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>{{ 'Edit' if config else 'Create' }} Build Config</h1>
-</div>
-
-<div class="card" style="padding: 24px;">
-    <form method="POST" enctype="multipart/form-data" autocomplete="off">
-        <div class="form-row">
-            <div class="form-group">
-                <label>App Name</label>
-                <input type="text" name="app_name" value="{{ config.app_name if config else '' }}" required placeholder="App name" autocomplete="off">
+<div style="max-width: 800px;">
+    <div class="card" style="padding: 24px;">
+        <form method="POST" enctype="multipart/form-data" autocomplete="off">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>App Name</label>
+                    <input type="text" name="app_name" value="{{ config.app_name if config else '' }}" required placeholder="App name" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Linked License</label>
+                    <select name="license_id">
+                        <option value="">-- No license --</option>
+                        {% for lic in licenses %}
+                        <option value="{{ lic.id }}" {% if config and config.license_id == lic.id %}selected{% endif %}>
+                            {{ lic.license_key }} {% if lic.note %}({{ lic.note }}){% endif %} [{{ lic.status }}]
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
+
             <div class="form-group">
-                <label>Linked License</label>
-                <select name="license_id">
-                    <option value="">-- No license --</option>
-                    {% for lic in licenses %}
-                    <option value="{{ lic.id }}" {% if config and config.license_id == lic.id %}selected{% endif %}>
-                        {{ lic.license_key }} {% if lic.note %}({{ lic.note }}){% endif %} [{{ lic.status }}]
-                    </option>
-                    {% endfor %}
-                </select>
+                <label>Hardcoded Roblox Path</label>
+                <input type="text" name="hardcoded_path" value="{{ config.hardcoded_path if config else '' }}" placeholder="Path to RobloxFiles" autocomplete="off">
             </div>
-        </div>
 
-        <div class="form-group">
-            <label>Hardcoded Roblox Path</label>
-            <input type="text" name="hardcoded_path" value="{{ config.hardcoded_path if config else '' }}" placeholder="Path to RobloxFiles" autocomplete="off">
-        </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>License Server URL</label>
+                    <input type="text" name="license_server_url" value="{{ config.license_server_url if config else '' }}" placeholder="http://your-server:port" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>License Secret</label>
+                    <input type="text" name="license_secret" value="{{ config.license_secret if config else '' }}" placeholder="Shared secret" autocomplete="off">
+                </div>
+            </div>
 
-        <div class="form-row">
             <div class="form-group">
-                <label>License Server URL</label>
-                <input type="text" name="license_server_url" value="{{ config.license_server_url if config else '' }}" placeholder="http://your-server:port" autocomplete="off">
+                <label>Embedded License Key (optional override — defaults to linked license key)</label>
+                <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key" autocomplete="off">
             </div>
+
             <div class="form-group">
-                <label>License Secret</label>
-                <input type="text" name="license_secret" value="{{ config.license_secret if config else '' }}" placeholder="Shared secret" autocomplete="off">
+                <label>Icon (PNG, JPG, JFIF, ICO, BMP, WebP)</label>
+                <input type="file" name="icon" accept=".ico,.png,.jpg,.jpeg,.jfif,.bmp,.webp,image/*" style="color: var(--text-dim);">
+                {% if config and config.icon_filename %}
+                <div style="margin-top: 6px; font-size: 12px; color: var(--good);">Current icon: {{ config.icon_filename }}</div>
+                {% endif %}
             </div>
-        </div>
 
-        <div class="form-group">
-            <label>Embedded License Key (optional override — defaults to linked license key)</label>
-            <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key" autocomplete="off">
-        </div>
-
-        <div class="form-group">
-            <label>Icon (PNG, JPG, JFIF, ICO, BMP, WebP)</label>
-            <input type="file" name="icon" accept=".ico,.png,.jpg,.jpeg,.jfif,.bmp,.webp,image/*" style="color: #9a9ab0;">
-            {% if config and config.icon_filename %}
-            <div style="margin-top: 6px; font-size: 12px; color: #44cc44;">Current icon: {{ config.icon_filename }}</div>
-            {% endif %}
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <button type="submit" class="btn btn-primary">{{ 'Update Config' if config else 'Create Config' }}</button>
-            <a href="{{ url_for('builds_page') }}" class="btn" style="background: #222230; color: #9a9ab0;">Cancel</a>
-        </div>
-    </form>
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="btn btn-primary">{{ 'Update Config' if config else 'Create Config' }}</button>
+                <a href="{{ url_for('builds_page') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -1,5 +1,8 @@
 # Portable Roblox Launcher
 
+## Recent Changes
+- **2026-04-17 — Admin panel redesign (Sidebar SaaS):** Replaced top-navbar layout with a persistent left sidebar + topbar shell (vanilla CSS in `base.html`, lucide icons inlined as SVG). Dashboard gained a 4-card KPI strip (Total / Online / Suspended / Expiring<24h), icon-button row actions, and a fix for the live `TypeError: 'NoneType' - 'float'` crash that triggered when an active license had `expires_at=NULL` (`server.py` `dashboard()` and `api_dashboard_data()`). Restyled history, builds, create, build_config_form, and login pages. Mobile (<900px) collapses the sidebar to a hamburger drawer; KPI strip stacks; tables scroll horizontally. All existing JS hooks, polling, search, bulk-edit modal, Recover Suspended, and per-row actions preserved. e2e tested green.
+
 ## Overview
 A zero-interaction portable Roblox launcher. Double-click the .exe and it does everything automatically:
 1. Validates license key with online server (if configured)

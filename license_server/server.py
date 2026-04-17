@@ -536,8 +536,12 @@ def dashboard():
     conn.close()
 
     licenses = []
+    kpi_total = len(rows)
+    kpi_online = 0
+    kpi_suspended = 0
+    kpi_expiring = 0
     for row in rows:
-        if row["status"] == "active":
+        if row["status"] == "active" and row["expires_at"] is not None:
             remaining = row["expires_at"] - now
             remaining_text = format_duration(remaining)
             remaining_seconds = int(remaining)
@@ -545,9 +549,20 @@ def dashboard():
             remaining = max(0, row["expires_at"] - now)
             remaining_text = format_duration(remaining) + " (suspended)"
             remaining_seconds = int(remaining)
+        elif row["status"] == "active":
+            remaining_text = "-"
+            remaining_seconds = 0
         else:
             remaining_text = format_duration(row["duration_seconds"])
             remaining_seconds = row["duration_seconds"]
+
+        online = is_online(row["last_heartbeat"])
+        if row["status"] == "active" and online:
+            kpi_online += 1
+        if row["status"] == "suspended":
+            kpi_suspended += 1
+        if row["status"] == "active" and 0 < remaining_seconds <= 86400:
+            kpi_expiring += 1
 
         licenses.append({
             "id": row["id"],
@@ -556,7 +571,7 @@ def dashboard():
             "activated": format_time(row["activated_at"]),
             "remaining": remaining_text,
             "remaining_seconds": remaining_seconds,
-            "online": is_online(row["last_heartbeat"]),
+            "online": online,
             "last_heartbeat": format_time(row["last_heartbeat"]),
             "last_ip": row["last_ip"] or "N/A",
             "registered_ip": row["registered_ip"] or "N/A",
@@ -565,7 +580,13 @@ def dashboard():
             "version": row["launcher_version"] or "",
         })
 
-    return render_template("dashboard.html", licenses=licenses)
+    kpis = {
+        "total": kpi_total,
+        "online": kpi_online,
+        "suspended": kpi_suspended,
+        "expiring": kpi_expiring,
+    }
+    return render_template("dashboard.html", licenses=licenses, kpis=kpis)
 
 
 @app.route("/history")
@@ -850,8 +871,12 @@ def api_dashboard_data():
     conn.close()
 
     licenses = []
+    kpi_total = len(rows)
+    kpi_online = 0
+    kpi_suspended = 0
+    kpi_expiring = 0
     for row in rows:
-        if row["status"] == "active":
+        if row["status"] == "active" and row["expires_at"] is not None:
             remaining = row["expires_at"] - now
             remaining_text = format_duration(remaining)
             remaining_seconds = int(remaining)
@@ -859,9 +884,20 @@ def api_dashboard_data():
             remaining = max(0, row["expires_at"] - now)
             remaining_text = format_duration(remaining) + " (suspended)"
             remaining_seconds = int(remaining)
+        elif row["status"] == "active":
+            remaining_text = "-"
+            remaining_seconds = 0
         else:
             remaining_text = format_duration(row["duration_seconds"])
             remaining_seconds = row["duration_seconds"]
+
+        online = is_online(row["last_heartbeat"])
+        if row["status"] == "active" and online:
+            kpi_online += 1
+        if row["status"] == "suspended":
+            kpi_suspended += 1
+        if row["status"] == "active" and 0 < remaining_seconds <= 86400:
+            kpi_expiring += 1
 
         licenses.append({
             "id": row["id"],
@@ -870,7 +906,7 @@ def api_dashboard_data():
             "activated": format_time(row["activated_at"]),
             "remaining": remaining_text,
             "remaining_seconds": remaining_seconds,
-            "online": is_online(row["last_heartbeat"]),
+            "online": online,
             "last_heartbeat": format_time(row["last_heartbeat"]),
             "last_ip": row["last_ip"] or "N/A",
             "registered_ip": row["registered_ip"] or "N/A",
@@ -879,7 +915,15 @@ def api_dashboard_data():
             "version": row["launcher_version"] or "",
         })
 
-    return jsonify({"licenses": licenses})
+    return jsonify({
+        "licenses": licenses,
+        "kpis": {
+            "total": kpi_total,
+            "online": kpi_online,
+            "suspended": kpi_suspended,
+            "expiring": kpi_expiring,
+        },
+    })
 
 
 @app.route("/api/history_data")
