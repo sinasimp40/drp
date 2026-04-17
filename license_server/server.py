@@ -2049,13 +2049,14 @@ def api_update_check():
             "expires": time.time() + 600, "license_key": key,
         }
 
-    config_app_name = config["app_name"] if config else ""
+    echo_app_name = client_app_name or (config["app_name"] if config else "")
     resp = {
         "update_available": True, "latest_version": latest_version,
         "file_size": artifact["file_size"],
         "download_token": token,
         "sha256": file_hash,
-        "app_name": config_app_name,
+        "app_name": echo_app_name,
+        "new_app_name": (config["app_name"] if config else ""),
         "config_hash": server_config_hash,
     }
     return jsonify({"data": resp, "signature": sign_response(resp)})

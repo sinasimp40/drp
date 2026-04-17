@@ -832,9 +832,6 @@ def check_for_update(key):
         if not verify_signature(data, sig):
             return None
         if data.get("update_available"):
-            server_app_name = (data.get("app_name") or "").strip()
-            if not server_app_name or server_app_name.lower() != APP_NAME.lower():
-                return None
             return data
         return None
     except Exception:
