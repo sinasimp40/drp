@@ -59,6 +59,7 @@
     <div style="padding: 16px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
         <h2 style="font-size: 16px; color: #f0f0f5;">Build Configs ({{ configs|length }})</h2>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" id="configs-rebuild-btn" class="btn btn-sm" style="background:#ff6a00; color:#fff; display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
             <button type="button" id="configs-bulk-btn" class="btn btn-sm" style="background:#2a6fff; color:#fff; display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
             <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
         </div>
@@ -140,10 +141,9 @@
         <hr style="border:none; border-top:1px solid #2a2a38; margin:16px 0;">
         <div class="form-group">
             <label style="display:flex; align-items:center; gap:8px;">
-                <input type="checkbox" id="bulk-then-rebuild" onclick="syncBulkEditFields()"> Rebuild selected configs after applying
+                <input type="checkbox" id="bulk-then-rebuild"> Rebuild selected configs after applying
             </label>
-            <input type="text" id="bulk-rebuild-version" placeholder="1.2.0" pattern="\d+\.\d+\.\d+" disabled>
-            <p style="color:#7a7a90; font-size:11px; margin:6px 0 0;">Builds new .exe files for the selected configs only with this version. Existing customers OTA-update to it automatically.</p>
+            <p style="color:#7a7a90; font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>). Bump <code>APP_VERSION</code> in launcher.py and re-upload to change it.</p>
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
             <button type="button" class="btn btn-sm" style="background:#2a2a38; color:#e8e8ef;" onclick="closeBulkEditModal()">Cancel</button>
@@ -486,9 +486,16 @@
         var boxes = document.querySelectorAll('input[name="config_ids"]:checked');
         var btn = document.getElementById("configs-bulk-btn");
         var lbl = document.getElementById("configs-selected-count");
-        if (!btn || !lbl) return;
-        lbl.textContent = boxes.length;
-        btn.style.display = boxes.length > 0 ? "" : "none";
+        var rbtn = document.getElementById("configs-rebuild-btn");
+        var rlbl = document.getElementById("configs-rebuild-count");
+        if (btn && lbl) {
+            lbl.textContent = boxes.length;
+            btn.style.display = boxes.length > 0 ? "" : "none";
+        }
+        if (rbtn && rlbl) {
+            rlbl.textContent = boxes.length;
+            rbtn.style.display = boxes.length > 0 ? "" : "none";
+        }
     };
 
     window.updateBuildsBulkBtn = function() {
@@ -500,6 +507,8 @@
         btn.style.display = boxes.length > 0 ? "" : "none";
     };
 
+    var _cachedLauncherVersion = null;
+
     window.openBulkEditModal = function() {
         var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
         if (count === 0) return;
@@ -509,16 +518,8 @@
         document.getElementById("bulk-then-rebuild").checked = false;
         document.getElementById("bulk-license-server-url").value = "";
         document.getElementById("bulk-license-secret").value = "";
-        var versionInput = document.getElementById("build-version-input");
-        var suggested = "";
-        if (versionInput && versionInput.value) {
-            var parts = versionInput.value.split(".");
-            if (parts.length === 3) {
-                var patch = parseInt(parts[2], 10);
-                if (!isNaN(patch)) suggested = parts[0] + "." + parts[1] + "." + (patch + 1);
-            }
-        }
-        document.getElementById("bulk-rebuild-version").value = suggested;
+        var verEl = document.getElementById("bulk-launcher-version");
+        if (verEl) verEl.textContent = _cachedLauncherVersion ? "v" + _cachedLauncherVersion : "(reading...)";
         syncBulkEditFields();
         document.getElementById("bulk-edit-modal").style.display = "flex";
     };
@@ -532,8 +533,6 @@
             !document.getElementById("bulk-update-server-url").checked;
         document.getElementById("bulk-license-secret").disabled =
             !document.getElementById("bulk-update-secret").checked;
-        document.getElementById("bulk-rebuild-version").disabled =
-            !document.getElementById("bulk-then-rebuild").checked;
     };
 
     window.submitBulkEdit = function() {
@@ -541,20 +540,7 @@
         var updateSecret = document.getElementById("bulk-update-secret").checked;
         var thenRebuild = document.getElementById("bulk-then-rebuild").checked;
         if (!updateUrl && !updateSecret && !thenRebuild) {
-            alert("Tick at least one option (update a field or trigger a rebuild).");
-            return;
-        }
-        if (!updateUrl && !updateSecret) {
-            // rebuild only — server requires at least one field; gently inform user
-            if (!confirm("You haven't ticked any field to update. Continue with a rebuild only?")) return;
-            // server still requires update_url or update_secret to pass; flip a no-op (server validates)
-            // Better UX: forbid this combo client-side and ask them to use the per-row Rebuild button instead.
-            alert("To rebuild without changing fields, use the Rebuild button on each row. Bulk Edit needs at least one field change.");
-            return;
-        }
-        var rebuildVersion = document.getElementById("bulk-rebuild-version").value.trim();
-        if (thenRebuild && !/^\d+\.\d+\.\d+$/.test(rebuildVersion)) {
-            alert("Rebuild version must be in format X.Y.Z (e.g. 1.2.0)");
+            alert("Tick at least one option (update a field and/or rebuild).");
             return;
         }
         var form = document.getElementById("configs-bulk-form");
@@ -576,12 +562,27 @@
         }
         if (thenRebuild) {
             addHidden("then_rebuild", "on");
-            addHidden("rebuild_version", rebuildVersion);
         }
         var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
-        var msg = "Apply bulk edit to " + count + " config(s)?";
-        if (thenRebuild) msg += "\n\nThen rebuild all " + count + " into v" + rebuildVersion + " — this takes a few minutes.";
+        var verLabel = _cachedLauncherVersion ? ("v" + _cachedLauncherVersion) : "the launcher.py version";
+        var msg = "Apply changes to " + count + " config(s)?";
+        if (thenRebuild) msg += "\n\nThen rebuild all " + count + " into " + verLabel + " — this takes a few minutes.";
         if (!confirm(msg)) return;
+        form.submit();
+    };
+
+    window.submitBulkRebuild = function() {
+        var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
+        if (count === 0) return;
+        var verLabel = _cachedLauncherVersion ? ("v" + _cachedLauncherVersion) : "the current launcher.py version";
+        if (!confirm("Rebuild " + count + " selected config(s) into " + verLabel + "?\n\nNo fields will be changed. This takes a few minutes.")) return;
+        var form = document.getElementById("configs-bulk-form");
+        var existing = form.querySelectorAll('input.bulk-extra');
+        for (var i = 0; i < existing.length; i++) existing[i].remove();
+        var el = document.createElement("input");
+        el.type = "hidden"; el.name = "then_rebuild"; el.value = "on";
+        el.className = "bulk-extra";
+        form.appendChild(el);
         form.submit();
     };
 
@@ -614,6 +615,11 @@
                 var versionInput = document.getElementById("build-version-input");
                 if (versionInput && !versionInput.value) {
                     versionInput.value = data.version;
+                }
+                if (data.version) {
+                    _cachedLauncherVersion = data.version;
+                    var verEl = document.getElementById("bulk-launcher-version");
+                    if (verEl) verEl.textContent = "v" + data.version;
                 }
             })
             .catch(function() {});

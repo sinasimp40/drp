@@ -945,6 +945,26 @@ def _compute_config_hash(config):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _get_launcher_app_version():
+    launcher_src = os.path.join(SOURCE_DIR, "launcher.py")
+    if not os.path.isfile(launcher_src):
+        launcher_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher.py")
+    if not os.path.isfile(launcher_src):
+        return None
+    try:
+        with open(launcher_src, "r", encoding="utf-8") as f:
+            content = f.read()
+        m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', content)
+        if not m:
+            return None
+        ver = m.group(1).strip()
+        if not re.match(r'^\d+\.\d+\.\d+$', ver):
+            return None
+        return ver
+    except Exception:
+        return None
+
+
 def _patch_launcher_source(source, config, version):
     safe_ver = _safe_str(version)
     source = re.sub(r'APP_VERSION = ".*?"', f'APP_VERSION = "{safe_ver}"', source)
@@ -1511,8 +1531,9 @@ def bulk_edit_build_configs():
 
     update_url = request.form.get("update_server_url") == "on"
     update_secret = request.form.get("update_secret") == "on"
-    if not (update_url or update_secret):
-        flash("Pick at least one field to update (Server URL and/or Shared Secret)", "error")
+    then_rebuild = request.form.get("then_rebuild") == "on"
+    if not (update_url or update_secret or then_rebuild):
+        flash("Pick at least one option (update a field and/or rebuild)", "error")
         return redirect(url_for("builds_page"))
 
     new_url = request.form.get("license_server_url", "").strip()
@@ -1520,30 +1541,33 @@ def bulk_edit_build_configs():
 
     conn = get_db()
     placeholders = ",".join("?" * len(config_ids))
-    sets = []
-    params = []
-    if update_url:
-        sets.append("license_server_url = ?")
-        params.append(new_url)
-    if update_secret:
-        sets.append("license_secret = ?")
-        params.append(new_secret)
-    sets.append("updated_at = ?")
-    params.append(time.time())
-    sql = f"UPDATE build_configs SET {', '.join(sets)} WHERE id IN ({placeholders})"
-    conn.execute(sql, (*params, *config_ids))
-    conn.commit()
 
-    then_rebuild = request.form.get("then_rebuild") == "on"
+    fields_updated = 0
+    if update_url or update_secret:
+        sets = []
+        params = []
+        if update_url:
+            sets.append("license_server_url = ?")
+            params.append(new_url)
+        if update_secret:
+            sets.append("license_secret = ?")
+            params.append(new_secret)
+        sets.append("updated_at = ?")
+        params.append(time.time())
+        sql = f"UPDATE build_configs SET {', '.join(sets)} WHERE id IN ({placeholders})"
+        conn.execute(sql, (*params, *config_ids))
+        conn.commit()
+        fields_updated = len(config_ids)
+
     if not then_rebuild:
         conn.close()
-        flash(f"Updated {len(config_ids)} build config(s)", "success")
+        flash(f"Updated {fields_updated} build config(s)", "success")
         return redirect(url_for("builds_page"))
 
-    rebuild_version = request.form.get("rebuild_version", "").strip()
-    if not re.match(r'^\d+\.\d+\.\d+$', rebuild_version):
+    rebuild_version = _get_launcher_app_version()
+    if not rebuild_version:
         conn.close()
-        flash(f"Updated {len(config_ids)} config(s) but rebuild was skipped — version must be X.Y.Z", "error")
+        flash(f"Updated {fields_updated} config(s) but rebuild was skipped — could not read APP_VERSION from launcher.py", "error")
         return redirect(url_for("builds_page"))
 
     active_build = conn.execute("SELECT id FROM builds WHERE status IN ('pending', 'building') LIMIT 1").fetchone()
@@ -1604,7 +1628,10 @@ def bulk_edit_build_configs():
 
     threading.Thread(target=_run_build_all, args=(build_id, rebuild_version, config_list), daemon=True).start()
 
-    msg = f"Updated {len(config_ids)} config(s) and started rebuild v{rebuild_version} for {len(config_list)} of them"
+    if fields_updated:
+        msg = f"Updated {fields_updated} config(s) and started rebuild v{rebuild_version} for {len(config_list)} of them"
+    else:
+        msg = f"Started rebuild v{rebuild_version} for {len(config_list)} config(s)"
     if skipped:
         msg += f" (skipped {skipped} with inactive licenses)"
     flash(msg, "success")
@@ -1725,17 +1752,11 @@ def rebuild_single_config(config_id):
             flash(f"Cannot rebuild — license is '{license_row['status']}', not active", "error")
             return redirect(url_for("builds_page"))
 
-    latest_build = conn.execute("""
-        SELECT b.version FROM builds b
-        WHERE b.status = 'completed'
-        ORDER BY b.created_at DESC LIMIT 1
-    """).fetchone()
-    if not latest_build:
+    version = _get_launcher_app_version()
+    if not version:
         conn.close()
-        flash("No completed build found. Do a 'Build All' first to set a version.", "error")
+        flash("Could not read APP_VERSION from launcher.py — make sure it's uploaded.", "error")
         return redirect(url_for("builds_page"))
-
-    version = latest_build["version"]
     embedded_key = config["embedded_key"] or (license_row["license_key"] if license_row else "") or ""
 
     now = time.time()
