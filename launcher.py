@@ -490,6 +490,15 @@ class SplashScreen(QSplashScreen):
         self.status_msg = ""
         self.repaint()
 
+    def mousePressEvent(self, event):
+        event.accept()
+
+    def mouseReleaseEvent(self, event):
+        event.accept()
+
+    def mouseDoubleClickEvent(self, event):
+        event.accept()
+
     def drawContents(self, painter):
         w = self._base_pixmap.width()
         h = self._base_pixmap.height()
