@@ -1891,9 +1891,20 @@ def api_update_check():
     except (TypeError, ValueError):
         client_config_id = 0
 
+    client_config_hash_in = (data.get("config_hash") or "").strip()
+
     config = None
     if client_config_id:
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE id = ?", (client_config_id,)).fetchone()
+    if not config and client_config_hash_in:
+        row = conn.execute(
+            "SELECT bc.id AS id, bc.app_name AS app_name "
+            "FROM build_artifacts ba JOIN build_configs bc ON ba.build_config_id = bc.id "
+            "WHERE ba.config_hash = ? ORDER BY ba.id DESC LIMIT 1",
+            (client_config_hash_in,)
+        ).fetchone()
+        if row:
+            config = row
     if not config:
         config = conn.execute("SELECT id, app_name FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
