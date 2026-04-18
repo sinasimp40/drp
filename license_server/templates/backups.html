@@ -24,6 +24,12 @@
     .bk-status-pill.ok  { background: rgba(52,211,153,0.10); color: var(--good); border-color: rgba(52,211,153,0.25); }
     .bk-status-pill.err { background: rgba(251,113,133,0.10); color: var(--bad);  border-color: rgba(251,113,133,0.25); }
     .bk-history { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+    .bk-filter { display: inline-flex; border: 1px solid var(--border-soft); border-radius: 6px; overflow: hidden; }
+    .bk-filter button { background: transparent; color: var(--text-dim); border: none; padding: 5px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; letter-spacing: 0.02em; }
+    .bk-filter button + button { border-left: 1px solid var(--border-soft); }
+    .bk-filter button:hover { color: #f3f3f8; background: rgba(255,255,255,0.03); }
+    .bk-filter button.active { background: rgba(255,255,255,0.06); color: #f3f3f8; }
+    .bk-history-row.bk-row-hidden { display: none; }
     .bk-history-row { display: grid; grid-template-columns: 150px 90px 90px 1fr; gap: 10px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items:center; font-size: 12.5px; }
     .bk-history-row:last-child { border-bottom: none; }
     .bk-history-row .ts { color: var(--text-dim); font-variant-numeric: tabular-nums; }
@@ -213,15 +219,22 @@
 <div class="bk-card" style="margin-top: 16px;">
     <div class="head">
         <h2>Recent Attempts</h2>
-        <span class="bk-status-pill" style="background: rgba(255,255,255,0.04); color: var(--text-dim); border-color: var(--border-soft);">
-            Last {{ settings.history|length }} of 10
-        </span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="bk-filter" id="bk-history-filter" role="tablist" aria-label="Filter history by type">
+                <button type="button" class="active" data-filter="all">All</button>
+                <button type="button" data-filter="backup">Backups</button>
+                <button type="button" data-filter="check">Checks</button>
+            </div>
+            <span id="bk-history-count" class="bk-status-pill" style="background: rgba(255,255,255,0.04); color: var(--text-dim); border-color: var(--border-soft);">
+                Showing {{ settings.history|length }}
+            </span>
+        </div>
     </div>
     <div id="bk-history-body">
         {% if settings.history %}
         <div class="bk-history">
             {% for h in settings.history %}
-            <div class="bk-history-row">
+            <div class="bk-history-row" data-type="{{ 'check' if h.type == 'check' else 'backup' }}">
                 <div class="ts">{{ h.ts_text }}</div>
                 <div class="type">{{ h.type }}</div>
                 <div>
@@ -393,6 +406,40 @@
         box.innerHTML = rows;
         box.classList.add("show");
     }
+
+    (function setupHistoryFilter() {
+        var filterBar = document.getElementById("bk-history-filter");
+        if (!filterBar) return;
+        var rows = Array.prototype.slice.call(
+            document.querySelectorAll("#bk-history-body .bk-history-row")
+        );
+        var countEl = document.getElementById("bk-history-count");
+        var buttons = Array.prototype.slice.call(filterBar.querySelectorAll("button"));
+
+        function apply(filter) {
+            var visible = 0;
+            rows.forEach(function(row) {
+                var type = row.getAttribute("data-type") || "backup";
+                var show = (filter === "all") || (type === filter);
+                row.classList.toggle("bk-row-hidden", !show);
+                if (show) visible++;
+            });
+            if (countEl) {
+                var label = filter === "all"
+                    ? "Showing " + visible
+                    : "Showing " + visible + " " + filter + (visible === 1 ? "" : "s");
+                countEl.textContent = label;
+            }
+        }
+
+        buttons.forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                buttons.forEach(function(b) { b.classList.remove("active"); });
+                btn.classList.add("active");
+                apply(btn.getAttribute("data-filter") || "all");
+            });
+        });
+    })();
 
     document.getElementById("btn-check-all").addEventListener("click", function() {
         var btn = this;

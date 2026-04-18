@@ -180,10 +180,31 @@ def _mask_proxy(url):
         return "(proxy configured)"
 
 
+def _is_check_entry(entry):
+    return (entry or {}).get("type") == "check"
+
+
 def append_history(settings, entry):
+    """Prepend ``entry`` to history, keeping HISTORY_LIMIT per category.
+
+    The history is a single combined list (sorted newest-first), but
+    backup-style entries and "check" entries each get their own cap so
+    a chatty auto-check loop can't push real backup attempts off the
+    page. Effective max length is ``HISTORY_LIMIT * 2``.
+    """
     history = list(settings.get("history") or [])
     history.insert(0, entry)
-    settings["history"] = history[:HISTORY_LIMIT]
+    backups, checks = [], []
+    for h in history:
+        if _is_check_entry(h):
+            if len(checks) < HISTORY_LIMIT:
+                checks.append(h)
+        else:
+            if len(backups) < HISTORY_LIMIT:
+                backups.append(h)
+    merged = backups + checks
+    merged.sort(key=lambda h: h.get("ts") or 0, reverse=True)
+    settings["history"] = merged
 
 
 # ---------- Telegram sender ------------------------------------------------
