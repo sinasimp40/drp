@@ -2954,6 +2954,23 @@ def backups_test():
     return redirect(url_for("backups_page"))
 
 
+@app.route("/backups/check_all", methods=["POST"])
+@require_admin
+def backups_check_all():
+    result = telegram_backup.check_all_proxies()
+    if _wants_json():
+        settings = telegram_backup.public_view(telegram_backup.load_settings())
+        return jsonify({
+            "success": result["success"],
+            "message": result["message"],
+            "results": result["results"],
+            "evictions": result["evictions"],
+            "settings": settings,
+        })
+    flash(result["message"], "success" if result["success"] else "error")
+    return redirect(url_for("backups_page"))
+
+
 @app.route("/backups/run-now", methods=["POST"])
 @require_admin
 def backups_run_now():

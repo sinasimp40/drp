@@ -356,6 +356,37 @@ def _attempt_send_message(token, chat_id, text, proxy_url):
         return _classify_exception(e)
 
 
+def _attempt_get_me(token, proxy_url):
+    """Lightweight liveness probe: hits Telegram's getMe via the proxy.
+
+    Used by the "Check all proxies" button so we can verify each proxy
+    end-to-end without uploading the database or sending a chat message.
+    """
+    if not token:
+        return "bad_input", "Bot token is required"
+    if proxy_url:
+        ok, why = _probe_proxy_reachable(proxy_url)
+        if not ok:
+            return "evict_proxy", why
+    url = _api_url(token, "getMe")
+    req = urllib.request.Request(url, method="GET")
+    try:
+        opener = _build_opener(proxy_url)
+        with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+            if payload.get("ok"):
+                user = payload.get("result") or {}
+                uname = user.get("username") or user.get("first_name") or "bot"
+                return "success", f"OK (@{uname})"
+            return "telegram_error", f"Telegram error: {payload.get('description', 'unknown')}"
+    except urllib.error.HTTPError as e:
+        return _classify_http_error(e)
+    except urllib.error.URLError as e:
+        return _classify_url_error(e)
+    except Exception as e:
+        return _classify_exception(e)
+
+
 def _attempt_send_document(token, chat_id, file_path, caption, proxy_url):
     if not token or not chat_id:
         return "bad_input", "Bot token and chat ID are required"
@@ -558,6 +589,107 @@ def test_connection(text="DPRS backup test message"):
         )
         save_settings(settings)
         return result["success"], result["message"]
+
+
+def check_all_proxies():
+    """Ping every proxy (and optionally direct) with a tiny getMe call.
+
+    Returns a dict:
+        {
+            "success": bool,             # at least one candidate passed
+            "message": str,              # human summary
+            "results": [                 # one row per candidate, in attempt order
+                {
+                    "proxy": "<masked URL>" or "direct",
+                    "is_direct": bool,
+                    "ok": bool,
+                    "outcome": "<outcome>",
+                    "reason": "<message>",
+                    "evicted": bool,     # True if removed from saved list
+                },
+                ...
+            ],
+            "evictions": [{"proxy": masked, "reason": str}, ...],
+        }
+
+    Dead proxies (network/SOCKS/connect/timeout/proxy-407/502 outcomes)
+    are removed automatically from the persisted list — same eviction
+    rules as the regular backup flow.
+    """
+    with _lock:
+        settings = load_settings()
+        token = settings.get("bot_token", "")
+
+        if not token:
+            return {
+                "success": False,
+                "message": "Bot token must be configured",
+                "results": [],
+                "evictions": [],
+            }
+
+        proxy_list = list(settings.get("proxy_list") or [])
+        try_direct = bool(settings.get("try_direct_first"))
+
+        candidates = []
+        if try_direct:
+            candidates.append(("", True))
+        for p in proxy_list:
+            candidates.append((p, False))
+
+        if not candidates:
+            return {
+                "success": False,
+                "message": "No proxies configured and direct connection is disabled.",
+                "results": [],
+                "evictions": [],
+            }
+
+        results = []
+        evictions = []
+        new_list = list(proxy_list)
+        any_ok = False
+
+        for url, is_direct in candidates:
+            outcome, msg = _attempt_get_me(token, url)
+            ok = (outcome == "success")
+            evicted = False
+            if not ok and outcome == "evict_proxy" and not is_direct:
+                evicted = True
+                evictions.append({"proxy": _mask_proxy(url), "reason": msg})
+                try:
+                    new_list.remove(url)
+                except ValueError:
+                    pass
+            if ok:
+                any_ok = True
+            results.append({
+                "proxy": "direct" if is_direct else _mask_proxy(url),
+                "is_direct": is_direct,
+                "ok": ok,
+                "outcome": outcome,
+                "reason": msg,
+                "evicted": evicted,
+            })
+
+        settings["proxy_list"] = new_list
+        save_settings(settings)
+
+        passed = sum(1 for r in results if r["ok"])
+        failed = len(results) - passed
+        parts = [f"{passed}/{len(results)} passed"]
+        if evictions:
+            parts.append(f"{len(evictions)} dead proxy(ies) removed")
+        if failed and not evictions:
+            parts.append(f"{failed} failed")
+        message = "; ".join(parts)
+
+        return {
+            "success": any_ok,
+            "message": message,
+            "results": results,
+            "evictions": evictions,
+        }
 
 
 def run_backup(db_path, run_type="manual"):

@@ -3,6 +3,7 @@
 {% block topbar_title %}Backups{% endblock %}
 
 {% block topbar_actions %}
+<button type="button" id="btn-check-all" class="btn btn-secondary btn-sm">Check all proxies</button>
 <button type="button" id="btn-test" class="btn btn-secondary btn-sm">Test Connection</button>
 <button type="button" id="btn-run-now" class="btn btn-primary btn-sm">Send Backup Now</button>
 {% endblock %}
@@ -37,11 +38,19 @@
     .bk-sched-block.hidden { display: none; }
     .bk-replace-link { font-size: 12px; color: var(--accent); cursor: pointer; user-select: none; }
     .bk-replace-link:hover { color: var(--accent-hi); }
+    .bk-check-results { margin-top: 12px; border: 1px solid var(--border-soft); border-radius: 6px; overflow: hidden; display: none; }
+    .bk-check-results.show { display: block; }
+    .bk-check-row { display: grid; grid-template-columns: 70px 1fr 90px; gap: 10px; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 12.5px; }
+    .bk-check-row:last-child { border-bottom: none; }
+    .bk-check-row .proxy { font-family: 'SF Mono','Consolas',monospace; font-size: 11.5px; color: #c8c8d6; word-break: break-all; }
+    .bk-check-row .proxy .reason { color: var(--text-mute); font-family: inherit; font-size: 11px; margin-top: 2px; }
+    .bk-check-row .evicted-tag { color: var(--bad); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div id="bk-action-feedback" class="bk-feedback" style="margin-bottom: 16px;"></div>
+<div id="bk-check-results" class="bk-check-results"></div>
 
 <div class="bk-grid">
     <!-- Credentials -->
@@ -333,6 +342,59 @@
     });
     document.getElementById("btn-run-now").addEventListener("click", function() {
         postAction("{{ url_for('backups_run_now') }}", fb, "Uploading...", this);
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function(c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+        });
+    }
+
+    function renderCheckResults(data) {
+        var box = document.getElementById("bk-check-results");
+        var rows = (data.results || []).map(function(r) {
+            var pillClass = r.ok ? "ok" : "err";
+            var pillText  = r.ok ? "PASS" : "FAIL";
+            var evictTag  = r.evicted ? '<div class="evicted-tag">removed</div>' : '';
+            return ''
+                + '<div class="bk-check-row">'
+                +   '<div><span class="bk-status-pill ' + pillClass + '">' + pillText + '</span></div>'
+                +   '<div class="proxy">' + escapeHtml(r.proxy)
+                +     '<div class="reason">' + escapeHtml(r.reason || '') + '</div>'
+                +   '</div>'
+                +   '<div>' + evictTag + '</div>'
+                + '</div>';
+        }).join("");
+        if (!rows) {
+            rows = '<div class="bk-empty" style="padding:16px;">No proxies to check.</div>';
+        }
+        box.innerHTML = rows;
+        box.classList.add("show");
+    }
+
+    document.getElementById("btn-check-all").addEventListener("click", function() {
+        var btn = this;
+        var orig = btn.textContent;
+        btn.disabled = true; btn.textContent = "Checking...";
+        var box = document.getElementById("bk-check-results");
+        box.classList.remove("show");
+        fetch("{{ url_for('backups_check_all') }}", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            showFeedback(fb, data.success, data.message || (data.success ? "Done" : "Failed"));
+            renderCheckResults(data);
+            if (data.evictions && data.evictions.length) {
+                setTimeout(function(){ location.reload(); }, 2500);
+            }
+        })
+        .catch(function(e) { showFeedback(fb, false, "Network error: " + e); })
+        .finally(function() {
+            btn.disabled = false; btn.textContent = orig;
+        });
     });
 })();
 </script>
