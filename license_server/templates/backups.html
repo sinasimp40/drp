@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Backups - License Admin{% endblock %}
+{% block topbar_title %}Backups{% endblock %}
+
+{% block topbar_actions %}
+<button type="button" id="btn-test" class="btn btn-secondary btn-sm">Test Connection</button>
+<button type="button" id="btn-run-now" class="btn btn-primary btn-sm">Send Backup Now</button>
+{% endblock %}
+
+{% block content %}
+<style>
+    .bk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 980px) { .bk-grid { grid-template-columns: 1fr; } }
+    .bk-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; }
+    .bk-card .head { padding: 14px 18px; border-bottom: 1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+    .bk-card .head h2 { font-size: 14px; font-weight:600; color:#f3f3f8; letter-spacing:-0.01em; }
+    .bk-card .body { padding: 18px; }
+    .bk-row { display: flex; gap: 14px; }
+    .bk-row .form-group { flex: 1; }
+    .bk-help { color: var(--text-mute); font-size: 12px; margin-top: 4px; }
+    .bk-token-mask { font-family: 'SF Mono','Consolas',monospace; font-size:12px; color: var(--text-dim); background: #14141a; border:1px solid var(--border-soft); padding: 6px 10px; border-radius: 6px; display: inline-block; }
+    .bk-status-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid; }
+    .bk-status-pill.ok  { background: rgba(52,211,153,0.10); color: var(--good); border-color: rgba(52,211,153,0.25); }
+    .bk-status-pill.err { background: rgba(251,113,133,0.10); color: var(--bad);  border-color: rgba(251,113,133,0.25); }
+    .bk-history { display: flex; flex-direction: column; }
+    .bk-history-row { display: grid; grid-template-columns: 150px 90px 90px 1fr; gap: 10px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items:center; font-size: 12.5px; }
+    .bk-history-row:last-child { border-bottom: none; }
+    .bk-history-row .ts { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    .bk-history-row .type { color: var(--text-mute); text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; }
+    .bk-history-row .msg { color: #c8c8d6; word-break: break-word; }
+    .bk-empty { padding: 28px; text-align:center; color: var(--text-mute); }
+    .bk-feedback { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 12.5px; display:none; }
+    .bk-feedback.show { display: block; }
+    .bk-feedback.ok  { background: rgba(52,211,153,0.08); color: var(--good); border: 1px solid rgba(52,211,153,0.25); }
+    .bk-feedback.err { background: rgba(251,113,133,0.08); color: var(--bad);  border: 1px solid rgba(251,113,133,0.25); }
+    .bk-sched-block { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-soft); }
+    .bk-sched-block.hidden { display: none; }
+    .bk-replace-link { font-size: 12px; color: var(--accent); cursor: pointer; user-select: none; }
+    .bk-replace-link:hover { color: var(--accent-hi); }
+</style>
+
+<div id="bk-action-feedback" class="bk-feedback" style="margin-bottom: 16px;"></div>
+
+<div class="bk-grid">
+    <!-- Credentials -->
+    <div class="bk-card">
+        <div class="head">
+            <h2>Telegram Credentials</h2>
+            <span class="bk-status-pill {% if settings.bot_token_set and settings.chat_id_set %}ok{% else %}err{% endif %}">
+                {% if settings.bot_token_set and settings.chat_id_set %}Configured{% else %}Not configured{% endif %}
+            </span>
+        </div>
+        <form id="bk-creds-form" method="POST" action="{{ url_for('backups_save') }}">
+            <input type="hidden" name="schedule_type" id="schedule_type_hidden" value="{{ settings.schedule.type }}">
+            <input type="hidden" name="interval_hours" id="interval_hours_hidden" value="{{ settings.schedule.interval_hours }}">
+            <input type="hidden" name="daily_time" id="daily_time_hidden" value="{{ settings.schedule.daily_time }}">
+            <input type="hidden" name="weekly_day" id="weekly_day_hidden" value="{{ settings.schedule.weekly_day }}">
+            <input type="hidden" name="weekly_time" id="weekly_time_hidden" value="{{ settings.schedule.weekly_time }}">
+            <div class="body">
+                <div class="form-group">
+                    <label>Bot Token</label>
+                    {% if settings.bot_token_set %}
+                    <div id="bk-token-current">
+                        <span class="bk-token-mask">{{ settings.bot_token_masked }}</span>
+                        <span class="bk-replace-link" id="bk-token-replace">Replace</span>
+                    </div>
+                    <input type="password" name="bot_token" id="bk-token-input" placeholder="123456:ABC-DEF..." style="display:none; margin-top:6px;" autocomplete="off">
+                    {% else %}
+                    <input type="password" name="bot_token" id="bk-token-input" placeholder="123456:ABC-DEF..." autocomplete="off">
+                    {% endif %}
+                    <div class="bk-help">Create one with @BotFather on Telegram. Stored on the server in <code>backup_settings.json</code>.</div>
+                </div>
+                <div class="form-group">
+                    <label>Chat ID</label>
+                    <input type="text" name="chat_id" value="{{ settings.chat_id or '' }}" placeholder="-1001234567890 or your numeric user ID">
+                    <div class="bk-help">For a private channel, add the bot as admin and use the channel's numeric ID (starts with <code>-100</code>).</div>
+                </div>
+                <div class="form-group">
+                    <label>Caption Prefix (optional)</label>
+                    <input type="text" name="caption_prefix" value="{{ settings.caption_prefix or '' }}" placeholder="e.g. DPRS prod backup" maxlength="200">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Credentials</button>
+                <div id="bk-creds-feedback" class="bk-feedback"></div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Schedule -->
+    <div class="bk-card">
+        <div class="head">
+            <h2>Schedule</h2>
+            <span class="bk-status-pill {% if settings.schedule.type != 'off' %}ok{% else %}err{% endif %}" id="bk-sched-pill">
+                {% if settings.schedule.type == 'off' %}Off
+                {% elif settings.schedule.type == 'interval' %}Every {{ settings.schedule.interval_hours }}h
+                {% elif settings.schedule.type == 'daily' %}Daily {{ settings.schedule.daily_time }}
+                {% elif settings.schedule.type == 'weekly' %}Weekly {{ settings.schedule.weekly_time }}
+                {% endif %}
+            </span>
+        </div>
+        <form id="bk-sched-form" method="POST" action="{{ url_for('backups_save') }}">
+            <input type="hidden" name="chat_id" value="{{ settings.chat_id or '' }}">
+            <input type="hidden" name="caption_prefix" value="{{ settings.caption_prefix or '' }}">
+            <div class="body">
+                <div class="form-group">
+                    <label>Frequency</label>
+                    <select name="schedule_type" id="schedule_type" onchange="bkOnTypeChange()">
+                        <option value="off"      {% if settings.schedule.type == 'off' %}selected{% endif %}>Off</option>
+                        <option value="interval" {% if settings.schedule.type == 'interval' %}selected{% endif %}>Every N hours</option>
+                        <option value="daily"    {% if settings.schedule.type == 'daily' %}selected{% endif %}>Daily at time</option>
+                        <option value="weekly"   {% if settings.schedule.type == 'weekly' %}selected{% endif %}>Weekly at time</option>
+                    </select>
+                    <div class="bk-help">Times are interpreted in the server's local timezone. Scheduler checks once per minute.</div>
+                </div>
+
+                <div class="bk-sched-block" id="block-interval">
+                    <div class="form-group">
+                        <label>Interval (hours)</label>
+                        <input type="number" name="interval_hours" min="1" max="720" value="{{ settings.schedule.interval_hours }}">
+                    </div>
+                </div>
+
+                <div class="bk-sched-block" id="block-daily">
+                    <div class="form-group">
+                        <label>Time of day</label>
+                        <input type="time" name="daily_time" value="{{ settings.schedule.daily_time }}">
+                    </div>
+                </div>
+
+                <div class="bk-sched-block" id="block-weekly">
+                    <div class="bk-row">
+                        <div class="form-group">
+                            <label>Day of week</label>
+                            <select name="weekly_day">
+                                {% set days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+                                {% for d in days %}
+                                <option value="{{ loop.index0 }}" {% if settings.schedule.weekly_day == loop.index0 %}selected{% endif %}>{{ d }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Time of day</label>
+                            <input type="time" name="weekly_time" value="{{ settings.schedule.weekly_time }}">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Schedule</button>
+                <div id="bk-sched-feedback" class="bk-feedback"></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History -->
+<div class="bk-card" style="margin-top: 16px;">
+    <div class="head">
+        <h2>Recent Attempts</h2>
+        <span class="bk-status-pill" style="background: rgba(255,255,255,0.04); color: var(--text-dim); border-color: var(--border-soft);">
+            Last {{ settings.history|length }} of 10
+        </span>
+    </div>
+    <div id="bk-history-body">
+        {% if settings.history %}
+        <div class="bk-history">
+            {% for h in settings.history %}
+            <div class="bk-history-row">
+                <div class="ts">{{ h.ts_text }}</div>
+                <div class="type">{{ h.type }}</div>
+                <div>
+                    <span class="bk-status-pill {% if h.status == 'ok' %}ok{% else %}err{% endif %}">{{ h.status }}</span>
+                </div>
+                <div class="msg">{{ h.message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bk-empty">No backups have been attempted yet.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var blocks = {
+        off: null,
+        interval: document.getElementById("block-interval"),
+        daily:    document.getElementById("block-daily"),
+        weekly:   document.getElementById("block-weekly"),
+    };
+    window.bkOnTypeChange = function() {
+        var v = document.getElementById("schedule_type").value;
+        Object.keys(blocks).forEach(function(k) {
+            if (blocks[k]) blocks[k].classList.toggle("hidden", k !== v);
+        });
+    };
+    window.bkOnTypeChange();
+
+    var tokenReplace = document.getElementById("bk-token-replace");
+    if (tokenReplace) {
+        tokenReplace.addEventListener("click", function() {
+            document.getElementById("bk-token-current").style.display = "none";
+            var inp = document.getElementById("bk-token-input");
+            inp.style.display = "block";
+            inp.focus();
+        });
+    }
+
+    function showFeedback(el, ok, msg) {
+        el.textContent = msg;
+        el.classList.remove("ok", "err");
+        el.classList.add(ok ? "ok" : "err", "show");
+        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+    }
+
+    function ajaxForm(form, feedbackEl, onOk) {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            var fd = new FormData(form);
+            fetch(form.action, {
+                method: "POST",
+                body: fd,
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                showFeedback(feedbackEl, data.success, data.message || (data.success ? "Saved" : "Failed"));
+                if (data.success && onOk) onOk(data);
+            })
+            .catch(function(e) { showFeedback(feedbackEl, false, "Network error: " + e); });
+        });
+    }
+
+    ajaxForm(document.getElementById("bk-creds-form"),
+             document.getElementById("bk-creds-feedback"),
+             function() { setTimeout(function(){ location.reload(); }, 800); });
+
+    ajaxForm(document.getElementById("bk-sched-form"),
+             document.getElementById("bk-sched-feedback"),
+             function() { setTimeout(function(){ location.reload(); }, 800); });
+
+    function postAction(url, feedbackEl, label, btn) {
+        var orig = btn.textContent;
+        btn.disabled = true; btn.textContent = label;
+        fetch(url, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            showFeedback(feedbackEl, data.success, data.message || (data.success ? "Done" : "Failed"));
+            if (url.indexOf("run-now") !== -1) {
+                setTimeout(function(){ location.reload(); }, 1200);
+            }
+        })
+        .catch(function(e) { showFeedback(feedbackEl, false, "Network error: " + e); })
+        .finally(function() {
+            btn.disabled = false; btn.textContent = orig;
+        });
+    }
+
+    var fb = document.getElementById("bk-action-feedback");
+    document.getElementById("btn-test").addEventListener("click", function() {
+        postAction("{{ url_for('backups_test') }}", fb, "Sending...", this);
+    });
+    document.getElementById("btn-run-now").addEventListener("click", function() {
+        postAction("{{ url_for('backups_run_now') }}", fb, "Uploading...", this);
+    });
+})();
+</script>
+{% endblock %}

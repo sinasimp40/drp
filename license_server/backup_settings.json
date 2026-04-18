@@ -1,0 +1,14 @@
+{
+  "bot_token": "999999:fakeFAKEfakeFAKE",
+  "chat_id": "-1001234567890",
+  "caption_prefix": "DPRS test",
+  "schedule": {
+    "type": "daily",
+    "interval_hours": 24,
+    "daily_time": "03:30",
+    "weekly_day": 0,
+    "weekly_time": "03:00"
+  },
+  "last_run_at": 0.0,
+  "history": []
+}

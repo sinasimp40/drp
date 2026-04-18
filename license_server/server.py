@@ -19,6 +19,8 @@ from functools import wraps
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file
 from flask_socketio import SocketIO, emit
 
+import telegram_backup
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -2544,8 +2546,99 @@ def api_ota_status():
     return jsonify({"users": result, "latest_version": latest_ver})
 
 
+@app.route("/backups")
+@require_admin
+def backups_page():
+    settings = telegram_backup.public_view(telegram_backup.load_settings())
+    return render_template("backups.html", settings=settings)
+
+
+def _wants_json():
+    if request.headers.get("X-Requested-With", "").lower() == "xmlhttprequest":
+        return True
+    accept = request.headers.get("Accept", "")
+    return "application/json" in accept and "text/html" not in accept
+
+
+@app.route("/backups/save", methods=["POST"])
+@require_admin
+def backups_save():
+    settings = telegram_backup.load_settings()
+    chat_id = (request.form.get("chat_id") or "").strip()
+    caption_prefix = (request.form.get("caption_prefix") or "").strip()
+    bot_token_input = (request.form.get("bot_token") or "").strip()
+    if bot_token_input:
+        settings["bot_token"] = bot_token_input
+    settings["chat_id"] = chat_id
+    settings["caption_prefix"] = caption_prefix[:200]
+
+    sched_type = (request.form.get("schedule_type") or "off").strip()
+    if sched_type not in ("off", "interval", "daily", "weekly"):
+        sched_type = "off"
+    try:
+        interval_hours = max(1, min(720, int(request.form.get("interval_hours") or 24)))
+    except ValueError:
+        interval_hours = 24
+    daily_time = (request.form.get("daily_time") or "03:00").strip()
+    weekly_time = (request.form.get("weekly_time") or "03:00").strip()
+    try:
+        weekly_day = max(0, min(6, int(request.form.get("weekly_day") or 0)))
+    except ValueError:
+        weekly_day = 0
+    if not re.match(r"^\d{1,2}:\d{2}$", daily_time):
+        daily_time = "03:00"
+    if not re.match(r"^\d{1,2}:\d{2}$", weekly_time):
+        weekly_time = "03:00"
+
+    settings["schedule"] = {
+        "type": sched_type,
+        "interval_hours": interval_hours,
+        "daily_time": daily_time,
+        "weekly_day": weekly_day,
+        "weekly_time": weekly_time,
+    }
+    telegram_backup.save_settings(settings)
+
+    if _wants_json():
+        return jsonify({"success": True, "settings": telegram_backup.public_view(settings)})
+    flash("Backup settings saved", "success")
+    return redirect(url_for("backups_page"))
+
+
+@app.route("/backups/test", methods=["POST"])
+@require_admin
+def backups_test():
+    settings = telegram_backup.load_settings()
+    token = settings.get("bot_token", "")
+    chat_id = settings.get("chat_id", "")
+    text = (request.form.get("text") or "DPRS backup test message").strip()
+    success, message = telegram_backup.send_message(token, chat_id, text)
+    if _wants_json():
+        return jsonify({"success": success, "message": message})
+    flash(message, "success" if success else "error")
+    return redirect(url_for("backups_page"))
+
+
+@app.route("/backups/run-now", methods=["POST"])
+@require_admin
+def backups_run_now():
+    success, message = telegram_backup.run_backup(DB_PATH, run_type="manual")
+    if _wants_json():
+        settings = telegram_backup.public_view(telegram_backup.load_settings())
+        return jsonify({"success": success, "message": message, "settings": settings})
+    flash(message, "success" if success else "error")
+    return redirect(url_for("backups_page"))
+
+
+@app.route("/api/backups/status")
+@require_admin
+def backups_status():
+    return jsonify(telegram_backup.public_view(telegram_backup.load_settings()))
+
+
 if __name__ == "__main__":
     init_db()
+    telegram_backup.start_scheduler(DB_PATH)
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
     if ADMIN_PASSWORD == "admin":
         print("WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!")
