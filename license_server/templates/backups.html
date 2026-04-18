@@ -67,6 +67,8 @@
             <input type="hidden" name="daily_time" id="daily_time_hidden" value="{{ settings.schedule.daily_time }}">
             <input type="hidden" name="weekly_day" id="weekly_day_hidden" value="{{ settings.schedule.weekly_day }}">
             <input type="hidden" name="weekly_time" id="weekly_time_hidden" value="{{ settings.schedule.weekly_time }}">
+            {% if settings.auto_check_enabled %}<input type="hidden" name="auto_check_enabled" value="1">{% endif %}
+            <input type="hidden" name="auto_check_minutes" value="{{ settings.auto_check_minutes }}">
             <div class="body">
                 <div class="form-group">
                     <label>Bot Token</label>
@@ -177,6 +179,21 @@
                             <label>Time of day</label>
                             <input type="time" name="weekly_time" value="{{ settings.schedule.weekly_time }}">
                         </div>
+                    </div>
+                </div>
+
+                <div class="bk-sched-block" style="display:block;">
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" name="auto_check_enabled" value="1" {% if settings.auto_check_enabled %}checked{% endif %} style="width:auto; margin:0;">
+                            <span>Auto-check proxies in the background</span>
+                        </label>
+                        <div class="bk-help">When on, the server pings every proxy on a timer and removes any that fail — same logic as the "Check all proxies" button. Each tick is recorded in the history below as a <code>check</code> entry.</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Check every (minutes)</label>
+                        <input type="number" name="auto_check_minutes" min="5" max="1440" value="{{ settings.auto_check_minutes }}">
+                        <div class="bk-help">Between {{ 5 }} and {{ 1440 }} minutes. Independent of the backup schedule above.</div>
                     </div>
                 </div>
 

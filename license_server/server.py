@@ -2935,6 +2935,27 @@ def backups_save():
     # run fires interval_hours from now (not immediately, not never).
     if sched_type == "interval" and prev_type != "interval":
         settings["last_run_at"] = time.time()
+
+    # Auto proxy-health-check controls. Both fields ride along on the
+    # schedule form (the credentials form passes them through as hidden
+    # inputs) so either submission preserves the setting.
+    if "auto_check_enabled" in request.form or "auto_check_minutes" in request.form:
+        prev_auto = bool(settings.get("auto_check_enabled"))
+        new_auto = "auto_check_enabled" in request.form
+        try:
+            new_minutes = int(request.form.get("auto_check_minutes") or 60)
+        except ValueError:
+            new_minutes = 60
+        new_minutes = max(
+            telegram_backup.AUTO_CHECK_MIN_MINUTES,
+            min(telegram_backup.AUTO_CHECK_MAX_MINUTES, new_minutes),
+        )
+        settings["auto_check_enabled"] = new_auto
+        settings["auto_check_minutes"] = new_minutes
+        # Arm the auto-check clock when switching it ON so the first run
+        # fires `new_minutes` from now rather than instantly.
+        if new_auto and not prev_auto:
+            settings["last_check_at"] = time.time()
     telegram_backup.save_settings(settings)
 
     if _wants_json():

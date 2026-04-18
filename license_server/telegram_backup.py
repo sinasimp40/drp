@@ -44,8 +44,14 @@ _DEFAULTS = {
     },
     "last_run_at": 0.0,
     "last_used_proxy": "",          # masked URL of the proxy that worked last time
+    "auto_check_enabled": False,    # background proxy health checks on/off
+    "auto_check_minutes": 60,       # how often the background check runs
+    "last_check_at": 0.0,           # epoch of last automatic check tick
     "history": [],
 }
+
+AUTO_CHECK_MIN_MINUTES = 5
+AUTO_CHECK_MAX_MINUTES = 1440
 
 _lock = threading.RLock()
 
@@ -122,6 +128,12 @@ def public_view(settings, include_proxy_raw=False):
     s["proxy_set"] = bool(proxy_list)
     s["try_direct_first"] = bool(s.get("try_direct_first"))
     s["last_used_proxy"] = s.get("last_used_proxy") or ""
+    s["auto_check_enabled"] = bool(s.get("auto_check_enabled"))
+    try:
+        s["auto_check_minutes"] = int(s.get("auto_check_minutes") or 60)
+    except (TypeError, ValueError):
+        s["auto_check_minutes"] = 60
+    s["last_check_at"] = float(s.get("last_check_at") or 0.0)
 
     if include_proxy_raw:
         s["proxy_list"] = proxy_list
@@ -811,6 +823,56 @@ def run_backup(db_path, run_type="manual"):
         return result["success"], result["message"]
 
 
+def auto_check_proxies():
+    """Run check_all_proxies() and append the outcome to history.
+
+    Used by the scheduler tick. Persists the trimmed list (check_all_proxies
+    already does that) and adds a single history entry with type "check"
+    summarising pass/fail counts and any evictions.
+    """
+    result = check_all_proxies()
+    with _lock:
+        settings = load_settings()
+        evictions = list(result.get("evictions") or [])
+        results = result.get("results") or []
+        passed = sum(1 for r in results if r.get("ok"))
+        total = len(results)
+        if total == 0:
+            message = result.get("message") or "no candidates to check"
+        else:
+            parts = [f"{passed}/{total} passed"]
+            if evictions:
+                parts.append(f"{len(evictions)} dead proxy(ies) removed")
+            message = "; ".join(parts)
+        append_history(
+            settings,
+            _entry("check", bool(result.get("success")), message, "", evictions),
+        )
+        settings["last_check_at"] = time.time()
+        save_settings(settings)
+    return result
+
+
+def _is_auto_check_due(settings, now):
+    if not settings.get("auto_check_enabled"):
+        return False
+    try:
+        minutes = int(settings.get("auto_check_minutes") or 0)
+    except (TypeError, ValueError):
+        return False
+    if minutes < AUTO_CHECK_MIN_MINUTES:
+        return False
+    # Nothing to check — don't spam history with "no candidates" entries.
+    if not (settings.get("proxy_list") or settings.get("try_direct_first")):
+        return False
+    if not settings.get("bot_token"):
+        return False
+    last = float(settings.get("last_check_at") or 0)
+    if last <= 0:
+        return False  # arm without immediate fire on first save
+    return (now - last) >= minutes * 60
+
+
 def _entry(run_type, success, message, used_proxy="", evictions=None):
     return {
         "ts": time.time(),
@@ -889,12 +951,18 @@ def start_scheduler(db_path):
     def loop():
         # Arm interval scheduler so we don't fire immediately on a fresh
         # config that has never run; daily/weekly are time-of-day based and
-        # safe.
+        # safe. Same idea for the auto proxy-check clock.
         try:
             with _lock:
                 s = load_settings()
+                changed = False
                 if (s.get("schedule") or {}).get("type") == "interval" and not s.get("last_run_at"):
                     s["last_run_at"] = time.time()
+                    changed = True
+                if s.get("auto_check_enabled") and not s.get("last_check_at"):
+                    s["last_check_at"] = time.time()
+                    changed = True
+                if changed:
                     save_settings(s)
         except Exception as e:
             print(f"[telegram-backup] init error: {e}")
@@ -902,10 +970,15 @@ def start_scheduler(db_path):
         while True:
             try:
                 settings = load_settings()
-                if _is_due(settings, time.time()):
+                now = time.time()
+                if _is_due(settings, now):
                     print("[telegram-backup] schedule due, sending backup...")
                     ok, msg = run_backup(db_path, run_type="scheduled")
                     print(f"[telegram-backup] result: {'OK' if ok else 'FAIL'} - {msg}")
+                if _is_auto_check_due(settings, now):
+                    print("[telegram-backup] auto proxy check due...")
+                    res = auto_check_proxies()
+                    print(f"[telegram-backup] check result: {res.get('message')}")
             except Exception as e:
                 print(f"[telegram-backup] scheduler tick error: {e}")
             time.sleep(60)
