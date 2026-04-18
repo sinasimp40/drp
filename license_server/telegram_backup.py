@@ -155,6 +155,40 @@ def _api_url(token, method):
     return f"https://api.telegram.org/bot{token}/{method}"
 
 
+def _probe_proxy_reachable(proxy_url):
+    """Cheap TCP connect to the proxy's host:port with CONNECT_TIMEOUT.
+
+    Returns (ok, reason). Used before the heavy upload so that dead
+    proxies are rejected within ~CONNECT_TIMEOUT seconds regardless of
+    scheme — without this, urllib's HTTP/HTTPS proxy path would block
+    for the full HTTP_TIMEOUT (60s) per dead proxy.
+    """
+    try:
+        from urllib.parse import urlparse
+        p = urlparse(proxy_url)
+    except Exception as e:
+        return False, f"invalid proxy URL: {e}"
+    host = p.hostname
+    if not host:
+        return False, "missing host in proxy URL"
+    scheme = (p.scheme or "").lower()
+    if scheme in ("socks5", "socks5h"):
+        port = p.port or 1080
+    elif scheme in ("socks4", "socks4a"):
+        port = p.port or 1080
+    elif scheme == "https":
+        port = p.port or 443
+    else:
+        port = p.port or 8080
+    try:
+        with socket.create_connection((host, port), timeout=CONNECT_TIMEOUT):
+            return True, ""
+    except socket.timeout:
+        return False, f"connect timeout after {CONNECT_TIMEOUT}s"
+    except OSError as e:
+        return False, f"connect failed: {e}"
+
+
 def _build_opener(proxy_url):
     """Return a urllib opener configured for the given proxy.
 
@@ -284,6 +318,10 @@ def _classify_exception(e):
 def _attempt_send_message(token, chat_id, text, proxy_url):
     if not token or not chat_id:
         return "bad_input", "Bot token and chat ID are required"
+    if proxy_url:
+        ok, why = _probe_proxy_reachable(proxy_url)
+        if not ok:
+            return "evict_proxy", why
     url = _api_url(token, "sendMessage")
     body = urllib.parse.urlencode({
         "chat_id": chat_id,
@@ -312,6 +350,10 @@ def _attempt_send_document(token, chat_id, file_path, caption, proxy_url):
         return "bad_input", "Bot token and chat ID are required"
     if not os.path.isfile(file_path):
         return "bad_input", f"File not found: {file_path}"
+    if proxy_url:
+        ok, why = _probe_proxy_reachable(proxy_url)
+        if not ok:
+            return "evict_proxy", why
     try:
         with open(file_path, "rb") as f:
             content = f.read()

@@ -2858,28 +2858,32 @@ def backups_save():
             url = line.strip()
             if not url:
                 continue
-            if url in seen:
-                continue
             if not url.lower().startswith(allowed_schemes):
                 invalid.append(url[:80])
+                continue
+            if url in seen:
                 continue
             seen.add(url)
             cleaned.append(url[:500])
             if len(cleaned) >= telegram_backup.MAX_PROXY_LIST:
                 break
-        if invalid and not _wants_json():
-            flash(
-                "Skipped invalid proxy lines (must start with http:// https:// socks5:// socks5h:// socks4:// or socks4a://): "
-                + ", ".join(invalid[:3]),
-                "error",
+        if invalid:
+            err_msg = (
+                "Invalid proxy line(s) — each must start with http:// https:// socks5:// socks5h:// socks4:// or socks4a://. "
+                "Offending entries: " + ", ".join(invalid[:3])
+                + (f" (and {len(invalid) - 3} more)" if len(invalid) > 3 else "")
             )
+            if _wants_json():
+                return jsonify({"success": False, "message": err_msg}), 400
+            flash(err_msg, "error")
+            return redirect(url_for("backups_page"))
         settings["proxy_list"] = cleaned
         # Clear the legacy single field so it can't resurrect on next migrate.
         settings["proxy_url"] = ""
-
-    if "try_direct_first" in request.form:
-        val = (request.form.get("try_direct_first") or "").strip().lower()
-        settings["try_direct_first"] = val in ("1", "true", "on", "yes")
+        # The credentials form always submits the checkbox state alongside
+        # the proxy list — an unchecked box is simply absent from the POST,
+        # so set the boolean from the *presence* of the field, not its value.
+        settings["try_direct_first"] = "try_direct_first" in request.form
 
     sched_type = (request.form.get("schedule_type") or "off").strip()
     if sched_type not in ("off", "interval", "daily", "weekly"):
