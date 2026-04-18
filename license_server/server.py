@@ -657,6 +657,8 @@ def history():
             "note": row["note"] or "",
             "status": row["status"],
             "duration_text": format_duration(row["duration_seconds"]),
+            "duration_seconds": int(row["duration_seconds"] or 0),
+            "expires_at_ts": row["expires_at"],
             "version": row["launcher_version"] or "",
         })
 
@@ -790,14 +792,13 @@ def edit_license(license_id):
             else:
                 summary_parts.append(f"remaining → {format_duration(new_expires_at - now)}")
         elif status == "expired":
-            # Revive: extend uses original expiry as base if positive delta makes sense, else set from now.
+            # "set" revives from now; "extend" adds delta to the existing expires_at
+            # (positive or negative). If the result lands in the future, license revives.
             if mode == "set":
                 new_expires_at = now + delta_seconds
-            else:  # extend an expired license — relative to now, not the past expiry
-                if delta_seconds <= 0:
-                    conn.close()
-                    return _fail("Cannot extend an expired license by a non-positive amount")
-                new_expires_at = now + delta_seconds
+            else:  # extend
+                base_expires = row["expires_at"] if row["expires_at"] is not None else now
+                new_expires_at = base_expires + delta_seconds
             if new_expires_at > now:
                 new_status = "active"
                 summary_parts.append(f"reactivated, remaining → {format_duration(new_expires_at - now)}")
