@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splash Preview</title>
+    <title>Splash Preview — Choose a Design</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'Roblox';
@@ -17,176 +17,801 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Montserrat', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #121218;
+            font-family: 'Inter', 'Montserrat', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #08080c;
             color: #e8e8ef;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
+            padding: 48px 24px 80px;
+            -webkit-font-smoothing: antialiased;
         }
-        h2 { margin-bottom: 8px; }
-        .subtitle { color: #888; margin-bottom: 24px; font-size: 14px; }
-        .info { color: #666; font-size: 12px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h2>Splash Screen Preview</h2>
-    <p class="subtitle">This is how the splash screen will look in the launcher.</p>
+        .page-head {
+            max-width: 720px;
+            margin: 0 auto 40px;
+            text-align: center;
+        }
+        .page-head h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+        }
+        .page-head p {
+            color: #888;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .page-head code {
+            background: #1a1a22;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #ff9d4d;
+        }
 
-    <div id="splash" style="
-        width: 560px;
-        height: 380px;
-        position: relative;
-        border: 1px solid #1c1c1c;
-        overflow: hidden;
-        font-family: 'Segoe UI', sans-serif;
-        background: linear-gradient(135deg, #0c0c0c 0%, #111111 30%, #0e0e0e 70%, #0a0a0a 100%);
-    ">
-        <div style="
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        .design-section {
+            max-width: 760px;
+            margin: 0 auto 56px;
+        }
+        .design-head {
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .design-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #555;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border: 1px solid #222;
+            border-radius: 4px;
+        }
+        .design-tag.current { color: #888; border-color: #333; }
+        .design-tag.option-a { color: #b48cff; border-color: #4b1d70; }
+        .design-tag.option-b { color: #00ffaa; border-color: #035c3f; }
+        .design-tag.option-c { color: #d4d4d4; border-color: #444; }
+        .design-name {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        .design-desc {
+            color: #888;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+            max-width: 600px;
+        }
+        .design-stage {
+            background: #050507;
+            border: 1px solid #15151c;
+            border-radius: 14px;
+            padding: 32px;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset, 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .design-meta {
+            margin-top: 12px;
+            color: #555;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+        }
+
+        /* ============================================================
+           SHARED — fallback "logo missing" placeholder
+           ============================================================ */
+        .no-logo {
+            color: #444;
+            font-size: 12px;
+            font-style: italic;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        /* ============================================================
+           CURRENT DESIGN (unchanged — for comparison)
+           ============================================================ */
+        .splash-current {
+            width: 560px;
+            height: 380px;
+            position: relative;
+            border: 1px solid #1c1c1c;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #111 30%, #0e0e0e 70%, #0a0a0a 100%);
+        }
+        .splash-current .glow {
+            position: absolute; inset: 0;
             background: radial-gradient(circle at 50% 37%, rgba(255,106,0,0.07) 0%, rgba(255,106,0,0.02) 50%, transparent 100%);
-        "></div>
-
-        <div style="
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        }
+        .splash-current .border-frame {
+            position: absolute; inset: 0;
             border: 1px solid rgba(255,106,0,0.1);
             pointer-events: none;
-        "></div>
-
-        {% if splash_file %}
-        <div style="
-            position: absolute;
-            top: 20px;
-            left: 40px;
-            right: 40px;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        ">
-            <img src="/splash_logo_file" style="max-width: 480px; max-height: 100px; object-fit: contain;" alt="Splash Logo">
-        </div>
-        {% else %}
-        <div style="
-            position: absolute;
-            top: 20px;
-            left: 40px;
-            right: 40px;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #444;
-            font-size: 13px;
-        ">No splash_logo.gif or splash_logo.png found</div>
-        {% endif %}
-
-        <div id="title-text" style="
-            position: absolute;
-            top: 140px;
-            left: 20px;
-            right: 20px;
+        }
+        .splash-current .logo-area {
+            position: absolute; top: 20px; left: 40px; right: 40px; height: 100px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-current .logo-area img { max-width: 480px; max-height: 100px; object-fit: contain; }
+        .splash-current .title {
+            position: absolute; top: 140px; left: 20px; right: 20px;
             text-align: center;
             color: #ff6a00;
             font-family: 'Roblox', 'Segoe UI', sans-serif;
             font-weight: 700;
             letter-spacing: 6px;
             font-size: 32px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        ">{{ app_name or 'ROBLOX' }}</div>
-
-        <div style="
-            position: absolute;
-            top: 192px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: #cc5500;
-            font-size: 13px;
-            letter-spacing: 12px;
-        ">PORTABLE</div>
-
-        <div style="
-            position: absolute;
-            top: 227px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 1px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .splash-current .subtitle {
+            position: absolute; top: 192px; left: 0; right: 0;
+            text-align: center; color: #cc5500; font-size: 13px; letter-spacing: 12px;
+        }
+        .splash-current .divider {
+            position: absolute; top: 227px; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 1px;
             background: linear-gradient(90deg, transparent 0%, rgba(255,106,0,0.35) 30%, rgba(255,106,0,0.55) 50%, rgba(255,106,0,0.35) 70%, transparent 100%);
-        "></div>
+        }
+        .splash-current .status {
+            position: absolute; top: 275px; left: 0; right: 0;
+            text-align: center; color: #888; font-size: 9px;
+        }
+        .splash-current .progress-track {
+            position: absolute; top: 310px; left: 80px; right: 80px; height: 3px;
+            background: #1e1e1e; border-radius: 2px;
+        }
+        .splash-current .progress-fill {
+            width: 65%; height: 100%; border-radius: 2px;
+            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
+            position: relative; transition: width 1.6s ease;
+        }
+        .splash-current .progress-orb {
+            position: absolute; right: -8px; top: -8px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,106,0,0.5) 0%, transparent 70%);
+        }
 
-        <div style="
+        /* ============================================================
+           OPTION A — AURORA
+           Premium glassmorphism. Floating frosted card over a
+           slow-drifting aurora of orange + violet blobs.
+           ============================================================ */
+        .splash-aurora {
+            width: 600px;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+            background: radial-gradient(ellipse at top, #0c0a14 0%, #06060a 60%, #030305 100%);
+            font-family: 'Inter', sans-serif;
+        }
+        .splash-aurora .aurora-blob {
             position: absolute;
-            top: 275px;
-            left: 0;
-            right: 0;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        .splash-aurora .blob-1 {
+            width: 320px; height: 320px;
+            background: radial-gradient(circle, #ff6a00 0%, transparent 70%);
+            top: -80px; left: -60px;
+            animation: aurora-drift-1 14s ease-in-out infinite alternate;
+        }
+        .splash-aurora .blob-2 {
+            width: 360px; height: 360px;
+            background: radial-gradient(circle, #6f3ad6 0%, transparent 70%);
+            bottom: -100px; right: -80px;
+            animation: aurora-drift-2 18s ease-in-out infinite alternate;
+        }
+        .splash-aurora .blob-3 {
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, #ff9d4d 0%, transparent 70%);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            opacity: 0.25;
+            animation: aurora-pulse 6s ease-in-out infinite;
+        }
+        @keyframes aurora-drift-1 {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.15); }
+        }
+        @keyframes aurora-drift-2 {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(-50px, -30px) scale(1.1); }
+        }
+        @keyframes aurora-pulse {
+            0%, 100% { opacity: 0.18; transform: translate(-50%,-50%) scale(0.95); }
+            50% { opacity: 0.32; transform: translate(-50%,-50%) scale(1.1); }
+        }
+        .splash-aurora .glass-card {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 480px;
+            padding: 32px 40px 28px;
+            background: rgba(14, 14, 22, 0.55);
+            backdrop-filter: blur(24px) saturate(140%);
+            -webkit-backdrop-filter: blur(24px) saturate(140%);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 20px;
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.03) inset,
+                0 1px 0 rgba(255,255,255,0.06) inset;
             text-align: center;
-            color: #888;
+        }
+        .splash-aurora .logo-wrap {
+            height: 80px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 18px;
+        }
+        .splash-aurora .logo-wrap img {
+            max-width: 360px; max-height: 80px; object-fit: contain;
+            filter: drop-shadow(0 4px 16px rgba(255,106,0,0.25));
+        }
+        .splash-aurora .title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 26px;
+            color: #f5f5fa;
+            letter-spacing: -0.4px;
+            margin-bottom: 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .splash-aurora .subtitle {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 9px;
-        ">Checking Roblox files...</div>
+            color: #ff9d4d;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 22px;
+            opacity: 0.85;
+        }
+        .splash-aurora .ring-wrap {
+            position: relative;
+            width: 56px; height: 56px;
+            margin: 0 auto 14px;
+        }
+        .splash-aurora .ring-bg {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.06);
+        }
+        .splash-aurora .ring-spin {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #ff6a00;
+            border-right-color: rgba(255,106,0,0.6);
+            animation: ring-spin 1s linear infinite;
+        }
+        @keyframes ring-spin {
+            to { transform: rotate(360deg); }
+        }
+        .splash-aurora .status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #888;
+            letter-spacing: 0.5px;
+        }
+        .splash-aurora .vignette {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+        }
 
-        <div style="
+        /* ============================================================
+           OPTION B — PULSE
+           Cyberpunk / gaming. Grid backdrop, hex corners, segmented
+           progress that fills in waves, terminal status line.
+           ============================================================ */
+        .splash-pulse {
+            width: 560px;
+            height: 360px;
+            position: relative;
+            overflow: hidden;
+            background: #050505;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid #1a0a00;
+        }
+        .splash-pulse .grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,106,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,106,0,0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+        }
+        .splash-pulse .scanline {
+            position: absolute; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,106,0,0.35), transparent);
+            animation: scan-vert 4s linear infinite;
+        }
+        @keyframes scan-vert {
+            0% { top: -10px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .splash-pulse .corner {
             position: absolute;
-            top: 310px;
-            left: 80px;
-            right: 80px;
-            height: 3px;
-            background: #1e1e1e;
-            border-radius: 2px;
-        ">
-            <div id="progress-bar" style="
-                width: 65%;
-                height: 100%;
-                border-radius: 2px;
-                background: linear-gradient(90deg, #ff6a00, #ff9d4d);
-                position: relative;
-                transition: width 2s ease;
-            ">
-                <div style="
-                    position: absolute;
-                    right: -8px;
-                    top: -8px;
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 50%;
-                    background: radial-gradient(circle, rgba(255,106,0,0.5) 0%, transparent 70%);
-                "></div>
-            </div>
-        </div>
+            width: 24px; height: 24px;
+            border: 1px solid #ff6a00;
+            opacity: 0.8;
+        }
+        .splash-pulse .corner.tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
+        .splash-pulse .corner.tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; }
+        .splash-pulse .corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; }
+        .splash-pulse .corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+
+        .splash-pulse .logo-area {
+            position: absolute; top: 32px; left: 50px; right: 50px; height: 70px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-pulse .logo-area img { max-width: 360px; max-height: 70px; object-fit: contain; }
+
+        .splash-pulse .title {
+            position: absolute; top: 122px; left: 20px; right: 20px;
+            text-align: center;
+            font-family: 'Roblox', 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 38px;
+            letter-spacing: 4px;
+            color: #ff6a00;
+            text-shadow:
+                0 0 20px rgba(255,106,0,0.5),
+                0 0 40px rgba(255,106,0,0.2);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .splash-pulse .title-underline {
+            position: absolute; top: 175px;
+            left: 50%; transform: translateX(-50%);
+            width: 80px; height: 1px;
+            background: linear-gradient(90deg, transparent, #ff6a00, transparent);
+        }
+        .splash-pulse .subtitle {
+            position: absolute; top: 192px; left: 0; right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #00ffaa;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .splash-pulse .segments {
+            position: absolute;
+            bottom: 60px;
+            left: 50%; transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        .splash-pulse .seg {
+            width: 30px; height: 6px;
+            background: #1a1a1a;
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+        .splash-pulse .seg.on {
+            background: #ff6a00;
+            box-shadow: 0 0 8px rgba(255,106,0,0.6);
+        }
+
+        .splash-pulse .status {
+            position: absolute;
+            bottom: 32px; left: 0; right: 0;
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .splash-pulse .status .prompt { color: #ff6a00; margin-right: 4px; }
+        .splash-pulse .status .cursor {
+            display: inline-block;
+            width: 8px; height: 12px;
+            background: #ff6a00;
+            margin-left: 2px;
+            vertical-align: -2px;
+            animation: blink 1s steps(2) infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .splash-pulse .meta-tr {
+            position: absolute;
+            top: 16px; right: 24px;
+            font-size: 9px;
+            color: #444;
+            letter-spacing: 1px;
+        }
+        .splash-pulse .meta-bl {
+            position: absolute;
+            bottom: 16px; left: 24px;
+            font-size: 9px;
+            color: #444;
+            letter-spacing: 1px;
+        }
+
+        /* ============================================================
+           OPTION C — ATELIER
+           Ultra-minimal luxury. Maximum breathing room, hairline
+           details, single thin progress line, tiny serif italic.
+           ============================================================ */
+        .splash-atelier {
+            width: 620px;
+            height: 420px;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+        }
+        .splash-atelier .vignette {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.015) 0%, transparent 60%);
+        }
+        .splash-atelier .edition {
+            position: absolute;
+            top: 24px; right: 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: #444;
+            text-transform: uppercase;
+        }
+        .splash-atelier .edition .dot {
+            display: inline-block;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: #ff6a00;
+            margin: 0 8px 1px;
+            vertical-align: middle;
+            box-shadow: 0 0 8px rgba(255,106,0,0.6);
+            animation: edition-pulse 2.4s ease-in-out infinite;
+        }
+        @keyframes edition-pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        .splash-atelier .logo-area {
+            position: absolute;
+            top: 80px; left: 60px; right: 60px;
+            height: 100px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-atelier .logo-area img {
+            max-width: 420px; max-height: 100px; object-fit: contain;
+            filter: drop-shadow(0 6px 24px rgba(0,0,0,0.6));
+        }
+        .splash-atelier .title {
+            position: absolute;
+            top: 220px; left: 20px; right: 20px;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: 22px;
+            letter-spacing: 8px;
+            color: #e8e8e8;
+            text-transform: uppercase;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .splash-atelier .divider {
+            position: absolute;
+            top: 268px; left: 50%; transform: translateX(-50%);
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,106,0,0.6), transparent);
+            animation: divider-grow 2s ease-out forwards;
+        }
+        @keyframes divider-grow {
+            to { width: 200px; }
+        }
+        .splash-atelier .status {
+            position: absolute;
+            top: 290px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'Inter', serif;
+            font-style: italic;
+            font-weight: 300;
+            font-size: 12px;
+            color: #6b6b6b;
+            letter-spacing: 0.5px;
+        }
+        .splash-atelier .progress-line {
+            position: absolute;
+            bottom: 40px;
+            left: 80px; right: 80px;
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+        }
+        .splash-atelier .progress-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 0;
+            background: linear-gradient(90deg, transparent, #ff6a00, #ff9d4d);
+            transition: width 2.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .splash-atelier .corners {
+            position: absolute; inset: 24px;
+            pointer-events: none;
+        }
+        .splash-atelier .corners::before,
+        .splash-atelier .corners::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .splash-atelier .corners::before {
+            top: 0; left: 0;
+            border-right: 0; border-bottom: 0;
+        }
+        .splash-atelier .corners::after {
+            bottom: 0; right: 0;
+            border-left: 0; border-top: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-head">
+        <h1>Splash Designs</h1>
+        <p>
+            Three new directions to choose from, plus your current splash for comparison.<br>
+            Nothing has been changed in the launcher yet — pick the one you like and tell me to apply it.<br>
+            Try a different name with <code>?app_name=YourApp</code>
+        </p>
     </div>
 
-    <p class="info">Splash: 560 x 380 &nbsp;|&nbsp; Logo area: 480 x 100 (aspect ratio preserved)</p>
+    <!-- ====================================================
+         CURRENT
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag current">CURRENT</span>
+            <span class="design-name">What you have today</span>
+        </div>
+        <div class="design-desc">
+            For reference. Dark gradient, all-caps spaced title, "PORTABLE" subtitle, horizontal progress bar with glowing orb.
+        </div>
+        <div class="design-stage">
+            <div class="splash-current">
+                <div class="glow"></div>
+                <div class="border-frame"></div>
+                {% if splash_file %}
+                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
+                {% else %}
+                <div class="logo-area no-logo">No splash_logo.gif/png found</div>
+                {% endif %}
+                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
+                <div class="subtitle">PORTABLE</div>
+                <div class="divider"></div>
+                <div class="status">Checking Roblox files...</div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="cur-fill"><div class="progress-orb"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">560 × 380</div>
+    </section>
+
+    <!-- ====================================================
+         OPTION A — AURORA
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag option-a">OPTION A</span>
+            <span class="design-name">Aurora</span>
+        </div>
+        <div class="design-desc">
+            Premium SaaS feel. Floating frosted-glass card sits over a slow-drifting orange + violet aurora. Clean Inter typography, subtle "Premium" eyebrow tag, refined circular spinner instead of a bar. Looks like a paid pro tool, not a free download.
+        </div>
+        <div class="design-stage">
+            <div class="splash-aurora">
+                <div class="aurora-blob blob-1"></div>
+                <div class="aurora-blob blob-2"></div>
+                <div class="aurora-blob blob-3"></div>
+                <div class="vignette"></div>
+                <div class="glass-card">
+                    {% if splash_file %}
+                    <div class="logo-wrap"><img src="/splash_logo_file" alt="Logo"></div>
+                    {% else %}
+                    <div class="logo-wrap no-logo">No splash_logo found</div>
+                    {% endif %}
+                    <div class="title">{{ app_name or 'ROBLOX' }}</div>
+                    <div class="subtitle">Premium Edition</div>
+                    <div class="ring-wrap">
+                        <div class="ring-bg"></div>
+                        <div class="ring-spin"></div>
+                    </div>
+                    <div class="status" id="aurora-status">Initializing</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">600 × 400 &nbsp;|&nbsp; glassmorphism + animated aurora</div>
+    </section>
+
+    <!-- ====================================================
+         OPTION B — PULSE
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag option-b">OPTION B</span>
+            <span class="design-name">Pulse</span>
+        </div>
+        <div class="design-desc">
+            Cyberpunk gamer energy. Faint orange grid backdrop with sweeping scanline, hex corner brackets, big glowing title with chromatic glow, segmented loader that fills in a wave, terminal-style status with blinking cursor. Built for the youth-gamer audience that wants their tools to feel like Mission Control.
+        </div>
+        <div class="design-stage">
+            <div class="splash-pulse">
+                <div class="grid"></div>
+                <div class="scanline"></div>
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="meta-tr">SYS-LINK 01</div>
+                <div class="meta-bl">v1.0.0 // BUILD 26.04</div>
+
+                {% if splash_file %}
+                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
+                {% else %}
+                <div class="logo-area no-logo">No splash_logo found</div>
+                {% endif %}
+                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
+                <div class="title-underline"></div>
+                <div class="subtitle">// SYSTEM READY</div>
+
+                <div class="segments" id="pulse-segments">
+                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+                </div>
+
+                <div class="status">
+                    <span class="prompt">&gt;</span><span id="pulse-status-text">initializing modules</span><span class="cursor"></span>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">560 × 360 &nbsp;|&nbsp; grid + scanline + 12-segment loader</div>
+    </section>
+
+    <!-- ====================================================
+         OPTION C — ATELIER
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag option-c">OPTION C</span>
+            <span class="design-name">Atelier</span>
+        </div>
+        <div class="design-desc">
+            Ultra-minimal, "Apple-grade" restraint. Deep black, generous breathing room, hairline corner brackets, light-weight wide-spaced caps, a single 1-pixel orange progress line at the bottom. Tiny "EDITION 01" tag with a pulsing dot in the corner. Status text in italic serif. Lets the logo do the talking. Feels timeless and premium.
+        </div>
+        <div class="design-stage">
+            <div class="splash-atelier">
+                <div class="vignette"></div>
+                <div class="corners"></div>
+                <div class="edition">EDITION<span class="dot"></span>01</div>
+                {% if splash_file %}
+                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
+                {% else %}
+                <div class="logo-area no-logo">No splash_logo found</div>
+                {% endif %}
+                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
+                <div class="divider"></div>
+                <div class="status">Preparing your experience</div>
+                <div class="progress-line">
+                    <div class="progress-fill" id="atelier-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">620 × 420 &nbsp;|&nbsp; minimal + hairline + 1-pixel progress</div>
+    </section>
 
     <script>
     (function() {
-        var bar = document.getElementById('progress-bar');
-        var pct = 0;
-        var dir = 1;
+        // Auto-fit any title that's too wide for its container.
+        document.querySelectorAll('.fit-title').forEach(function(el) {
+            var parent = el.parentElement;
+            var maxW = parent.offsetWidth - 40;
+            var size = parseFloat(getComputedStyle(el).fontSize);
+            var spacing = parseFloat(getComputedStyle(el).letterSpacing) || 0;
+            var guard = 0;
+            while (size >= 12 && el.scrollWidth > maxW && guard++ < 30) {
+                size -= 1;
+                spacing = Math.max(0, spacing - 0.5);
+                el.style.fontSize = size + 'px';
+                el.style.letterSpacing = spacing + 'px';
+            }
+        });
+
+        // CURRENT — bouncing progress bar
+        var curFill = document.getElementById('cur-fill');
+        var curPct = 0, curDir = 1;
         setInterval(function() {
-            pct += dir * 5;
-            if (pct >= 100) { pct = 100; dir = -1; }
-            if (pct <= 0) { pct = 0; dir = 1; }
-            bar.style.width = pct + '%';
+            curPct += curDir * 5;
+            if (curPct >= 100) { curPct = 100; curDir = -1; }
+            if (curPct <= 0) { curPct = 0; curDir = 1; }
+            if (curFill) curFill.style.width = curPct + '%';
         }, 400);
 
-        var titleEl = document.getElementById('title-text');
-        if (titleEl) {
-            var maxW = titleEl.parentElement.offsetWidth - 40;
-            var size = 32;
-            var spacing = 6;
-            while (size >= 14 && titleEl.scrollWidth > maxW) {
-                size -= 2;
-                spacing = Math.max(0, spacing - 1);
-                titleEl.style.fontSize = size + 'px';
-                titleEl.style.letterSpacing = spacing + 'px';
+        // AURORA — cycling status text
+        var auroraStatuses = [
+            'Initializing',
+            'Verifying license',
+            'Checking for updates',
+            'Loading assets',
+            'Almost there'
+        ];
+        var auroraEl = document.getElementById('aurora-status');
+        var auroraIdx = 0;
+        setInterval(function() {
+            if (!auroraEl) return;
+            auroraIdx = (auroraIdx + 1) % auroraStatuses.length;
+            auroraEl.style.opacity = '0';
+            setTimeout(function() {
+                auroraEl.textContent = auroraStatuses[auroraIdx];
+                auroraEl.style.transition = 'opacity 0.4s';
+                auroraEl.style.opacity = '1';
+            }, 200);
+        }, 1800);
+
+        // PULSE — segmented wave loader + terminal status
+        var pulseSegs = document.querySelectorAll('#pulse-segments .seg');
+        var pulseHead = 0;
+        setInterval(function() {
+            pulseSegs.forEach(function(s, i) {
+                var dist = (i - pulseHead + pulseSegs.length) % pulseSegs.length;
+                if (dist < 4) {
+                    s.classList.add('on');
+                    s.style.opacity = (1 - dist * 0.18).toString();
+                } else {
+                    s.classList.remove('on');
+                    s.style.opacity = '1';
+                }
+            });
+            pulseHead = (pulseHead + 1) % pulseSegs.length;
+        }, 130);
+
+        var pulseMessages = [
+            'initializing modules',
+            'handshake with license server',
+            'verifying signature',
+            'patching roblox client',
+            'spawning instance'
+        ];
+        var pulseTextEl = document.getElementById('pulse-status-text');
+        var pulseMsgIdx = 0;
+        setInterval(function() {
+            if (!pulseTextEl) return;
+            pulseMsgIdx = (pulseMsgIdx + 1) % pulseMessages.length;
+            pulseTextEl.textContent = pulseMessages[pulseMsgIdx];
+        }, 2200);
+
+        // ATELIER — slow elegant fill that loops
+        var atelierFill = document.getElementById('atelier-fill');
+        var atelierPct = 0;
+        function atelierTick() {
+            if (!atelierFill) return;
+            atelierPct = (atelierPct + 22) % 110;
+            atelierFill.style.transition = 'width 2.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            atelierFill.style.width = Math.min(atelierPct, 100) + '%';
+            if (atelierPct >= 100) {
+                setTimeout(function() {
+                    atelierFill.style.transition = 'none';
+                    atelierFill.style.width = '0%';
+                    atelierPct = 0;
+                }, 800);
             }
         }
+        setInterval(atelierTick, 2600);
+        atelierTick();
     })();
     </script>
 </body>
