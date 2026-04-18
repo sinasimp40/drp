@@ -98,7 +98,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_head %}
 <style>
     .scroll-table { overflow-x: auto; }
     .scroll-table table { margin: 0; }
@@ -137,6 +137,9 @@
     .icon-btn.good:hover { color: var(--good); }
     .icon-btn.bad:hover  { color: var(--bad); }
 </style>
+{% endblock %}
+
+{% block scripts %}
 <script>
 (function() {
     var revokeUrl = "{{ url_for('revoke_license', license_id=0) }}".replace('/0', '');

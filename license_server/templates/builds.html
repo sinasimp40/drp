@@ -292,7 +292,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_head %}
 <style>
     /* Override content max-width for cockpit layout */
     .content-inner { max-width: 1600px !important; }
@@ -412,6 +412,9 @@
     .modal-card input[type="text"]:focus { border-color: var(--accent); }
     .modal-card input[type="text"]:disabled { opacity: 0.45; }
 </style>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 (function() {

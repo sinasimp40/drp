@@ -138,7 +138,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_head %}
 <style>
     .kpi-grid {
         display: grid;
@@ -225,6 +225,9 @@
     tr[data-remaining="0"] .time-remaining,
     tr[data-status="active"][data-remaining][data-remaining^="-"] .time-remaining { color: var(--bad); }
 </style>
+{% endblock %}
+
+{% block scripts %}
 <script>
 (function() {
     var POLL_INTERVAL = 5000;
