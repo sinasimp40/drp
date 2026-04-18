@@ -81,6 +81,19 @@
                     <label>Caption Prefix (optional)</label>
                     <input type="text" name="caption_prefix" value="{{ settings.caption_prefix or '' }}" placeholder="e.g. DPRS prod backup" maxlength="200">
                 </div>
+                <div class="form-group">
+                    <label>Proxy URL (optional)
+                        {% if settings.proxy_set %}
+                        <span class="bk-status-pill ok" style="margin-left:8px;">Active</span>
+                        {% endif %}
+                    </label>
+                    <input type="text" name="proxy_url" value="{{ settings.proxy_url_masked or '' }}" placeholder="socks5h://user:pass@host:1080  or  http://host:8080" maxlength="500" autocomplete="off">
+                    <div class="bk-help">
+                        Use this if your server cannot reach <code>api.telegram.org</code> directly (e.g. blocked from Russia / China).
+                        Supports <code>http</code>, <code>https</code>, <code>socks5</code>, <code>socks5h</code>, <code>socks4</code>.
+                        Leave empty to connect directly. Free public SOCKS5 proxies work but are unreliable; a $1–3/mo VPS in another country is the cheapest stable option.
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-primary">Save Credentials</button>
                 <div id="bk-creds-feedback" class="bk-feedback"></div>
             </div>
@@ -102,6 +115,7 @@
         <form id="bk-sched-form" method="POST" action="{{ url_for('backups_save') }}">
             <input type="hidden" name="chat_id" value="{{ settings.chat_id or '' }}">
             <input type="hidden" name="caption_prefix" value="{{ settings.caption_prefix or '' }}">
+            <input type="hidden" name="proxy_url" value="{{ settings.proxy_url_masked or '' }}">
             <div class="body">
                 <div class="form-group">
                     <label>Frequency</label>

@@ -23,6 +23,7 @@ _DEFAULTS = {
     "bot_token": "",
     "chat_id": "",
     "caption_prefix": "",
+    "proxy_url": "",
     "schedule": {
         "type": "off",          # off | interval | daily | weekly
         "interval_hours": 24,
@@ -83,8 +84,31 @@ def public_view(settings):
         s["bot_token_masked"] = ""
         s["bot_token_set"] = False
     s["chat_id_set"] = bool(s.get("chat_id"))
+    proxy = (s.get("proxy_url") or "").strip()
+    s["proxy_set"] = bool(proxy)
+    if proxy:
+        s["proxy_url_masked"] = _mask_proxy(proxy)
+    else:
+        s["proxy_url_masked"] = ""
     s.pop("bot_token", None)
+    s.pop("proxy_url", None)
     return s
+
+
+def _mask_proxy(url):
+    """Hide user:password if present in the proxy URL."""
+    try:
+        from urllib.parse import urlparse, urlunparse
+        p = urlparse(url)
+        if p.username or p.password:
+            host = p.hostname or ""
+            if p.port:
+                host = f"{host}:{p.port}"
+            netloc = f"***:***@{host}"
+            return urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
+        return url
+    except Exception:
+        return "(proxy configured)"
 
 
 def append_history(settings, entry):
@@ -99,7 +123,63 @@ def _api_url(token, method):
     return f"https://api.telegram.org/bot{token}/{method}"
 
 
-def send_message(token, chat_id, text):
+def _build_opener(proxy_url):
+    """Return a urllib opener configured for the given proxy.
+
+    Supports schemes: http, https, socks5, socks5h, socks4, socks4a.
+    SOCKS support requires the optional PySocks package.
+    """
+    proxy_url = (proxy_url or "").strip()
+    if not proxy_url:
+        return urllib.request.build_opener()
+
+    scheme = proxy_url.split("://", 1)[0].lower() if "://" in proxy_url else ""
+
+    if scheme.startswith("socks"):
+        try:
+            import socks  # type: ignore
+        except Exception as e:
+            raise RuntimeError(
+                "SOCKS proxy requires the 'PySocks' package: " + str(e)
+            )
+        import http.client
+        import ssl as _ssl
+        from urllib.parse import urlparse
+
+        p = urlparse(proxy_url)
+        stype = socks.SOCKS5 if scheme.startswith("socks5") else socks.SOCKS4
+        rdns = scheme in ("socks5h", "socks4a")
+        proxy_host = p.hostname
+        proxy_port = p.port or 1080
+        proxy_user = p.username
+        proxy_pass = p.password
+
+        class _SocksHTTPSConnection(http.client.HTTPSConnection):
+            def connect(self):
+                sock = socks.socksocket()
+                sock.set_proxy(stype, proxy_host, proxy_port, rdns=rdns,
+                               username=proxy_user, password=proxy_pass)
+                sock.settimeout(self.timeout)
+                sock.connect((self.host, self.port))
+                self.sock = self._context.wrap_socket(
+                    sock, server_hostname=self.host)
+
+        class _SocksHTTPSHandler(urllib.request.HTTPSHandler):
+            def https_open(self, req):
+                return self.do_open(_SocksHTTPSConnection, req,
+                                    context=_ssl.create_default_context())
+
+        return urllib.request.build_opener(_SocksHTTPSHandler())
+
+    # HTTP / HTTPS proxy
+    proxy_handler = urllib.request.ProxyHandler({
+        "http": proxy_url,
+        "https": proxy_url,
+    })
+    return urllib.request.build_opener(proxy_handler)
+
+
+def send_message(token, chat_id, text, proxy_url=""):
     if not token or not chat_id:
         return False, "Bot token and chat ID are required"
     url = _api_url(token, "sendMessage")
@@ -111,7 +191,8 @@ def send_message(token, chat_id, text):
     req = urllib.request.Request(url, data=body, method="POST")
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
     try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+        opener = _build_opener(proxy_url)
+        with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
             payload = json.loads(resp.read().decode("utf-8", errors="replace"))
             if payload.get("ok"):
                 return True, "Message delivered"
@@ -159,7 +240,7 @@ def _build_multipart(fields, files):
     return boundary, body
 
 
-def send_document(token, chat_id, file_path, caption=""):
+def send_document(token, chat_id, file_path, caption="", proxy_url=""):
     if not token or not chat_id:
         return False, "Bot token and chat ID are required"
     if not os.path.isfile(file_path):
@@ -182,7 +263,8 @@ def send_document(token, chat_id, file_path, caption=""):
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
     req.add_header("Content-Length", str(len(body)))
     try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+        opener = _build_opener(proxy_url)
+        with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
             payload = json.loads(resp.read().decode("utf-8", errors="replace"))
             if payload.get("ok"):
                 size_kb = len(content) / 1024.0
@@ -208,6 +290,7 @@ def run_backup(db_path, run_type="manual"):
         token = settings.get("bot_token", "")
         chat_id = settings.get("chat_id", "")
         prefix = (settings.get("caption_prefix") or "").strip()
+        proxy_url = (settings.get("proxy_url") or "").strip()
 
     if not token or not chat_id:
         msg = "Bot token and chat ID must be configured"
@@ -220,11 +303,11 @@ def run_backup(db_path, run_type="manual"):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     caption = f"{prefix + ' — ' if prefix else ''}{run_type} backup at {ts}"
 
-    success, message = send_document(token, chat_id, db_path, caption=caption)
+    success, message = send_document(token, chat_id, db_path, caption=caption, proxy_url=proxy_url)
     if not success:
         # Single retry on failure
         time.sleep(2)
-        success, retry_msg = send_document(token, chat_id, db_path, caption=caption)
+        success, retry_msg = send_document(token, chat_id, db_path, caption=caption, proxy_url=proxy_url)
         if success:
             message = retry_msg + " (after retry)"
         else:

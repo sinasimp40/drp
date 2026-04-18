@@ -2791,6 +2791,12 @@ def backups_save():
     settings["chat_id"] = chat_id
     settings["caption_prefix"] = caption_prefix[:200]
 
+    if "proxy_url" in request.form:
+        proxy_input = (request.form.get("proxy_url") or "").strip()
+        # Skip overwrite if the field still shows the masked value
+        if "***" not in proxy_input:
+            settings["proxy_url"] = proxy_input[:500]
+
     sched_type = (request.form.get("schedule_type") or "off").strip()
     if sched_type not in ("off", "interval", "daily", "weekly"):
         sched_type = "off"
@@ -2841,8 +2847,9 @@ def backups_test():
     settings = telegram_backup.load_settings()
     token = settings.get("bot_token", "")
     chat_id = settings.get("chat_id", "")
+    proxy_url = settings.get("proxy_url", "")
     text = (request.form.get("text") or "DPRS backup test message").strip()
-    success, message = telegram_backup.send_message(token, chat_id, text)
+    success, message = telegram_backup.send_message(token, chat_id, text, proxy_url=proxy_url)
     if _wants_json():
         return jsonify({"success": success, "message": message})
     flash(message, "success" if success else "error")
