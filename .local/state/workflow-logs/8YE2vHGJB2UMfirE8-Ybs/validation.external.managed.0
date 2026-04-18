@@ -1,0 +1,29 @@
+VERDICT: REJECTED
+
+The diff introduces a substantial edit flow (new `/license/<id>/edit` endpoint, modal UI, AJAX submit, validation, and toast feedback), but it does not fully satisfy core task requirements.
+
+Critical findings:
+1) **Expired licensVERDICT: REJECTED
+es are not editable from the dashboard** (blocking): both `dashboard()` and `api_d
+ashboard_data()` still query only `status IN ('active','pending','susThe diff introduces a substantial edit flow (new `/license/<id>/edit` endpoint, modal UI, AJAX submit, validation, and toast feedback), but it does not fully satisfy core task requirements.
+pended')`. Expired rows never appear in this table, so
+ the required “edit expired and revive” workfloCritical findings:
+w is unavailable in the primary UI.
+2) **`extend` semantics are inconsistent with the spec for expired licenses** (blocking): spec defines “Extend by” as adding to current expiry (positive or negative). In `edit_license()`, expired licenses use `now + delta` and reject non-positive deltas (`Cannot extend ... non-positive`), which contradicts the mode definition and removes expected behavior.
+3) **Status coverage mismatch in UI requirements**: done criteria explicitly targets active/pending/expired. Implementation adds suspended handling (fine) but still omits expired rows from dashboard, so the intended admin path is incomplete.
+
+Security: none observed that are serious/relevant to this task. Route is admin-protected and uses parameterized SQL.
+
+Next actions:
+1) Update dashboard data sources to include expired licenses where the Edit action is shown (or add equivalent edit action in the view where expired rows are listed), ensuring reactivation can be done from the admin UI.
+2) Align expired `extend` behavior with mode definition: compute from existing `expires_at` (allow positive/negative), then derive status from resulting expiry.
+3) Re-run manual checks from task spec, especially: revive expired via edit, and extend/shorten semantics consistency across statuses.1) **Expired licenses are not editable from the dashboard** (blocking): both `dashboard()` and `api_dashboard_data()` still query only `status IN ('active','pending','suspended')`. Expired rows never appear in this table, so the required “edit expired and revive” workflow is unavailable in the primary UI.
+2) **`extend` semantics are inconsistent with the spec for expired licenses** (blocking): spec defines “Extend by” as adding to current expiry (positive or negative). In `edit_license()`, expired licenses use `now + delta` and reject non-positive deltas (`Cannot extend ... non-positive`), which contradicts the mode definition and removes expected behavior.
+3) **Status coverage mismatch in UI requirements**: done criteria explicitly targets active/pending/expired. Implementation adds suspended handling (fine) but still omits expired rows from dashboard, so the intended admin path is incomplete.
+
+Security: none observed that are serious/relevant to this task. Route is admin-protected and uses parameterized SQL.
+
+Next actions:
+1) Update dashboard data sources to include expired licenses where the Edit action is shown (or add equivalent edit action in the view where expired rows are listed), ensuring reactivation can be done from the admin UI.
+2) Align expired `extend` behavior with mode definition: compute from existing `expires_at` (allow positive/negative), then derive status from resulting expiry.
+3) Re-run manual checks from task spec, especially: revive expired via edit, and extend/shorten semantics consistency across statuses.

@@ -1,0 +1,35 @@
+VERDICT: REJECTED
+
+The diff is close, but it has a blocking functional flaw: the “Every N hours” schedule can remain permanently inactive when enabled after app startup.
+
+Critical findings:
+- **Blocking bug in interval scheduling logic**: `_is_VERDICT: REJECTED
+due()` returns `False` when `last_run_at <= 0` (telegram_backup.py), and th
+e only “arming” of `last_run_at` for interval mode happens once in `sThe diff is close, but it has a blocking functional flaw: the “Every N hours” schedule can remain permanently inactive when enabled after app startup.
+tart_scheduler()` initialization. If the server starts with
+ schedule=off/daily/weekly and an admin later switches to iCritical findings:
+nterval, `last_run_at` stays 0 and scheduled interval backups never trigger until a manual backup is run. This violates the core requirement for reliable scheduled delivery.
+- Core feature coverage is otherwise largely present: admin-protected routes, test message, run-now upload, history tracking (last 10), token masking in UI, retry-once on failure, and minute-based scheduler loop.
+- Non-blocking but notable: `license_server/backup_settings.json` is committed with concrete values and an active schedule shape. Even if fake, this should be runtime state, not committed app state.
+
+Security:
+- **No serious authz/injection issues observed** in the new routes; they are admin-protected.
+- Sensitive token is masked in rendered/public payloads as required.
+- No critical security violation found specific to this task.
+
+Next actions:
+1. Fix interval arming when schedule is changed to `interval` at runtime (e.g., in `/backups/save`, set `last_run_at = now` when switching into interval mode and no prior run timestamp, or adjust `_is_due` to handle first-run semantics safely).
+2. Remove committed `license_server/backup_settings.json` from source control defaults (initialize file at runtime from defaults).
+3. Add a small regression test/manual check matrix for schedule transitions: off→interval, daily→interval, interval→off→interval, ensuring due runs occur without requiring manual “Send now” first.- **Blocking bug in interval scheduling logic**: `_is_due()` returns `False` when `last_run_at <= 0` (telegram_backup.py), and the only “arming” of `last_run_at` for interval mode happens once in `start_scheduler()` initialization. If the server starts with schedule=off/daily/weekly and an admin later switches to interval, `last_run_at` stays 0 and scheduled interval backups never trigger until a manual backup is run. This violates the core requirement for reliable scheduled delivery.
+- Core feature coverage is otherwise largely present: admin-protected routes, test message, run-now upload, history tracking (last 10), token masking in UI, retry-once on failure, and minute-based scheduler loop.
+- Non-blocking but notable: `license_server/backup_settings.json` is committed with concrete values and an active schedule shape. Even if fake, this should be runtime state, not committed app state.
+
+Security:
+- **No serious authz/injection issues observed** in the new routes; they are admin-protected.
+- Sensitive token is masked in rendered/public payloads as required.
+- No critical security violation found specific to this task.
+
+Next actions:
+1. Fix interval arming when schedule is changed to `interval` at runtime (e.g., in `/backups/save`, set `last_run_at = now` when switching into interval mode and no prior run timestamp, or adjust `_is_due` to handle first-run semantics safely).
+2. Remove committed `license_server/backup_settings.json` from source control defaults (initialize file at runtime from defaults).
+3. Add a small regression test/manual check matrix for schedule transitions: off→interval, daily→interval, interval→off→interval, ensuring due runs occur without requiring manual “Send now” first.
