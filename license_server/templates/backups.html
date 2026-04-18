@@ -252,6 +252,31 @@
         try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
     }
 
+    function parseResponse(r) {
+        return r.text().then(function(body) {
+            var data;
+            try { data = JSON.parse(body); }
+            catch (_) {
+                // Server returned HTML (most likely the login page after a
+                // session timeout). Surface that clearly instead of a JSON
+                // parse error.
+                if (r.status === 401 || r.status === 302 || /<!DOCTYPE|<html/i.test(body)) {
+                    return { success: false, message: "Session expired. Reloading...", auth_required: true };
+                }
+                return { success: false, message: "Server returned HTTP " + r.status + " (non-JSON response)" };
+            }
+            return data;
+        });
+    }
+
+    function handleAuthRequired(data) {
+        if (data && data.auth_required) {
+            setTimeout(function() { window.location.href = data.login_url || "/login"; }, 800);
+            return true;
+        }
+        return false;
+    }
+
     function ajaxForm(form, feedbackEl, onOk) {
         form.addEventListener("submit", function(e) {
             e.preventDefault();
@@ -262,9 +287,10 @@
                 credentials: "same-origin",
                 headers: { "X-Requested-With": "XMLHttpRequest" }
             })
-            .then(function(r) { return r.json(); })
+            .then(parseResponse)
             .then(function(data) {
                 showFeedback(feedbackEl, data.success, data.message || (data.success ? "Saved" : "Failed"));
+                if (handleAuthRequired(data)) return;
                 if (data.success && onOk) onOk(data);
             })
             .catch(function(e) { showFeedback(feedbackEl, false, "Network error: " + e); });
@@ -287,9 +313,10 @@
             credentials: "same-origin",
             headers: { "X-Requested-With": "XMLHttpRequest" }
         })
-        .then(function(r) { return r.json(); })
+        .then(parseResponse)
         .then(function(data) {
             showFeedback(feedbackEl, data.success, data.message || (data.success ? "Done" : "Failed"));
+            if (handleAuthRequired(data)) return;
             if (url.indexOf("run-now") !== -1) {
                 setTimeout(function(){ location.reload(); }, 1200);
             }

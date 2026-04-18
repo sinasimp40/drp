@@ -524,6 +524,20 @@ def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("admin_logged_in"):
+            # AJAX / JSON callers get a clean 401 instead of an HTML redirect
+            # to the login page, so the browser doesn't try to parse the
+            # login HTML as JSON ("Unexpected token '<'" errors).
+            wants_json = (
+                request.headers.get("X-Requested-With", "").lower() == "xmlhttprequest"
+                or "application/json" in (request.headers.get("Accept") or "")
+            )
+            if wants_json:
+                return jsonify({
+                    "success": False,
+                    "message": "Session expired. Please log in again.",
+                    "auth_required": True,
+                    "login_url": url_for("login_page"),
+                }), 401
             return redirect(url_for("login_page"))
         return f(*args, **kwargs)
     return decorated
