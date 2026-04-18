@@ -10,7 +10,7 @@ import hashlib
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QWidget
+    QLabel, QLineEdit, QPushButton, QWidget, QProgressBar
 )
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import (
@@ -1260,6 +1260,122 @@ def _is_fatal_license_error(error_msg):
     return any(phrase in lower for phrase in fatal_phrases)
 
 
+class UpdateProgressDialog(QDialog):
+    def __init__(self, version="", total_bytes=0, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"{APP_NAME} - Updating")
+        self.setFixedSize(460, 280)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+        self._total_bytes = total_bytes or 0
+        self._version = version or "?"
+
+        self.setStyleSheet("""
+            QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
+            QLabel { color: #e8e8ef; background: transparent; }
+            QProgressBar {
+                background: #16161e;
+                border: 1px solid #2a2a38;
+                border-radius: 6px;
+                height: 18px;
+                text-align: center;
+                color: #ffffff;
+                font-weight: bold;
+            }
+            QProgressBar::chunk {
+                background-color: #ff6a00;
+                border-radius: 5px;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 22)
+        layout.setSpacing(8)
+
+        title = QLabel(f"Updating {APP_NAME}")
+        title.setFont(QFont("Segoe UI", 15, QFont.Bold))
+        title.setStyleSheet("color: #ff6a00;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        size_mb = self._total_bytes / 1024 / 1024 if self._total_bytes else 0
+        sub = QLabel(f"Downloading version {self._version}  ({size_mb:.1f} MB)")
+        sub.setFont(QFont("Segoe UI", 10))
+        sub.setStyleSheet("color: #b0b0c0;")
+        sub.setAlignment(Qt.AlignCenter)
+        layout.addWidget(sub)
+        self._sub_label = sub
+
+        layout.addSpacing(6)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("%p%")
+        layout.addWidget(self.progress_bar)
+
+        self.detail_label = QLabel(f"0.0 / {size_mb:.1f} MB")
+        self.detail_label.setFont(QFont("Segoe UI", 10))
+        self.detail_label.setStyleSheet("color: #d0d0d8;")
+        self.detail_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.detail_label)
+
+        self.status_label = QLabel("Preparing download...")
+        self.status_label.setFont(QFont("Segoe UI", 10))
+        self.status_label.setStyleSheet("color: #b0b0c0;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
+
+        layout.addSpacing(6)
+
+        warning = QLabel("Update in progress\nPlease don't close this window")
+        warning.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        warning.setStyleSheet("color: #ffbb33;")
+        warning.setAlignment(Qt.AlignCenter)
+        warning.setWordWrap(True)
+        layout.addWidget(warning)
+
+    def set_download_progress(self, downloaded_bytes, total_bytes):
+        if total_bytes and total_bytes > 0:
+            self._total_bytes = total_bytes
+        total = self._total_bytes if self._total_bytes else (total_bytes or 0)
+        dl_mb = downloaded_bytes / 1024 / 1024
+        total_mb = total / 1024 / 1024 if total else 0
+        if total > 0:
+            pct = max(0, min(100, int(downloaded_bytes * 100 / total)))
+        else:
+            pct = 0
+        self.progress_bar.setValue(pct)
+        if total_mb > 0:
+            self.detail_label.setText(f"{dl_mb:.1f} / {total_mb:.1f} MB")
+        else:
+            self.detail_label.setText(f"{dl_mb:.1f} MB")
+        self.status_label.setText(f"Downloading update... ({pct}%)")
+
+    def set_phase(self, phase, version=None):
+        if version:
+            self._version = version
+        if phase == "installing":
+            self.progress_bar.setValue(100)
+            self.status_label.setText(f"Installing version {self._version}...")
+        elif phase == "restarting":
+            self.progress_bar.setValue(100)
+            self.status_label.setText(f"Restarting into version {self._version}...")
+        elif phase == "failed":
+            self.status_label.setText("Update failed. Continuing...")
+
+    def closeEvent(self, event):
+        event.ignore()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Escape,):
+            event.ignore()
+            return
+        super().keyPressEvent(event)
+
+
 class UpdateInstalledDialog(QDialog):
     def __init__(self, version="", parent=None):
         super().__init__(parent)
@@ -1710,7 +1826,13 @@ def main():
             file_size = update_info.get("file_size", 0)
             size_mb = file_size / 1024 / 1024 if file_size else 0
 
+            update_dialog = UpdateProgressDialog(version=new_version, total_bytes=file_size)
+            splash.hide()
+            update_dialog.show()
+            app.processEvents()
+
             def on_download_progress(pct, downloaded, total):
+                update_dialog.set_download_progress(downloaded, total)
                 dl_mb = downloaded / 1024 / 1024
                 splash.set_progress(8 + int(pct * 0.85), f"Downloading v{new_version}... {dl_mb:.1f}/{size_mb:.1f} MB")
                 app.processEvents()
@@ -1724,22 +1846,37 @@ def main():
 
                 new_exe = download_update(update_info, on_download_progress)
                 if new_exe:
+                    update_dialog.set_phase("installing", new_version)
+                    app.processEvents()
                     splash.set_progress(95, f"Installing v{new_version}...")
                     app.processEvents()
                     if apply_update_and_restart(new_exe):
                         handing_off_to_child = True
+                        update_dialog.set_phase("restarting", new_version)
                         splash.set_progress(100, f"Restarting into v{new_version}...")
                         app.processEvents()
                         QTimer.singleShot(800, app.quit)
                         app.exec_()
                         sys.exit(0)
                     else:
+                        update_dialog.set_phase("failed")
+                        app.processEvents()
                         splash.set_progress(8, "Update failed, continuing...")
                         app.processEvents()
+                else:
+                    update_dialog.set_phase("failed")
+                    app.processEvents()
             finally:
                 stop_update_heartbeat()
                 if not handing_off_to_child:
                     clear_update_state()
+                    try:
+                        update_dialog.hide()
+                        update_dialog.deleteLater()
+                    except Exception:
+                        pass
+                    splash.show()
+                    app.processEvents()
 
     paths = get_paths()
 
