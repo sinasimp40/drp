@@ -1625,6 +1625,48 @@ def edit_build_config(config_id):
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
 
 
+def _purge_artifacts_for_config(conn, config_id):
+    """Remove build artifacts (DB rows + .exe files on disk) for a config,
+    and clean up parent `builds` rows that have no artifacts left.
+    Returns (files_removed, builds_removed)."""
+    rows = conn.execute(
+        "SELECT ba.build_id, ba.exe_filename, b.version "
+        "FROM build_artifacts ba JOIN builds b ON ba.build_id = b.id "
+        "WHERE ba.build_config_id = ?",
+        (config_id,)
+    ).fetchall()
+    affected_builds = set()
+    files_removed = 0
+    for r in rows:
+        affected_builds.add(r["build_id"])
+        if r["exe_filename"] and r["version"]:
+            fp = os.path.join(BUILDS_DIR, r["version"], str(config_id), r["exe_filename"])
+            if os.path.isfile(fp):
+                try:
+                    os.remove(fp)
+                    files_removed += 1
+                except Exception:
+                    pass
+            # try removing the now-empty per-config directory
+            cfg_dir = os.path.join(BUILDS_DIR, r["version"], str(config_id))
+            if os.path.isdir(cfg_dir):
+                try:
+                    if not os.listdir(cfg_dir):
+                        os.rmdir(cfg_dir)
+                except Exception:
+                    pass
+    conn.execute("DELETE FROM build_artifacts WHERE build_config_id = ?", (config_id,))
+    builds_removed = 0
+    for bid in affected_builds:
+        remaining = conn.execute(
+            "SELECT COUNT(*) AS n FROM build_artifacts WHERE build_id = ?", (bid,)
+        ).fetchone()["n"]
+        if remaining == 0:
+            conn.execute("DELETE FROM builds WHERE id = ?", (bid,))
+            builds_removed += 1
+    return files_removed, builds_removed
+
+
 @app.route("/build_config/<int:config_id>/delete", methods=["POST"])
 @require_admin
 def delete_build_config(config_id):
@@ -1637,10 +1679,19 @@ def delete_build_config(config_id):
                 os.remove(icon_path)
             except Exception:
                 pass
+    files_removed, builds_removed = _purge_artifacts_for_config(conn, config_id)
     conn.execute("DELETE FROM build_configs WHERE id = ?", (config_id,))
     conn.commit()
     conn.close()
-    flash("Build config deleted", "success")
+    bits = ["Build config deleted"]
+    if files_removed or builds_removed:
+        extras = []
+        if files_removed:
+            extras.append(f"{files_removed} artifact file(s)")
+        if builds_removed:
+            extras.append(f"{builds_removed} empty build(s)")
+        bits.append("(also removed " + ", ".join(extras) + ")")
+    flash(" ".join(bits), "success")
     return redirect(url_for("builds_page"))
 
 
