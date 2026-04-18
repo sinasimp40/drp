@@ -1,2 +1,3 @@
 *.db
 license_server/licenses.db
+license_server/backup_settings.json

@@ -2590,6 +2590,7 @@ def backups_save():
     if not re.match(r"^\d{1,2}:\d{2}$", weekly_time):
         weekly_time = "03:00"
 
+    prev_type = (settings.get("schedule") or {}).get("type", "off")
     settings["schedule"] = {
         "type": sched_type,
         "interval_hours": interval_hours,
@@ -2597,6 +2598,10 @@ def backups_save():
         "weekly_day": weekly_day,
         "weekly_time": weekly_time,
     }
+    # Arm the interval clock when switching INTO interval mode so the next
+    # run fires interval_hours from now (not immediately, not never).
+    if sched_type == "interval" and prev_type != "interval":
+        settings["last_run_at"] = time.time()
     telegram_backup.save_settings(settings)
 
     if _wants_json():
