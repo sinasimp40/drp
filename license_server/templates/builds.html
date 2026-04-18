@@ -28,7 +28,7 @@
 
 <div class="card" style="margin-bottom: 24px;">
     <div class="card-header"><h2>Trigger Build</h2></div>
-    <div style="padding: 16px;">
+    <div class="card-body">
         <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
             <div class="form-group" style="margin-bottom: 0; flex: 0 0 200px;">
                 <label>Version</label>
@@ -41,7 +41,7 @@
 
 <div id="build-progress-area" style="margin-bottom: 24px; display: none;">
     <div class="card">
-        <div style="padding: 16px; border-bottom: 1px solid var(--border-soft);">
+        <div class="card-header">
             <h2>
                 Build Progress <span id="build-version-label" style="color: var(--accent);"></span>
                 <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
@@ -55,8 +55,8 @@
     <div class="card-header">
         <h2>Build Configs ({{ configs|length }})</h2>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button type="button" id="configs-rebuild-btn" class="btn btn-sm" style="background:var(--accent-low); color:#fff; display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
-            <button type="button" id="configs-bulk-btn" class="btn btn-sm" style="background:#2a6fff; color:#fff; display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
+            <button type="button" id="configs-rebuild-btn" class="btn btn-warning btn-sm" style="display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
+            <button type="button" id="configs-bulk-btn" class="btn btn-secondary btn-sm" style="display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
             <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
         </div>
     </div>
@@ -98,7 +98,7 @@
                 <td class="actions-cell">
                     <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <form method="POST" action="{{ url_for('rebuild_single_config', config_id=c.id) }}" onsubmit="return confirm('Rebuild this config with the latest version?')" style="display: inline;">
-                        <button type="submit" class="btn btn-sm" style="background: #2a6fff; color: #fff;">Rebuild</button>
+                        <button type="submit" class="btn btn-secondary btn-sm">Rebuild</button>
                     </form>
                     <form method="POST" action="{{ url_for('delete_build_config', config_id=c.id) }}" onsubmit="return confirm('Delete this build config?')" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -142,8 +142,8 @@
             <p style="color:var(--text-mute); font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>). Bump <code>APP_VERSION</code> in launcher.py and re-upload to change it.</p>
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
-            <button type="button" class="btn btn-sm" style="background:var(--border-soft); color:var(--text);" onclick="closeBulkEditModal()">Cancel</button>
-            <button type="button" class="btn btn-sm btn-primary" onclick="submitBulkEdit()">Apply Changes</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeBulkEditModal()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="submitBulkEdit()">Apply Changes</button>
         </div>
     </div>
 </div>
@@ -291,8 +291,8 @@
     .filter-input:focus { border-color: var(--accent); }
     .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
     .scroll-table::-webkit-scrollbar-track { background: var(--panel-2); }
-    .scroll-table::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
-    .scroll-table::-webkit-scrollbar-thumb:hover { background: #34343e; }
+    .scroll-table::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 5px; }
+    .scroll-table::-webkit-scrollbar-thumb:hover { background: var(--border); }
     .modal-backdrop {
         position: fixed; inset: 0; background: rgba(0,0,0,0.6);
         z-index: 9999; display: flex; align-items: center; justify-content: center;
