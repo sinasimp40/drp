@@ -809,7 +809,7 @@ def validate_license(key, endpoint="validate"):
     if not LICENSE_SERVER_URL:
         return {"valid": True, "remaining_text": "No server configured", "remaining_seconds": 999999}
     try:
-        import urllib.request
+        import urllib.request, urllib.error
         url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
         body = {"key": key, "version": APP_VERSION}
         timestamp, nonce, req_sig = sign_request(body)
@@ -820,8 +820,26 @@ def validate_license(key, endpoint="validate"):
             "X-Nonce": nonce,
             "X-Signature": req_sig,
         })
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode('utf-8'))
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as he:
+            body_text = ""
+            try:
+                body_text = he.read().decode('utf-8', errors='replace')
+                result = json.loads(body_text)
+            except Exception:
+                hint = ""
+                if he.code == 403:
+                    hint = " (check that your PC clock is set correctly)"
+                return {"valid": False, "error": f"Server error {he.code}{hint}"}
+            data = result.get("data", {}) if isinstance(result, dict) else {}
+            err_msg = data.get("error") if isinstance(data, dict) else None
+            if not err_msg:
+                err_msg = f"Server error {he.code}"
+            if he.code == 403 and "expired" in (err_msg or "").lower():
+                err_msg += " — please correct your PC clock"
+            return {"valid": False, "error": err_msg}
 
         data = result.get("data", {})
         sig = result.get("signature", "")

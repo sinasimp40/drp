@@ -231,6 +231,17 @@ def require_signed_request(f):
     def decorated(*args, **kwargs):
         valid, msg = verify_request_signature()
         if not valid:
+            try:
+                client_ip = _get_client_ip()
+            except Exception:
+                client_ip = request.remote_addr
+            ts_hdr = request.headers.get("X-Timestamp", "")
+            skew = ""
+            try:
+                skew = f" skew={int(time.time()) - int(ts_hdr)}s"
+            except Exception:
+                pass
+            print(f"[auth] 403 {request.path} from {client_ip}: {msg}{skew}", flush=True)
             resp = {"valid": False, "error": msg}
             return jsonify({"data": resp, "signature": sign_response(resp)}), 403
         return f(*args, **kwargs)
