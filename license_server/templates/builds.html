@@ -3,121 +3,264 @@
 {% block topbar_title %}Build Management{% endblock %}
 
 {% block topbar_actions %}
-    <a href="{{ url_for('splash_preview') }}" class="btn btn-secondary btn-sm" target="_blank">Splash Preview</a>
-    <a href="{{ url_for('create_build_config') }}" class="btn btn-primary btn-sm">+ New Config</a>
+    <a href="{{ url_for('splash_preview') }}" class="btn btn-secondary btn-sm" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        Splash Preview
+    </a>
+    <a href="{{ url_for('create_build_config') }}" class="btn btn-primary btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        New Config
+    </a>
 {% endblock %}
 
 {% block content %}
-<div class="card" style="margin-bottom: 20px;">
-    <div class="card-header">
-        <h2>Launcher Source</h2>
-    </div>
-    <div class="card-body">
-        <div id="launcher-info" style="margin-bottom: 16px; padding: 12px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 6px;">
-            <span style="color: var(--text-mute);">Loading launcher info...</span>
-        </div>
-        <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                <label>Upload launcher.py</label>
-                <input type="file" name="launcher_file" accept=".py" style="color: var(--text-dim);" required>
-            </div>
-            <button type="submit" class="btn btn-primary" onclick="return confirm('Replace current launcher.py with uploaded file?')">Upload</button>
-        </form>
-    </div>
-</div>
-
-<div class="card" style="margin-bottom: 24px;">
-    <div class="card-header"><h2>Trigger Build</h2></div>
-    <div class="card-body">
-        <form method="POST" action="{{ url_for('api_trigger_build') }}" style="display: flex; gap: 12px; align-items: flex-end;">
-            <div class="form-group" style="margin-bottom: 0; flex: 0 0 200px;">
-                <label>Version</label>
-                <input type="text" name="version" id="build-version-input" placeholder="1.1.0" pattern="\d+\.\d+\.\d+" required>
-            </div>
-            <button type="submit" class="btn btn-primary" onclick="return confirm('Start building for all configs?')">Build All</button>
-        </form>
-    </div>
-</div>
-
-<div id="build-progress-area" style="margin-bottom: 24px; display: none;">
-    <div class="card">
-        <div class="card-header">
-            <h2>
-                Build Progress <span id="build-version-label" style="color: var(--accent);"></span>
-                <span id="build-status-badge" class="badge" style="margin-left: 8px;"></span>
-            </h2>
-        </div>
-        <div id="build-artifacts-list" style="padding: 8px 16px; max-height: 360px; overflow-y: auto;"></div>
-    </div>
-</div>
-
-<div class="card" style="margin-bottom: 24px;">
-    <div class="card-header">
-        <h2>Build Configs ({{ configs|length }})</h2>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button type="button" id="configs-rebuild-btn" class="btn btn-warning btn-sm" style="display:none;" onclick="submitBulkRebuild()">Rebuild Selected (<span id="configs-rebuild-count">0</span>)</button>
-            <button type="button" id="configs-bulk-btn" class="btn btn-secondary btn-sm" style="display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
-            <input type="search" id="configs-search" placeholder="Search configs..." class="filter-input" oninput="filterTable('configs-table', this.value)">
-        </div>
-    </div>
-    {% if configs %}
-    <form id="configs-bulk-form" method="POST" action="{{ url_for('bulk_edit_build_configs') }}">
-    <div class="scroll-table">
-    <table id="configs-table">
-        <thead>
-            <tr>
-                <th style="width:36px;"><input type="checkbox" id="configs-select-all" onclick="toggleAll('configs-table','config_ids', this.checked); updateConfigsBulkBtn()"></th>
-                <th>App Name</th>
-                <th>License</th>
-                <th>Path</th>
-                <th>Icon</th>
-                <th>Server URL</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in configs %}
-            <tr>
-                <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
-                <td style="font-weight: 600; color: var(--accent-hi);">{{ c.app_name }}</td>
-                <td>
-                    <span class="key-text" style="font-size: 11px;">{{ c.license_key }}</span>
-                    {% if c.license_note %}
-                    <div class="ip-info">{{ c.license_note }}</div>
-                    {% endif %}
-                </td>
-                <td style="font-size: 12px; color: var(--text-dim);">{{ c.hardcoded_path or 'Not set' }}</td>
-                <td>
-                    {% if c.has_icon %}
-                    <span style="color: var(--good);">Yes</span>
-                    {% else %}
-                    <span style="color: var(--text-mute);">No</span>
-                    {% endif %}
-                </td>
-                <td style="font-size: 12px; color: var(--text-dim);">{{ c.license_server_url or 'Not set' }}</td>
-                <td class="actions-cell">
-                    <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="btn btn-warning btn-sm">Edit</a>
-                    <form method="POST" action="{{ url_for('rebuild_single_config', config_id=c.id) }}" onsubmit="return confirm('Rebuild this config with the latest version?')" style="display: inline;">
-                        <button type="submit" class="btn btn-secondary btn-sm">Rebuild</button>
+<div class="cockpit">
+    <!-- LEFT: Operator Controls -->
+    <div class="cockpit-left">
+        <div class="cc-grid-2" style="margin-bottom:18px;">
+            <!-- Launcher Source -->
+            <div class="cc-card">
+                <div class="cc-card-header">
+                    <div class="cc-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-mute);"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        Launcher Source
+                    </div>
+                    <span class="cc-muted" id="launcher-version-tag">v...</span>
+                </div>
+                <div class="cc-card-body">
+                    <div id="launcher-info" class="cc-source-row">
+                        <span style="color: var(--text-mute);">Loading…</span>
+                    </div>
+                    <form method="POST" action="{{ url_for('api_upload_launcher') }}" enctype="multipart/form-data" id="launcher-upload-form">
+                        <input type="file" name="launcher_file" accept=".py" id="launcher-file-input" style="display:none;" onchange="if(this.files[0] && confirm('Replace launcher.py with '+this.files[0].name+'?')) document.getElementById('launcher-upload-form').submit();">
+                        <button type="button" class="cc-upload-btn" onclick="document.getElementById('launcher-file-input').click()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Upload New Source
+                        </button>
                     </form>
-                    <form method="POST" action="{{ url_for('delete_build_config', config_id=c.id) }}" onsubmit="return confirm('Delete this build config?')" style="display: inline;">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </div>
+            </div>
+
+            <!-- Trigger Build -->
+            <div class="cc-card cc-trigger">
+                <div class="cc-card-header">
+                    <div class="cc-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Trigger Build
+                    </div>
+                </div>
+                <div class="cc-card-body" style="display:flex; flex-direction:column; gap:12px;">
+                    <form method="POST" action="{{ url_for('api_trigger_build') }}" id="trigger-build-form" style="display:flex; flex-direction:column; gap:12px;" onsubmit="return confirm('Start building all configs?')">
+                        <div>
+                            <label style="display:block; font-size:11px; font-weight:600; color:var(--text-mute); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Target Version</label>
+                            <input type="text" name="version" id="build-version-input" placeholder="1.1.0" pattern="\d+\.\d+\.\d+" required class="cc-input">
+                        </div>
+                        <button type="submit" class="cc-build-button">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 21 12 6 21 6 3"/></svg>
+                            BUILD ALL CONFIGS
+                        </button>
                     </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Build Configs -->
+        <div class="cc-card" style="margin-bottom:18px;">
+            <div class="cc-card-header">
+                <div class="cc-card-title">
+                    Build Configs
+                    <span class="cc-pill">{{ configs|length }} total</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" id="configs-rebuild-btn" class="btn btn-warning btn-sm" style="display:none;" onclick="submitBulkRebuild()">Rebuild (<span id="configs-rebuild-count">0</span>)</button>
+                    <button type="button" id="configs-bulk-btn" class="btn btn-secondary btn-sm" style="display:none;" onclick="openBulkEditModal()">Bulk Edit (<span id="configs-selected-count">0</span>)</button>
+                    <div class="cc-search-wrap">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="search" id="configs-search" placeholder="Search configs…" class="cc-search-input" oninput="filterTable('configs-table', this.value)">
+                    </div>
+                </div>
+            </div>
+            {% if configs %}
+            <form id="configs-bulk-form" method="POST" action="{{ url_for('bulk_edit_build_configs') }}">
+                <div style="overflow-x:auto;">
+                    <table id="configs-table" class="cc-table">
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="configs-select-all" onclick="toggleAll('configs-table','config_ids', this.checked); updateConfigsBulkBtn()"></th>
+                                <th>App Name</th>
+                                <th>License</th>
+                                <th>Icon</th>
+                                <th>Server URL</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in configs %}
+                            <tr>
+                                <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
+                                <td style="font-weight:600; color: var(--accent);">{{ c.app_name }}</td>
+                                <td>
+                                    <code class="cc-code">{{ c.license_key }}</code>
+                                    {% if c.license_note %}<div class="ip-info">{{ c.license_note }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% if c.has_icon %}<span style="color: var(--good);">Yes</span>
+                                    {% else %}<span style="color: var(--text-mute);">No</span>{% endif %}
+                                </td>
+                                <td style="color: var(--text-mute); max-width:160px; overflow:hidden; text-overflow:ellipsis;" title="{{ c.license_server_url or 'Not set' }}">{{ c.license_server_url or 'Not set' }}</td>
+                                <td>
+                                    <div class="row-actions">
+                                        <a href="{{ url_for('edit_build_config', config_id=c.id) }}" class="icon-btn warn" title="Edit">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('rebuild_single_config', config_id=c.id) }}" onsubmit="return confirm('Rebuild this config?')">
+                                            <button type="submit" class="icon-btn" title="Rebuild">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('delete_build_config', config_id=c.id) }}" onsubmit="return confirm('Delete this build config?')">
+                                            <button type="submit" class="icon-btn danger" title="Delete">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+            {% else %}
+            <div class="empty-state">
+                <p>No build configs yet</p>
+                <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">Create your first config</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Build History (full row) -->
+        <div class="cc-card">
+            <div class="cc-card-header">
+                <div class="cc-card-title">Build History</div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" id="builds-bulk-delete-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="submitBulkDeleteBuilds()">Delete (<span id="builds-selected-count">0</span>)</button>
+                    <div class="cc-search-wrap">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="search" id="history-search" placeholder="Search history…" class="cc-search-input" oninput="filterTable('history-table', this.value)">
+                    </div>
+                </div>
+            </div>
+            {% if builds %}
+            <form id="builds-bulk-form" method="POST" action="{{ url_for('bulk_delete_builds') }}">
+                <div style="overflow-x:auto;">
+                    <table id="history-table" class="cc-table">
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="builds-select-all" onclick="toggleAll('history-table','build_ids', this.checked); updateBuildsBulkBtn()"></th>
+                                <th>Version</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Started</th>
+                                <th>Finished</th>
+                                <th>Error</th>
+                                <th>Download</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in builds %}
+                            <tr data-build-id="{{ b.id }}">
+                                <td>{% if b.status not in ('pending', 'building') %}<input type="checkbox" name="build_ids" value="{{ b.id }}" class="build-checkbox" onclick="updateBuildsBulkBtn()">{% endif %}</td>
+                                <td style="font-weight: 600; color: var(--accent);">v{{ b.version }}</td>
+                                <td>
+                                    {% if b.status == 'completed' %}<span class="badge badge-online">Completed</span>
+                                    {% elif b.status == 'building' %}<span class="badge badge-pending">Building</span>
+                                    {% elif b.status == 'failed' %}<span class="badge badge-revoked">Failed</span>
+                                    {% else %}<span class="badge badge-offline">{{ b.status }}</span>{% endif %}
+                                </td>
+                                <td>{{ b.completed }}/{{ b.total }}</td>
+                                <td>{{ b.started }}</td>
+                                <td>{{ b.finished }}</td>
+                                <td style="color: var(--bad); font-size: 12px;">{{ b.error }}</td>
+                                <td>
+                                    {% if b.status == 'completed' and b.artifacts %}
+                                        {% for art in b.artifacts %}
+                                            {% if art.status == 'completed' and art.exe_filename %}
+                                            <a href="{{ url_for('api_download_artifact', build_id=b.id, config_id=art.config_id) }}" class="btn btn-primary btn-sm" style="margin-bottom: 4px; display: inline-block;">
+                                                {{ art.app_name }} ({{ (art.file_size / 1048576)|round(1) }} MB)
+                                            </a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:right;">
+                                    {% if b.status not in ('pending', 'building') %}
+                                    <form method="POST" action="{{ url_for('delete_build', build_id=b.id) }}" onsubmit="return confirm('Delete build v{{ b.version }}?')" style="display: inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                    {% else %}<span style="color:var(--text-mute);">—</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+            {% else %}
+            <div class="empty-state"><p>No builds yet</p></div>
+            {% endif %}
+        </div>
     </div>
-    </form>
-    {% else %}
-    <div class="empty-state">
-        <p>No build configs yet</p>
-        <a href="{{ url_for('create_build_config') }}" class="btn btn-primary">Create your first config</a>
-    </div>
-    {% endif %}
+
+    <!-- RIGHT: Mission Control -->
+    <aside class="cc-mission">
+        <div class="cc-mission-header">
+            <div class="cc-mission-title">
+                <span class="cc-pulse"></span>
+                Mission Control
+            </div>
+            <span class="badge badge-pending" id="mission-state-badge">IDLE</span>
+        </div>
+
+        <div class="cc-mission-body">
+            <div id="build-progress-area" style="display:none;">
+                <div class="cc-section-title">Global Build <span id="build-version-label" style="color:var(--accent); margin-left:6px;"></span> <span id="build-status-badge" class="badge" style="margin-left:auto;"></span></div>
+                <div id="build-artifacts-list"></div>
+            </div>
+
+            <div>
+                <div class="cc-section-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    OTA Distribution
+                </div>
+                <div class="cc-mission-card">
+                    <div class="cc-ota-legend" id="ota-legend">
+                        <span><span class="cc-ota-swatch ok"></span> Up to date</span>
+                        <span><span class="cc-ota-swatch wait"></span> Updating</span>
+                        <span><span class="cc-ota-swatch old"></span> Outdated</span>
+                    </div>
+                    <div id="ota-status-area">
+                        <div style="color: var(--text-mute); font-size:12px;">Loading…</div>
+                    </div>
+                    <input type="search" id="ota-search" placeholder="Search OTA…" class="cc-search-input" oninput="filterOta(this.value)" style="margin-top:10px; width:100%;">
+                </div>
+            </div>
+        </div>
+
+        <div class="cc-terminal">
+            <div class="cc-terminal-head">
+                <span class="cc-muted" style="text-transform:uppercase;">Compiler Output</span>
+                <button type="button" class="cc-link-btn" onclick="document.getElementById('cc-log').innerHTML=''">Clear</button>
+            </div>
+            <div class="cc-terminal-body" id="cc-log">
+                <div style="color: var(--text-mute);">Waiting for build activity…</div>
+            </div>
+        </div>
+    </aside>
 </div>
 
+<!-- Bulk Edit Modal (preserved) -->
 <div id="bulk-edit-modal" class="modal-backdrop" style="display:none;">
     <div class="modal-card">
         <h3 style="margin-top:0; color:var(--accent-hi);">Bulk Edit Configs</h3>
@@ -139,7 +282,7 @@
             <label style="display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="bulk-then-rebuild"> Rebuild selected configs after applying
             </label>
-            <p style="color:var(--text-mute); font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>). Bump <code>APP_VERSION</code> in launcher.py and re-upload to change it.</p>
+            <p style="color:var(--text-mute); font-size:11px; margin:6px 0 0;">Rebuilds use the version from <code>launcher.py</code> (currently <strong id="bulk-launcher-version">...</strong>).</p>
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
             <button type="button" class="btn btn-secondary btn-sm" onclick="closeBulkEditModal()">Cancel</button>
@@ -147,167 +290,125 @@
         </div>
     </div>
 </div>
-
-<div class="card" style="margin-bottom: 24px;">
-    <div class="card-header">
-        <h2>OTA Update Status</h2>
-        <input type="search" id="ota-search" placeholder="Search OTA..." class="filter-input" oninput="filterOta(this.value)">
-    </div>
-    <div id="ota-status-area" class="scroll-table" style="padding: 16px; max-height: 420px;">
-        <div style="color: var(--text-mute);">Loading...</div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <h2>Build History</h2>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button type="button" id="builds-bulk-delete-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="submitBulkDeleteBuilds()">Delete Selected (<span id="builds-selected-count">0</span>)</button>
-            <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="filterTable('history-table', this.value)">
-        </div>
-    </div>
-    {% if builds %}
-    <form id="builds-bulk-form" method="POST" action="{{ url_for('bulk_delete_builds') }}">
-    <div class="scroll-table">
-    <table id="history-table">
-        <thead>
-            <tr>
-                <th style="width:36px;"><input type="checkbox" id="builds-select-all" onclick="toggleAll('history-table','build_ids', this.checked); updateBuildsBulkBtn()"></th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Progress</th>
-                <th>Started</th>
-                <th>Finished</th>
-                <th>Error</th>
-                <th>Download</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for b in builds %}
-            <tr data-build-id="{{ b.id }}">
-                <td>
-                    {% if b.status not in ('pending', 'building') %}
-                    <input type="checkbox" name="build_ids" value="{{ b.id }}" class="build-checkbox" onclick="updateBuildsBulkBtn()">
-                    {% endif %}
-                </td>
-                <td style="font-weight: 600; color: var(--accent-hi);">v{{ b.version }}</td>
-                <td>
-                    {% if b.status == 'completed' %}
-                    <span class="badge badge-online">Completed</span>
-                    {% elif b.status == 'building' %}
-                    <span class="badge badge-pending">Building</span>
-                    {% elif b.status == 'failed' %}
-                    <span class="badge badge-revoked">Failed</span>
-                    {% else %}
-                    <span class="badge badge-offline">{{ b.status }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ b.completed }}/{{ b.total }}</td>
-                <td>{{ b.started }}</td>
-                <td>{{ b.finished }}</td>
-                <td style="color: var(--bad); font-size: 12px;">{{ b.error }}</td>
-                <td>
-                    {% if b.status == 'completed' and b.artifacts %}
-                    {% for art in b.artifacts %}
-                    {% if art.status == 'completed' and art.exe_filename %}
-                    <a href="{{ url_for('api_download_artifact', build_id=b.id, config_id=art.config_id) }}" class="btn btn-primary btn-sm" style="margin-bottom: 4px; display: inline-block;">
-                        {{ art.app_name }} ({{ (art.file_size / 1048576)|round(1) }} MB)
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                    {% endif %}
-                </td>
-                <td class="actions-cell">
-                    {% if b.status not in ('pending', 'building') %}
-                    <form method="POST" action="{{ url_for('delete_build', build_id=b.id) }}" onsubmit="return confirm('Delete build v{{ b.version }}? This removes the database record and the .exe files from disk.')" style="display: inline;">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                    {% else %}
-                    <span style="color:var(--text-mute); font-size: 12px;">—</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
-    </form>
-    {% else %}
-    <div class="empty-state">
-        <p>No builds yet</p>
-    </div>
-    {% endif %}
-</div>
 {% endblock %}
 
 {% block scripts %}
 <style>
-    .progress-bar-container {
-        background: var(--border-soft);
-        border-radius: 4px;
-        height: 20px;
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 8px;
-    }
-    .progress-bar-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.3s ease;
-    }
+    /* Override content max-width for cockpit layout */
+    .content-inner { max-width: 1600px !important; }
+
+    .cockpit { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 1180px) { .cockpit { grid-template-columns: 1fr; } .cc-mission { position:static !important; max-height:none !important; } }
+    .cockpit-left { min-width: 0; display: flex; flex-direction: column; }
+
+    .cc-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 10px; }
+    .cc-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .cc-card-body { padding: 14px 16px; }
+    .cc-card-title { font-size: 13px; font-weight: 600; color: var(--text); display:flex; align-items:center; gap:8px; margin: 0; }
+    .cc-muted { color: var(--text-mute); font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .cc-pill { font-size: 10px; color: var(--text-mute); background: var(--panel-2); border: 1px solid var(--border-soft); padding: 1px 8px; border-radius: 99px; font-weight: 500; margin-left: 4px; }
+    .cc-code { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-dim); background: var(--panel-2); border: 1px solid var(--border-soft); padding: 2px 6px; border-radius: 4px; }
+
+    .cc-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 720px) { .cc-grid-2 { grid-template-columns: 1fr; } }
+
+    .cc-trigger { position: relative; overflow: hidden; }
+    .cc-trigger::before { content:""; position:absolute; inset:0; background: linear-gradient(135deg, rgba(255,140,51,0.05), transparent 70%); pointer-events:none; }
+    .cc-trigger > * { position: relative; }
+
+    .cc-source-row { background: rgba(20,20,28,0.5); border:1px solid var(--border-soft); border-radius: 8px; padding: 12px; display:flex; align-items:center; gap:12px; margin-bottom: 12px; min-height: 56px; }
+    .cc-source-icon { width: 32px; height: 32px; border-radius: 6px; background: rgba(52,211,153,0.1); display:flex; align-items:center; justify-content:center; color: var(--good); flex-shrink: 0; }
+    .cc-source-icon.warn { background: rgba(251,113,133,0.1); color: var(--bad); }
+
+    .cc-build-button { width: 100%; padding: 11px; border-radius: 6px; background: var(--accent); color: #2a1a04; font-weight: 700; font-size: 13px; border: 0; cursor: pointer; box-shadow: 0 0 15px rgba(255,140,51,0.2); display:flex; align-items:center; justify-content:center; gap:8px; transition: all 0.15s; letter-spacing: 0.02em; }
+    .cc-build-button:hover { background: var(--accent-hi); box-shadow: 0 0 20px rgba(255,140,51,0.4); }
+
+    .cc-upload-btn { width:100%; padding:8px; border:1px dashed var(--border); border-radius:6px; background:transparent; color: var(--text-dim); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition: all 0.15s; }
+    .cc-upload-btn:hover { color: var(--text); background: rgba(31,31,39,0.4); border-color: var(--text-mute); }
+
+    .cc-input { width:100%; background:#0e0e15; border:1px solid var(--border-soft); border-radius:6px; padding:8px 10px; font-family: ui-monospace, monospace; color: var(--text); font-size:13px; transition: all 0.15s; }
+    .cc-input:focus { outline:none; border-color: rgba(255,140,51,0.5); box-shadow: 0 0 0 2px rgba(255,140,51,0.15); }
+
+    /* Mission Control panel */
+    .cc-mission { background: #08080a; border: 1px solid var(--border-soft); border-radius: 10px; display:flex; flex-direction:column; max-height: calc(100vh - 96px); position: sticky; top: 80px; overflow: hidden; }
+    .cc-mission-header { display:flex; align-items:center; justify-content:space-between; padding: 13px 16px; border-bottom: 1px solid var(--border-soft); }
+    .cc-mission-title { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); display:flex; align-items:center; gap:10px; }
+    .cc-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--good); position: relative; }
+    .cc-pulse::after { content:""; position:absolute; inset:-3px; border-radius:50%; background: var(--good); opacity: 0.5; animation: ccping 1.6s ease-out infinite; }
+    @keyframes ccping { 0%{transform:scale(.6);opacity:.6} 100%{transform:scale(1.8);opacity:0} }
+
+    .cc-mission-body { flex:1; overflow-y:auto; padding: 14px 14px; display:flex; flex-direction:column; gap: 18px; min-height: 200px; }
+    .cc-mission-card { background: rgba(20,20,28,0.5); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px; }
+    .cc-section-title { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+
+    .cc-ota-legend { display:flex; flex-wrap:wrap; gap:10px; font-size:10px; color: var(--text-mute); margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-soft); }
+    .cc-ota-legend > span { display:inline-flex; align-items:center; gap:5px; }
+    .cc-ota-swatch { width:8px; height:8px; border-radius:2px; display:inline-block; }
+    .cc-ota-swatch.ok { background: var(--good); }
+    .cc-ota-swatch.wait { background: var(--warn); }
+    .cc-ota-swatch.old { background: var(--text-mute); opacity: 0.5; }
+
+    .cc-ota-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14px, 1fr)); gap: 4px; }
+    .cc-ota-cell { aspect-ratio: 1; border-radius: 2px; opacity: 0.85; cursor: pointer; transition: transform 0.1s; }
+    .cc-ota-cell:hover { transform: scale(1.4); opacity: 1; }
+    .cc-ota-cell.ok { background: var(--good); }
+    .cc-ota-cell.wait { background: var(--warn); animation: ccpulse 1.6s ease-in-out infinite; }
+    .cc-ota-cell.old { background: var(--text-mute); opacity: 0.4; }
+    @keyframes ccpulse { 50% { opacity: 0.5; } }
+
+    .cc-ota-row { display:flex; justify-content:space-between; align-items:center; padding: 6px 4px; font-size:11px; border-bottom: 1px solid rgba(31,31,39,0.5); }
+    .cc-ota-row:last-child { border-bottom: 0; }
+    .cc-ota-row .name { color: var(--accent); font-weight: 600; }
+    .cc-ota-row .key { font-family: ui-monospace, monospace; color: var(--text-mute); font-size: 10px; }
+
+    /* Terminal */
+    .cc-terminal { height: 180px; border-top: 1px solid var(--border-soft); background: #000; padding: 10px 14px; display:flex; flex-direction:column; gap: 6px; flex-shrink: 0; }
+    .cc-terminal-head { display:flex; justify-content:space-between; align-items:center; }
+    .cc-terminal-body { flex:1; overflow-y:auto; font-family: ui-monospace, monospace; font-size: 11px; color: #b8b8c4; line-height: 1.55; }
+    .cc-terminal-body div { padding: 1px 0; }
+    .cc-terminal-body .ok { color: rgba(52,211,153,0.95); }
+    .cc-terminal-body .arrow { color: var(--text); }
+    .cc-terminal-body .err { color: var(--bad); }
+    .cc-link-btn { background:none; border:0; color: var(--text-mute); font-size: 10px; cursor: pointer; }
+    .cc-link-btn:hover { color: var(--text); }
+
+    /* Artifact (build progress) - mission control style */
+    .artifact-item { padding: 10px 12px; background: rgba(20,20,28,0.6); border:1px solid var(--border-soft); border-radius: 8px; margin-bottom: 8px; }
+    .artifact-item:last-child { margin-bottom: 0; }
+    .artifact-name { font-weight: 600; color: var(--text); margin-bottom: 6px; font-size: 12px; display:flex; justify-content:space-between; align-items:center; }
+    .progress-bar-container { background:#000; border-radius: 99px; height: 5px; overflow:hidden; }
+    .progress-bar-fill { height:100%; transition: width .5s ease; border-radius: 99px; }
     .progress-bar-fill.building { background: linear-gradient(90deg, var(--accent), var(--accent-hi)); }
     .progress-bar-fill.completed { background: var(--good); }
     .progress-bar-fill.failed { background: var(--bad); }
-    .artifact-item {
-        padding: 12px;
-        border-bottom: 1px solid var(--border-soft);
-    }
-    .artifact-item:last-child { border-bottom: none; }
-    .artifact-name { font-weight: 600; color: var(--text); margin-bottom: 4px; }
-    .artifact-status { font-size: 12px; color: var(--text-dim); }
-    .scroll-table {
-        max-height: 480px;
-        overflow-y: auto;
-        overflow-x: auto;
-    }
-    .scroll-table table { margin: 0; }
-    .scroll-table thead th {
-        position: sticky;
-        top: 0;
-        background: var(--panel);
-        z-index: 1;
-    }
-    .filter-input {
-        background: var(--panel-2);
-        color: var(--text);
-        border: 1px solid var(--border-soft);
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 13px;
-        min-width: 220px;
-        outline: none;
-    }
-    .filter-input:focus { border-color: var(--accent); }
-    .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
-    .scroll-table::-webkit-scrollbar-track { background: var(--panel-2); }
-    .scroll-table::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 5px; }
-    .scroll-table::-webkit-scrollbar-thumb:hover { background: var(--border); }
-    .modal-backdrop {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-        z-index: 9999; display: flex; align-items: center; justify-content: center;
-    }
-    .modal-card {
-        background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px;
-        padding: 20px; min-width: 380px; max-width: 480px; width: 90%;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+    .artifact-status { font-size: 10px; color: var(--text-dim); margin-top: 6px; font-family: ui-monospace, monospace; }
+
+    /* Tables */
+    .cc-table { width: 100%; font-size: 12px; border-collapse: collapse; white-space: nowrap; }
+    .cc-table thead th { padding: 9px 12px; text-align: left; color: var(--text-mute); font-weight: 600; font-size: 11px; background: rgba(14,14,17,0.5); border-bottom: 1px solid var(--border-soft); }
+    .cc-table tbody tr { border-bottom: 1px solid rgba(31,31,39,0.5); transition: background 0.15s; }
+    .cc-table tbody tr:hover { background: rgba(31,31,39,0.25); }
+    .cc-table tbody tr:last-child { border-bottom: 0; }
+    .cc-table tbody td { padding: 9px 12px; vertical-align: middle; }
+    .cc-table tbody tr:hover .row-actions { opacity: 1; }
+    .row-actions { display:flex; gap:2px; justify-content:flex-end; opacity: 0; transition: opacity 0.15s; }
+    .row-actions form { display:inline; margin: 0; }
+    .row-actions .icon-btn { background:none; border:0; color: var(--text-dim); padding: 5px 6px; border-radius: 4px; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; }
+    .row-actions .icon-btn:hover { background: var(--border-soft); color: var(--text); }
+    .row-actions .icon-btn.danger:hover { color: var(--bad); }
+    .row-actions .icon-btn.warn:hover { color: var(--accent); }
+
+    /* Search */
+    .cc-search-wrap { position:relative; }
+    .cc-search-wrap > svg { position:absolute; left:8px; top:50%; transform:translateY(-50%); color: var(--text-mute); pointer-events:none; }
+    .cc-search-input { background:var(--panel-2); border:1px solid var(--border-soft); color:var(--text); border-radius:6px; padding:5px 10px 5px 26px; font-size:12px; outline:none; width: 200px; }
+    .cc-search-input:focus { border-color: var(--text-mute); }
+
+    /* Modal preserved */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .modal-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 20px; min-width: 380px; max-width: 480px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .modal-card .form-group { margin-bottom: 12px; }
-    .modal-card input[type="text"] {
-        width: 100%; background: var(--panel-2); color: var(--text);
-        border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px 10px;
-        font-size: 13px; outline: none; margin-top: 4px;
-    }
+    .modal-card input[type="text"] { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none; margin-top: 4px; }
     .modal-card input[type="text"]:focus { border-color: var(--accent); }
     .modal-card input[type="text"]:disabled { opacity: 0.45; }
 </style>
@@ -317,6 +418,31 @@
     var pollInterval = null;
     var activeBuildId = null;
     var socket = null;
+    var seenLogs = {};
+
+    function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function(m) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+        });
+    }
+
+    function appendLog(text, kind) {
+        var pane = document.getElementById('cc-log');
+        if (!pane) return;
+        if (seenLogs[text]) return;
+        seenLogs[text] = 1;
+        // Reset placeholder on first real log
+        if (pane.children.length === 1 && pane.children[0].style && pane.children[0].style.color) {
+            pane.innerHTML = '';
+        }
+        var d = document.createElement('div');
+        d.className = kind || '';
+        d.textContent = text;
+        pane.appendChild(d);
+        pane.scrollTop = pane.scrollHeight;
+        // Cap at 200 lines
+        while (pane.children.length > 200) pane.removeChild(pane.firstChild);
+    }
 
     function initSocket() {
         try {
@@ -338,9 +464,7 @@
         fetch("/api/build_status_all", { credentials: "same-origin" })
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (data.active_build) {
-                    startPolling(data.active_build);
-                }
+                if (data.active_build) startPolling(data.active_build);
             })
             .catch(function() {});
     }
@@ -348,8 +472,9 @@
     function startPolling(buildId) {
         activeBuildId = buildId;
         var area = document.getElementById("build-progress-area");
-        area.style.display = "block";
-
+        if (area) area.style.display = "block";
+        var b = document.getElementById('mission-state-badge');
+        if (b) { b.className = 'badge badge-pending'; b.textContent = 'IN PROGRESS'; }
         if (pollInterval) clearInterval(pollInterval);
         pollInterval = setInterval(function() { pollBuild(buildId); }, 5000);
         pollBuild(buildId);
@@ -362,9 +487,11 @@
                 renderProgress(data);
                 if (data.status === "completed" || data.status === "failed") {
                     activeBuildId = null;
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
+                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                    var b = document.getElementById('mission-state-badge');
+                    if (b) {
+                        b.className = data.status === 'completed' ? 'badge badge-online' : 'badge badge-revoked';
+                        b.textContent = data.status === 'completed' ? 'DONE' : 'FAILED';
                     }
                     setTimeout(function() { location.reload(); }, 3000);
                 }
@@ -375,19 +502,10 @@
     function renderProgress(data) {
         document.getElementById("build-version-label").textContent = "v" + (data.version || "");
         var badge = document.getElementById("build-status-badge");
-        if (data.status === "building") {
-            badge.className = "badge badge-pending";
-            badge.textContent = "Building";
-        } else if (data.status === "completed") {
-            badge.className = "badge badge-online";
-            badge.textContent = "Completed";
-        } else if (data.status === "failed") {
-            badge.className = "badge badge-revoked";
-            badge.textContent = "Failed";
-        } else {
-            badge.className = "badge badge-offline";
-            badge.textContent = data.status || "Pending";
-        }
+        if (data.status === "building") { badge.className = "badge badge-pending"; badge.textContent = "Building"; }
+        else if (data.status === "completed") { badge.className = "badge badge-online"; badge.textContent = "Done"; }
+        else if (data.status === "failed") { badge.className = "badge badge-revoked"; badge.textContent = "Failed"; }
+        else { badge.className = "badge badge-offline"; badge.textContent = data.status || "Pending"; }
 
         var list = document.getElementById("build-artifacts-list");
         var html = "";
@@ -395,30 +513,28 @@
             var keys = Object.keys(data.artifacts);
             for (var i = 0; i < keys.length; i++) {
                 var art = data.artifacts[keys[i]];
-                var statusClass = art.status || "building";
-                var pct = art.progress || 0;
+                var statusClass = (art.status === 'completed' || art.status === 'failed' || art.status === 'building') ? art.status : 'building';
+                var pct = Math.max(0, Math.min(100, parseInt(art.progress, 10) || 0));
+                var statusLabel = (art.status === 'completed') ? 'DONE' : (art.status === 'failed') ? 'ERR' : (art.status === 'building') ? (pct + '%') : 'QUEUED';
+                var statusColor = (art.status === 'completed') ? 'var(--good)' : (art.status === 'failed') ? 'var(--bad)' : (art.status === 'building') ? 'var(--accent)' : 'var(--text-mute)';
+                var artName = art.name || ('Config #' + keys[i]);
                 html += '<div class="artifact-item">';
-                html += '<div class="artifact-name">' + (art.name || "Config #" + keys[i]) + '</div>';
-                html += '<div class="progress-bar-container">';
-                html += '<div class="progress-bar-fill ' + statusClass + '" style="width: ' + pct + '%;"></div>';
-                html += '</div>';
-                html += '<div class="artifact-status">';
-                if (art.status === "completed") {
-                    html += '<span style="color: var(--good);">Completed</span>';
-                    if (art.filename) html += ' — ' + art.filename;
-                    if (art.size) html += ' (' + (art.size / 1024 / 1024).toFixed(1) + ' MB)';
-                } else if (art.status === "failed") {
-                    html += '<span style="color: var(--bad);">Failed: ' + (art.error || "Unknown error") + '</span>';
-                } else {
-                    html += 'Building... ' + pct + '%';
+                html += '<div class="artifact-name"><span>' + escHtml(artName) + '</span><span style="color:' + statusColor + '; font-family:ui-monospace, monospace; font-size:10px;">' + escHtml(statusLabel) + '</span></div>';
+                html += '<div class="progress-bar-container"><div class="progress-bar-fill ' + statusClass + '" style="width:' + pct + '%;"></div></div>';
+                if (art.status === 'completed' && art.filename) {
+                    html += '<div class="artifact-status">' + escHtml(art.filename) + (art.size ? ' • ' + (art.size / 1048576).toFixed(1) + ' MB' : '') + '</div>';
+                    appendLog('-> [' + artName + '] SUCCESS' + (art.size ? ' (' + (art.size/1048576).toFixed(1) + ' MB)' : ''), 'ok');
+                } else if (art.status === 'failed') {
+                    html += '<div class="artifact-status" style="color:var(--bad);">' + escHtml(art.error || 'Build failed') + '</div>';
+                    appendLog('-> [' + artName + '] FAILED: ' + (art.error || 'unknown'), 'err');
+                } else if (art.status === 'building') {
+                    appendLog('-> [' + artName + '] Compiling… ' + pct + '%', 'arrow');
                 }
-                html += '</div></div>';
+                html += '</div>';
             }
         }
-        if (data.error) {
-            html += '<div style="padding: 12px; color: var(--bad);">' + data.error + '</div>';
-        }
-        list.innerHTML = html || '<div style="padding: 12px; color: var(--text-mute);">Waiting...</div>';
+        if (data.error) html += '<div style="padding:10px; color: var(--bad); font-size:11px;">' + escHtml(data.error) + '</div>';
+        list.innerHTML = html || '<div style="padding:10px; color: var(--text-mute); font-size:11px;">Waiting…</div>';
     }
 
     function loadOtaStatus() {
@@ -427,29 +543,36 @@
             .then(function(data) {
                 var area = document.getElementById("ota-status-area");
                 if (!data.users || data.users.length === 0) {
-                    area.innerHTML = '<div style="color: var(--text-mute);">No active licenses detected yet</div>';
+                    area.innerHTML = '<div style="color: var(--text-mute); font-size:12px;">No active licenses detected yet</div>';
                     return;
                 }
-                var html = '<table id="ota-table" style="width:100%;"><thead><tr>';
-                html += '<th>App Name</th><th>License</th><th>Current</th><th>Latest</th><th>Status</th>';
-                html += '</tr></thead><tbody>';
+                // Build heatmap (cells are decorative + searchable via data-search)
+                var grid = '<div class="cc-ota-grid" id="ota-grid">';
                 for (var i = 0; i < data.users.length; i++) {
                     var u = data.users[i];
-                    var stateColor = 'var(--text-mute)';
-                    var stateLabel = u.ota_state;
-                    if (u.ota_state === 'updated') { stateColor = 'var(--good)'; stateLabel = 'Up to date'; }
-                    else if (u.ota_state === 'downloading') { stateColor = 'var(--accent)'; stateLabel = 'Downloading (' + (u.download_progress || 0) + '%)'; }
-                    else if (u.ota_state === 'outdated') { stateColor = 'var(--bad)'; stateLabel = 'Outdated'; }
-                    html += '<tr>';
-                    html += '<td style="font-weight:600;color:var(--accent-hi);">' + u.app_name + '</td>';
-                    html += '<td><span class="key-text" style="font-size:11px;">' + u.license_key + '</span></td>';
-                    html += '<td>' + u.current_version + '</td>';
-                    html += '<td>' + u.latest_version + '</td>';
-                    html += '<td style="color:' + stateColor + ';font-weight:600;">' + stateLabel + '</td>';
-                    html += '</tr>';
+                    var cls = 'old';
+                    if (u.ota_state === 'updated') cls = 'ok';
+                    else if (u.ota_state === 'downloading') cls = 'wait';
+                    var tip = (u.app_name || '') + ' — ' + (u.license_key || '') + ' (' + (u.current_version || '?') + ' \u2192 ' + (u.latest_version || '?') + ')';
+                    grid += '<div class="cc-ota-cell ' + cls + '" data-search="' + escHtml(((u.app_name||'') + ' ' + (u.license_key||'') + ' ' + (u.current_version||'') + ' ' + (u.latest_version||'') + ' ' + (u.ota_state||'')).toLowerCase()) + '" title="' + escHtml(tip) + '"></div>';
                 }
-                html += '</tbody></table>';
-                area.innerHTML = html;
+                grid += '</div>';
+
+                // Compact visible list of recent — also searchable
+                var list = '<div id="ota-list" style="margin-top:12px; max-height:200px; overflow-y:auto;">';
+                var max = Math.min(data.users.length, 10);
+                for (var k = 0; k < max; k++) {
+                    var w = data.users[k];
+                    var color = 'var(--text-mute)', label = w.ota_state || '';
+                    if (w.ota_state === 'updated') { color = 'var(--good)'; label = 'OK'; }
+                    else if (w.ota_state === 'downloading') { color = 'var(--warn)'; label = (parseInt(w.download_progress, 10) || 0) + '%'; }
+                    else if (w.ota_state === 'outdated') { color = 'var(--bad)'; label = 'Old'; }
+                    var searchKey = ((w.app_name||'') + ' ' + (w.license_key||'') + ' ' + (w.current_version||'') + ' ' + (w.latest_version||'') + ' ' + (w.ota_state||'')).toLowerCase();
+                    list += '<div class="cc-ota-row" data-search="' + escHtml(searchKey) + '"><div><div class="name">' + escHtml(w.app_name || '') + '</div><div class="key">' + escHtml(w.license_key || '') + '</div></div><div style="color:' + color + '; font-weight:600; font-size:10px;">' + escHtml(label) + '</div></div>';
+                }
+                list += '</div>';
+
+                area.innerHTML = grid + list;
                 var searchEl = document.getElementById("ota-search");
                 if (searchEl && searchEl.value) filterOta(searchEl.value);
             })
@@ -468,14 +591,19 @@
     };
 
     window.filterOta = function(query) {
-        window.filterTable("ota-table", query);
+        var q = (query || "").toLowerCase().trim();
+        var nodes = document.querySelectorAll('#ota-status-area [data-search]');
+        for (var i = 0; i < nodes.length; i++) {
+            var match = !q || nodes[i].getAttribute('data-search').indexOf(q) !== -1;
+            nodes[i].style.display = match ? "" : "none";
+        }
     };
 
     window.toggleAll = function(tableId, name, checked) {
         var table = document.getElementById(tableId);
         if (!table) return;
         var boxes = table.querySelectorAll('input[name="' + name + '"]');
-        for (var i = 0; i < boxes.length; i++) { boxes[i].checked = checked; }
+        for (var i = 0; i < boxes.length; i++) boxes[i].checked = checked;
     };
 
     window.updateConfigsBulkBtn = function() {
@@ -484,14 +612,8 @@
         var lbl = document.getElementById("configs-selected-count");
         var rbtn = document.getElementById("configs-rebuild-btn");
         var rlbl = document.getElementById("configs-rebuild-count");
-        if (btn && lbl) {
-            lbl.textContent = boxes.length;
-            btn.style.display = boxes.length > 0 ? "" : "none";
-        }
-        if (rbtn && rlbl) {
-            rlbl.textContent = boxes.length;
-            rbtn.style.display = boxes.length > 0 ? "" : "none";
-        }
+        if (btn && lbl) { lbl.textContent = boxes.length; btn.style.display = boxes.length > 0 ? "" : "none"; }
+        if (rbtn && rlbl) { rlbl.textContent = boxes.length; rbtn.style.display = boxes.length > 0 ? "" : "none"; }
     };
 
     window.updateBuildsBulkBtn = function() {
@@ -520,25 +642,18 @@
         document.getElementById("bulk-edit-modal").style.display = "flex";
     };
 
-    window.closeBulkEditModal = function() {
-        document.getElementById("bulk-edit-modal").style.display = "none";
-    };
+    window.closeBulkEditModal = function() { document.getElementById("bulk-edit-modal").style.display = "none"; };
 
     window.syncBulkEditFields = function() {
-        document.getElementById("bulk-license-server-url").disabled =
-            !document.getElementById("bulk-update-server-url").checked;
-        document.getElementById("bulk-license-secret").disabled =
-            !document.getElementById("bulk-update-secret").checked;
+        document.getElementById("bulk-license-server-url").disabled = !document.getElementById("bulk-update-server-url").checked;
+        document.getElementById("bulk-license-secret").disabled = !document.getElementById("bulk-update-secret").checked;
     };
 
     window.submitBulkEdit = function() {
         var updateUrl = document.getElementById("bulk-update-server-url").checked;
         var updateSecret = document.getElementById("bulk-update-secret").checked;
         var thenRebuild = document.getElementById("bulk-then-rebuild").checked;
-        if (!updateUrl && !updateSecret && !thenRebuild) {
-            alert("Tick at least one option (update a field and/or rebuild).");
-            return;
-        }
+        if (!updateUrl && !updateSecret && !thenRebuild) { alert("Tick at least one option."); return; }
         var form = document.getElementById("configs-bulk-form");
         var existing = form.querySelectorAll('input.bulk-extra');
         for (var i = 0; i < existing.length; i++) existing[i].remove();
@@ -548,17 +663,9 @@
             el.className = "bulk-extra";
             form.appendChild(el);
         }
-        if (updateUrl) {
-            addHidden("update_server_url", "on");
-            addHidden("license_server_url", document.getElementById("bulk-license-server-url").value);
-        }
-        if (updateSecret) {
-            addHidden("update_secret", "on");
-            addHidden("license_secret", document.getElementById("bulk-license-secret").value);
-        }
-        if (thenRebuild) {
-            addHidden("then_rebuild", "on");
-        }
+        if (updateUrl) { addHidden("update_server_url", "on"); addHidden("license_server_url", document.getElementById("bulk-license-server-url").value); }
+        if (updateSecret) { addHidden("update_secret", "on"); addHidden("license_secret", document.getElementById("bulk-license-secret").value); }
+        if (thenRebuild) addHidden("then_rebuild", "on");
         var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
         var verLabel = _cachedLauncherVersion ? ("v" + _cachedLauncherVersion) : "the launcher.py version";
         var msg = "Apply changes to " + count + " config(s)?";
@@ -571,7 +678,7 @@
         var count = document.querySelectorAll('input[name="config_ids"]:checked').length;
         if (count === 0) return;
         var verLabel = _cachedLauncherVersion ? ("v" + _cachedLauncherVersion) : "the current launcher.py version";
-        if (!confirm("Rebuild " + count + " selected config(s) into " + verLabel + "?\n\nNo fields will be changed. This takes a few minutes.")) return;
+        if (!confirm("Rebuild " + count + " selected config(s) into " + verLabel + "?")) return;
         var form = document.getElementById("configs-bulk-form");
         var existing = form.querySelectorAll('input.bulk-extra');
         for (var i = 0; i < existing.length; i++) existing[i].remove();
@@ -585,7 +692,7 @@
     window.submitBulkDeleteBuilds = function() {
         var count = document.querySelectorAll('input[name="build_ids"]:checked').length;
         if (count === 0) return;
-        if (!confirm("Delete " + count + " build(s)? This removes the database records and the .exe files from disk. Cannot be undone.")) return;
+        if (!confirm("Delete " + count + " build(s)?")) return;
         document.getElementById("builds-bulk-form").submit();
     };
 
@@ -594,24 +701,18 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var el = document.getElementById("launcher-info");
+                var tag = document.getElementById("launcher-version-tag");
                 if (!data.found) {
-                    el.innerHTML = '<span style="color: var(--bad); font-weight: 600;">launcher.py not found!</span> Upload one below to start building.';
+                    el.innerHTML = '<div class="cc-source-icon warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div style="color:var(--bad); font-weight:600; font-size:13px;">launcher.py not found</div><div style="color:var(--text-mute); font-size:11px;">Upload one to start building</div></div>';
+                    if (tag) tag.textContent = '—';
                     return;
                 }
                 var modified = new Date(data.modified * 1000);
-                var dateStr = modified.toLocaleString();
                 var sizeKB = (data.size / 1024).toFixed(1);
-                el.innerHTML =
-                    '<div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">' +
-                    '<div><span style="color: var(--text-dim);">Version:</span> <span style="color: var(--accent-hi); font-weight: 600;">' + data.version + '</span></div>' +
-                    '<div><span style="color: var(--text-dim);">App Name:</span> <span style="color: var(--text);">' + data.app_name + '</span></div>' +
-                    '<div><span style="color: var(--text-dim);">Size:</span> <span style="color: var(--text);">' + sizeKB + ' KB</span></div>' +
-                    '<div><span style="color: var(--text-dim);">Modified:</span> <span style="color: var(--text);">' + dateStr + '</span></div>' +
-                    '</div>';
+                el.innerHTML = '<div class="cc-source-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div style="min-width:0; flex:1;"><div style="color:var(--text); font-weight:600; font-size:13px;">launcher.py</div><div style="color:var(--text-mute); font-size:11px;" title="' + modified.toLocaleString() + ' • ' + sizeKB + ' KB • ' + data.app_name + '">' + sizeKB + ' KB • ' + timeAgo(modified) + '</div></div>';
+                if (tag) tag.textContent = 'v' + data.version;
                 var versionInput = document.getElementById("build-version-input");
-                if (versionInput && !versionInput.value) {
-                    versionInput.value = data.version;
-                }
+                if (versionInput && !versionInput.value) versionInput.value = data.version;
                 if (data.version) {
                     _cachedLauncherVersion = data.version;
                     var verEl = document.getElementById("bulk-launcher-version");
@@ -619,6 +720,14 @@
                 }
             })
             .catch(function() {});
+    }
+
+    function timeAgo(d) {
+        var s = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (s < 60) return 'just now';
+        if (s < 3600) return Math.floor(s/60) + 'm ago';
+        if (s < 86400) return Math.floor(s/3600) + 'h ago';
+        return Math.floor(s/86400) + 'd ago';
     }
 
     initSocket();

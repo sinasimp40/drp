@@ -670,6 +670,16 @@ def create_license():
         conn.commit()
         conn.close()
 
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({
+                "success": True,
+                "key": key,
+                "duration_value": duration_value,
+                "duration_unit": duration_unit,
+                "note": note,
+                "created_at": now,
+            })
+
         flash(f"License created: {key}", "success")
         return redirect(url_for("dashboard"))
 

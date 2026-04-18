@@ -1,31 +1,314 @@
 {% extends "base.html" %}
 {% block title %}Create License - License Admin{% endblock %}
-{% block topbar_title %}Create License Key{% endblock %}
+{% block topbar_title %}Workbench{% endblock %}
+
+{% block topbar_actions %}
+    <div class="kbd-hint">
+        <kbd>⌘</kbd><kbd>C</kbd><span>copies latest</span>
+    </div>
+    <span class="topbar-divider"></span>
+    <form method="POST" action="{{ url_for('unsuspend_all_licenses') }}" onsubmit="return confirm('Recover all suspended licenses?')" style="display:inline;">
+        <button type="submit" class="btn btn-secondary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Recover Suspended
+        </button>
+    </form>
+{% endblock %}
 
 {% block content %}
-<div style="max-width: 600px;">
-    <div class="card" style="padding: 24px;">
-        <form method="POST">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Duration</label>
-                    <input type="number" name="duration_value" value="24" min="1" max="9999" required>
-                </div>
-                <div class="form-group">
-                    <label>Unit</label>
-                    <select name="duration_unit">
-                        <option value="minutes">Minutes</option>
-                        <option value="hours" selected>Hours</option>
-                        <option value="days">Days</option>
-                    </select>
-                </div>
+<div class="cw-shell">
+
+    <!-- Quick Create Bar -->
+    <div class="cw-card cw-bar">
+        <div class="cw-bar-stripe"></div>
+        <form id="cw-form" class="cw-form" method="POST" action="{{ url_for('create_license') }}">
+            <div class="cw-bar-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>New Key</span>
             </div>
-            <div class="form-group">
-                <label>Note (optional)</label>
-                <input type="text" name="note" placeholder="e.g. Customer name, purpose...">
+
+            <div class="cw-segment">
+                <input type="number" name="duration_value" id="cw-duration" value="24" min="1" max="9999" required>
+                <select name="duration_unit" id="cw-unit">
+                    <option value="minutes">mins</option>
+                    <option value="hours" selected>hours</option>
+                    <option value="days">days</option>
+                </select>
             </div>
-            <button type="submit" class="btn btn-primary">Generate License Key</button>
+
+            <input type="text" name="note" id="cw-note" class="cw-note-input" placeholder="Note or reference (e.g. @user, payload type)…">
+
+            <button type="submit" id="cw-submit" class="cw-generate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Generate</span>
+            </button>
         </form>
     </div>
+
+    <!-- Session Activity -->
+    <div class="cw-card cw-activity">
+        <div class="cw-activity-header">
+            <h2 class="cw-h2">
+                Session Activity
+                <span class="cw-pill"><span id="cw-count">0</span> keys</span>
+            </h2>
+            <div class="cw-muted">Resets on page reload</div>
+        </div>
+        <div id="cw-list" class="cw-list">
+            <div class="cw-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2; margin-bottom:10px;"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>
+                <p>No keys generated this session.</p>
+                <p style="font-size:11px; opacity:0.6; margin-top:4px;">Use the workbench above to create one.</p>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<style>
+    .content-inner { max-width: 1100px !important; }
+
+    .topbar-divider { width:1px; height:20px; background: var(--border-soft); display:inline-block; }
+    .kbd-hint { display:inline-flex; align-items:center; gap:6px; font-size:11px; color: var(--text-mute); background: rgba(20,20,28,0.5); border:1px solid var(--border-soft); padding: 5px 10px; border-radius: 6px; font-family: ui-monospace, monospace; }
+    .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--border-soft); padding: 1px 6px; border-radius: 3px; font-family: inherit; color: var(--text); font-size: 10px; }
+
+    .cw-shell { display:flex; flex-direction:column; gap: 18px; }
+    .cw-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 10px; }
+    .cw-h2 { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; display:flex; align-items:center; gap:8px; }
+    .cw-pill { font-size: 10px; color: var(--text-mute); background: var(--panel-2); border: 1px solid var(--border-soft); padding: 1px 8px; border-radius: 99px; font-family: ui-monospace, monospace; font-weight: 500; }
+    .cw-muted { color: var(--text-mute); font-size: 11px; }
+
+    /* Bar */
+    .cw-bar { padding: 12px; position: relative; overflow: hidden; }
+    .cw-bar-stripe { position:absolute; top:0; bottom:0; left:0; width:3px; background: linear-gradient(180deg, var(--accent), var(--accent-low)); }
+    .cw-form { display: flex; align-items: center; gap: 12px; padding-left: 8px; }
+    .cw-bar-label { display:flex; align-items:center; gap:8px; flex-shrink:0; padding-left: 6px; }
+    .cw-bar-label span { font-size: 13px; font-weight: 600; color: var(--text); margin-right: 4px; }
+
+    .cw-segment { display:flex; align-items:center; background: rgba(14,14,21,0.85); border:1px solid var(--border-soft); border-radius:6px; overflow:hidden; flex-shrink:0; transition: all 0.15s; }
+    .cw-segment:focus-within { border-color: rgba(255,140,51,0.5); box-shadow: 0 0 0 2px rgba(255,140,51,0.15); }
+    .cw-segment input[type=number] { width: 60px; background: transparent; border: 0; padding: 8px 4px 8px 12px; color: var(--text); font-family: ui-monospace, monospace; font-size: 13px; text-align: right; outline: none; -moz-appearance: textfield; }
+    .cw-segment input[type=number]::-webkit-outer-spin-button, .cw-segment input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .cw-segment select { background: transparent; border: 0; color: var(--text-dim); font-size: 13px; padding: 8px 12px 8px 4px; outline: none; cursor: pointer; }
+    .cw-segment select:hover { color: var(--text); }
+
+    .cw-note-input { flex:1; min-width:0; background: rgba(14,14,21,0.85); border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; transition: all 0.15s; }
+    .cw-note-input::placeholder { color: var(--text-mute); }
+    .cw-note-input:focus { border-color: rgba(255,140,51,0.5); box-shadow: 0 0 0 2px rgba(255,140,51,0.15); }
+
+    .cw-generate { display:flex; align-items:center; gap:6px; background: var(--accent); color: #2a1a04; border: 0; padding: 8px 22px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 130px; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+    .cw-generate:hover { background: var(--accent-hi); }
+    .cw-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cw-generate.is-loading svg { animation: cw-spin 0.6s linear infinite; }
+    @keyframes cw-spin { to { transform: rotate(360deg); } }
+
+    /* Activity */
+    .cw-activity { display:flex; flex-direction:column; min-height: 400px; }
+    .cw-activity-header { display:flex; justify-content:space-between; align-items:center; padding: 14px 18px; border-bottom: 1px solid var(--border-soft); background: rgba(14,14,17,0.4); }
+    .cw-list { flex:1; overflow-y:auto; padding: 8px; display:flex; flex-direction:column; gap: 4px; }
+    .cw-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height: 240px; color: var(--text-mute); font-size: 13px; text-align:center; }
+    .cw-empty p { margin: 0; }
+
+    .cw-row { display:flex; justify-content:space-between; align-items:center; padding: 12px; border-radius: 8px; border: 1px solid transparent; transition: background 0.15s; }
+    .cw-row:hover { background: rgba(31,31,39,0.3); }
+    .cw-row.latest { background: rgba(255,140,51,0.05); border-color: rgba(255,140,51,0.2); }
+    .cw-row .left { display:flex; align-items:center; gap: 14px; min-width: 0; flex: 1; }
+    .cw-row .icon-wrap { width: 32px; height: 32px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--border-soft); display:flex; align-items:center; justify-content:center; flex-shrink: 0; color: var(--text-mute); }
+    .cw-row.latest .icon-wrap { color: var(--accent); }
+    .cw-row .info { min-width: 0; display:flex; flex-direction:column; gap: 4px; }
+    .cw-row .key-line { display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
+    .cw-row .key-text { font-family: ui-monospace, monospace; font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: 0.02em; }
+    .cw-row .meta-chip { display:inline-flex; align-items:center; gap: 4px; font-size: 10px; font-weight: 500; color: var(--text-dim); background: rgba(20,20,28,0.7); padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border-soft); }
+    .cw-row .timestamp { font-size: 11px; color: var(--text-mute); }
+    .cw-row .note { font-size: 11px; color: var(--text-dim); max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cw-row .right { display:flex; align-items:center; gap:6px; flex-shrink: 0; }
+    .cw-row .copy-btn { display:flex; align-items:center; gap:6px; background: var(--panel-2); border: 1px solid var(--border-soft); color: var(--text-dim); padding: 5px 11px; border-radius: 5px; font-size: 11px; font-weight: 500; cursor: pointer; opacity: 0; transition: all 0.15s; }
+    .cw-row.latest .copy-btn { opacity: 1; }
+    .cw-row:hover .copy-btn { opacity: 1; }
+    .cw-row .copy-btn:hover { color: var(--text); border-color: var(--text-mute); }
+    .cw-row .copy-btn.copied { background: rgba(52,211,153,0.1); color: var(--good); border-color: rgba(52,211,153,0.3); opacity: 1; }
+</style>
+
+<script>
+(function() {
+    var keys = []; // session-only
+    var COPY_RESET_MS = 2000;
+
+    var form = document.getElementById('cw-form');
+    var submitBtn = document.getElementById('cw-submit');
+    var durationInput = document.getElementById('cw-duration');
+    var unitSel = document.getElementById('cw-unit');
+    var noteInput = document.getElementById('cw-note');
+    var listEl = document.getElementById('cw-list');
+    var countEl = document.getElementById('cw-count');
+
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, function(m) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+        });
+    }
+
+    function timeAgo(ts) {
+        var s = Math.max(1, Math.floor((Date.now()/1000 - ts)));
+        if (s < 60) return 'Just now';
+        if (s < 3600) return Math.floor(s/60) + 'm ago';
+        if (s < 86400) return Math.floor(s/3600) + 'h ago';
+        return Math.floor(s/86400) + 'd ago';
+    }
+
+    function ICON_CLOCK() {
+        return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    }
+    function ICON_CAL() {
+        return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    }
+    function ICON_KEY() {
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>';
+    }
+    function ICON_COPY() {
+        return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    }
+    function ICON_CHECK() {
+        return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    }
+
+    function render() {
+        countEl.textContent = keys.length;
+        if (keys.length === 0) {
+            listEl.innerHTML = '<div class="cw-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2; margin-bottom:10px;"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg><p>No keys generated this session.</p><p style="font-size:11px; opacity:0.6; margin-top:4px;">Use the workbench above to create one.</p></div>';
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            var isLatest = (i === 0);
+            var isDays = (k.unit === 'days');
+            var unitLabel = k.unit === 'minutes' ? 'mins' : k.unit;
+            html += '<div class="cw-row' + (isLatest ? ' latest' : '') + '" data-id="' + k.id + '">';
+            html += '<div class="left">';
+            html += '<div class="icon-wrap">' + ICON_KEY() + '</div>';
+            html += '<div class="info">';
+            html += '<div class="key-line">';
+            html += '<code class="key-text">' + escapeHtml(k.key) + '</code>';
+            html += '<span class="meta-chip">' + (isDays ? ICON_CAL() : ICON_CLOCK()) + ' ' + escapeHtml(k.duration) + ' ' + escapeHtml(unitLabel) + '</span>';
+            html += '<span class="timestamp">• ' + escapeHtml(timeAgo(k.created_at)) + '</span>';
+            html += '</div>';
+            html += '<div class="note">' + escapeHtml(k.note || 'No note provided') + '</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="right">';
+            html += '<button type="button" class="copy-btn' + (k.copied ? ' copied' : '') + '" data-copy="' + escapeHtml(k.key) + '" data-id="' + k.id + '">' + (k.copied ? ICON_CHECK() + 'Copied' : ICON_COPY() + 'Copy') + '</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+        listEl.innerHTML = html;
+    }
+
+    function copyToClipboard(text, id) {
+        var doneCopy = function() {
+            var k = keys.find(function(x) { return x.id === id; });
+            if (k) {
+                k.copied = true;
+                render();
+                setTimeout(function() {
+                    var stillK = keys.find(function(x) { return x.id === id; });
+                    if (stillK) { stillK.copied = false; render(); }
+                }, COPY_RESET_MS);
+            }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(doneCopy).catch(fallback);
+        } else fallback();
+
+        function fallback() {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); doneCopy(); } catch(e) {}
+            document.body.removeChild(ta);
+        }
+    }
+
+    listEl.addEventListener('click', function(e) {
+        var btn = e.target.closest('.copy-btn');
+        if (!btn) return;
+        copyToClipboard(btn.dataset.copy, btn.dataset.id);
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (submitBtn.disabled) return;
+        var dv = durationInput.value;
+        if (!dv) { durationInput.focus(); return; }
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('is-loading');
+        submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+
+        var fd = new FormData();
+        fd.append('duration_value', dv);
+        fd.append('duration_unit', unitSel.value);
+        fd.append('note', noteInput.value);
+
+        fetch("{{ url_for('create_license') }}", {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            if (!data.success || !data.key) throw new Error(data.error || 'Generation failed');
+            var entry = {
+                id: 'k_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+                key: data.key,
+                duration: String(data.duration_value),
+                unit: data.duration_unit,
+                note: data.note || '',
+                created_at: data.created_at || (Date.now()/1000),
+                copied: false,
+            };
+            keys.unshift(entry);
+            if (keys.length > 25) keys = keys.slice(0, 25);
+            noteInput.value = '';
+            render();
+            // Auto-copy newly generated key
+            copyToClipboard(entry.key, entry.id);
+            durationInput.focus();
+        })
+        .catch(function(err) {
+            alert('Failed to generate key: ' + err.message);
+        })
+        .finally(function() {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('is-loading');
+            submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Generate</span>';
+        });
+    });
+
+    // Cmd/Ctrl+C copies latest key (when not in input)
+    window.addEventListener('keydown', function(e) {
+        if (!(e.metaKey || e.ctrlKey) || e.key !== 'c') return;
+        var t = document.activeElement;
+        if (!t) return;
+        var tag = t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+            if (window.getSelection && window.getSelection().toString()) return;
+        }
+        if (keys.length === 0) return;
+        e.preventDefault();
+        copyToClipboard(keys[0].key, keys[0].id);
+    });
+
+    // Auto-update timestamps every minute
+    setInterval(function() { if (keys.length) render(); }, 60000);
+
+    durationInput.focus();
+})();
+</script>
 {% endblock %}
