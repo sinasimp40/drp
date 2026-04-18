@@ -1,0 +1,20 @@
+2026-04-18 16:00:26
+manual
+error
+all 3 attempt(s) failed; 3 proxy(ies) removed; last error: network: Socket error: timed out
+Removed 3 dead proxy(ies): socks5://98.170.57.241:4145 (network: Socket error: timed out), socks5://58.19.55.88:15219 (network: Socket error: timed out), socks5://206.123.156.176:10110 (network: Socket error: timed out)
+2026-04-18 15:58:53
+manual
+error
+all 192 attempt(s) failed; 8 proxy(ies) removed; last error: stopped after 8 proxy attempts (cap reached)
+Removed 8 dead proxy(ies): http://91.132.92.150:80 (network: Tunnel connection failed: 503 Service Temporarily Unavailable), http://185.230.190.195:3128 (network: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1002)), http://138.124.99.216:8888 (network: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1002)), http://152.53.65.215:8090 (network: Remote end closed connection without response), http://154.193.243.86:40000 (network: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1002)), http://150.107.140.238:3128 (connect timeout after 8s), http://120.92.212.16:7890 (connect timeout after 8s), http://152.32.132.190:7890 (network: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1002))
+2026-04-18 15:58:18
+manual
+error
+all 200 attempt(s) failed; 8 proxy(ies) removed; last error: stopped after 8 proxy attempts (cap reached)
+Removed 8 dead proxy(ies): http://109.236.88.82:80 (network: Tunnel connection failed: 503 Service Temporarily Unavailable), http://176.126.164.213:80 (network: Tunnel connection failed: 400 Bad Request), http://23.88.88.105:443 (network: [WinError 10054] An existing connection was forcibly closed by the remote host), http://157.90.10.15:80 (connect timeout after 8s), http://112.198.22.122:80 (network: Tunnel connection failed: 500 Internal Server Error), http://123.30.154.171:7777 (network: Tunnel connection failed: 400 Bad Request), http://36.137.90.163:8081 (network: Tunnel connection failed: 400 Bad Request), http://174.138.119.88:80 (network: Remote end closed connection without response)
+2026-04-18 15:57:17
+manual
+error
+all 1 attempt(s) failed; 1 proxy(ies) removed; last error: network: Socket error: timed out
+Removed 1 dead proxy(ies): socks5://119.148.20.109:22122 (network: Socket error: timed out)
