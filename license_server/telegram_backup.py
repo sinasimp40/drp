@@ -397,28 +397,30 @@ def _attempt_send_document(token, chat_id, file_path, caption, proxy_url):
         if not ok:
             return "evict_proxy", why
     try:
-        with open(file_path, "rb") as f:
-            content = f.read()
+        file_size = os.path.getsize(file_path)
     except Exception as e:
-        return "bad_input", f"Failed to read file: {e}"
+        return "bad_input", f"Failed to stat file: {e}"
 
     filename = os.path.basename(file_path)
     fields = {"chat_id": chat_id}
     if caption:
         fields["caption"] = caption[:1024]
-    files = {"document": (filename, content, "application/octet-stream")}
-    boundary, body = _build_multipart(fields, files)
+    boundary, prefix, suffix = _build_multipart_envelope(
+        fields, "document", filename, "application/octet-stream"
+    )
+    total_length = len(prefix) + file_size + len(suffix)
+    stream = _MultipartFileStream(prefix, file_path, suffix, total_length)
 
     url = _api_url(token, "sendDocument")
-    req = urllib.request.Request(url, data=body, method="POST")
+    req = urllib.request.Request(url, data=stream, method="POST")
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-    req.add_header("Content-Length", str(len(body)))
+    req.add_header("Content-Length", str(total_length))
     try:
         opener = _build_opener(proxy_url)
         with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
             payload = json.loads(resp.read().decode("utf-8", errors="replace"))
             if payload.get("ok"):
-                size_kb = len(content) / 1024.0
+                size_kb = file_size / 1024.0
                 return "success", f"Uploaded {filename} ({size_kb:.1f} KB)"
             return "telegram_error", f"Telegram error: {payload.get('description', 'unknown')}"
     except urllib.error.HTTPError as e:
@@ -427,31 +429,111 @@ def _attempt_send_document(token, chat_id, file_path, caption, proxy_url):
         return _classify_url_error(e)
     except Exception as e:
         return _classify_exception(e)
+    finally:
+        stream.close()
 
 
-def _build_multipart(fields, files):
+def _build_multipart_envelope(fields, file_field, filename, ctype):
+    """Return (boundary, prefix_bytes, suffix_bytes) for a streaming upload.
+
+    The full multipart body on the wire is exactly:
+        prefix_bytes + <file content> + suffix_bytes
+    so the file content can be streamed from disk without ever loading it
+    into memory. Wire format matches a single non-streaming multipart
+    body byte-for-byte (CRLF line endings, no trailing whitespace).
+    """
     boundary = "----dprsBoundary" + uuid.uuid4().hex
     crlf = b"\r\n"
-    parts = []
+    head_parts = []
     for name, value in fields.items():
-        parts.append(("--" + boundary).encode("utf-8"))
-        parts.append(
+        head_parts.append(("--" + boundary).encode("utf-8"))
+        head_parts.append(
             f'Content-Disposition: form-data; name="{name}"'.encode("utf-8")
         )
-        parts.append(b"")
-        parts.append(str(value).encode("utf-8"))
-    for name, (filename, content, ctype) in files.items():
-        parts.append(("--" + boundary).encode("utf-8"))
-        parts.append(
-            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"'.encode("utf-8")
-        )
-        parts.append(f"Content-Type: {ctype}".encode("utf-8"))
-        parts.append(b"")
-        parts.append(content)
-    parts.append(("--" + boundary + "--").encode("utf-8"))
-    parts.append(b"")
-    body = crlf.join(parts)
-    return boundary, body
+        head_parts.append(b"")
+        head_parts.append(str(value).encode("utf-8"))
+    head_parts.append(("--" + boundary).encode("utf-8"))
+    head_parts.append(
+        f'Content-Disposition: form-data; name="{file_field}"; filename="{filename}"'.encode("utf-8")
+    )
+    head_parts.append(f"Content-Type: {ctype}".encode("utf-8"))
+    head_parts.append(b"")
+    # head_parts ends in b"" so crlf.join gives "...Content-Type: x\r\n";
+    # appending one more crlf produces the blank line that separates
+    # headers from the file body, matching the non-streaming wire format.
+    prefix = crlf.join(head_parts) + crlf
+    suffix = crlf + ("--" + boundary + "--").encode("utf-8") + crlf
+    return boundary, prefix, suffix
+
+
+class _MultipartFileStream:
+    """File-like wrapper that streams prefix + file contents + suffix.
+
+    Exposes a read(amt) method so http.client can pull the body in
+    blocksize-sized chunks (default 8 KB) without ever loading the whole
+    file into memory. Total byte count is fixed up front so callers can
+    set an accurate Content-Length header.
+    """
+
+    CHUNK = 64 * 1024
+
+    def __init__(self, prefix, file_path, suffix, total_length):
+        self._prefix = memoryview(prefix)
+        self._suffix = memoryview(suffix)
+        self._file_path = file_path
+        self._file = None
+        self._total = total_length
+        self._stage = "prefix"
+
+    def __len__(self):
+        return self._total
+
+    def read(self, amt=-1):
+        if amt is None or amt < 0:
+            amt = self._total
+        out = bytearray()
+        while amt > 0:
+            if self._stage == "prefix":
+                if len(self._prefix):
+                    take = min(amt, len(self._prefix))
+                    out.extend(self._prefix[:take])
+                    self._prefix = self._prefix[take:]
+                    amt -= take
+                else:
+                    self._stage = "file"
+                    try:
+                        self._file = open(self._file_path, "rb")
+                    except Exception:
+                        self._stage = "done"
+                        raise
+            elif self._stage == "file":
+                chunk = self._file.read(min(amt, self.CHUNK))
+                if not chunk:
+                    self._file.close()
+                    self._file = None
+                    self._stage = "suffix"
+                else:
+                    out.extend(chunk)
+                    amt -= len(chunk)
+            elif self._stage == "suffix":
+                if len(self._suffix):
+                    take = min(amt, len(self._suffix))
+                    out.extend(self._suffix[:take])
+                    self._suffix = self._suffix[take:]
+                    amt -= take
+                else:
+                    self._stage = "done"
+            else:
+                break
+        return bytes(out)
+
+    def close(self):
+        if self._file is not None:
+            try:
+                self._file.close()
+            except Exception:
+                pass
+            self._file = None
 
 
 # ---------- List-walking driver -------------------------------------------
