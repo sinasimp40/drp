@@ -100,8 +100,19 @@
 
 {% block extra_head %}
 <style>
-    .scroll-table { overflow-x: auto; }
+    .scroll-table {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: calc(100vh - 280px);
+        min-height: 320px;
+    }
     .scroll-table table { margin: 0; }
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--panel);
+    }
     .filter-input {
         background: var(--panel-2);
         color: var(--text);

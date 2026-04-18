@@ -82,7 +82,7 @@
             </div>
             {% if configs %}
             <form id="configs-bulk-form" method="POST" action="{{ url_for('bulk_edit_build_configs') }}">
-                <div style="overflow-x:auto;">
+                <div class="cc-table-scroll">
                     <table id="configs-table" class="cc-table">
                         <thead>
                             <tr>
@@ -153,7 +153,7 @@
             </div>
             {% if builds %}
             <form id="builds-bulk-form" method="POST" action="{{ url_for('bulk_delete_builds') }}">
-                <div style="overflow-x:auto;">
+                <div class="cc-table-scroll cc-table-scroll-sm">
                     <table id="history-table" class="cc-table">
                         <thead>
                             <tr>
@@ -384,8 +384,10 @@
     .artifact-status { font-size: 10px; color: var(--text-dim); margin-top: 6px; font-family: ui-monospace, monospace; }
 
     /* Tables */
+    .cc-table-scroll { overflow-x: auto; overflow-y: auto; max-height: 460px; }
+    .cc-table-scroll-sm { max-height: 360px; }
     .cc-table { width: 100%; font-size: 12px; border-collapse: collapse; white-space: nowrap; }
-    .cc-table thead th { padding: 9px 12px; text-align: left; color: var(--text-mute); font-weight: 600; font-size: 11px; background: rgba(14,14,17,0.5); border-bottom: 1px solid var(--border-soft); }
+    .cc-table thead th { padding: 9px 12px; text-align: left; color: var(--text-mute); font-weight: 600; font-size: 11px; background: rgba(14,14,17,0.5); border-bottom: 1px solid var(--border-soft); position: sticky; top: 0; z-index: 1; }
     .cc-table tbody tr { border-bottom: 1px solid rgba(31,31,39,0.5); transition: background 0.15s; }
     .cc-table tbody tr:hover { background: rgba(31,31,39,0.25); }
     .cc-table tbody tr:last-child { border-bottom: 0; }

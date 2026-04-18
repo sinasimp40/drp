@@ -170,8 +170,19 @@
     .kpi-value.warn { color: var(--warn); }
     .kpi-value.bad  { color: var(--bad); }
 
-    .scroll-table { overflow-x: auto; }
+    .scroll-table {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: calc(100vh - 320px);
+        min-height: 280px;
+    }
     .scroll-table table { margin: 0; }
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--panel);
+    }
 
     .filter-input {
         background: var(--panel-2);

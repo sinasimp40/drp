@@ -22,7 +22,7 @@
     .bk-status-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid; }
     .bk-status-pill.ok  { background: rgba(52,211,153,0.10); color: var(--good); border-color: rgba(52,211,153,0.25); }
     .bk-status-pill.err { background: rgba(251,113,133,0.10); color: var(--bad);  border-color: rgba(251,113,133,0.25); }
-    .bk-history { display: flex; flex-direction: column; }
+    .bk-history { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
     .bk-history-row { display: grid; grid-template-columns: 150px 90px 90px 1fr; gap: 10px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items:center; font-size: 12.5px; }
     .bk-history-row:last-child { border-bottom: none; }
     .bk-history-row .ts { color: var(--text-dim); font-variant-numeric: tabular-nums; }
