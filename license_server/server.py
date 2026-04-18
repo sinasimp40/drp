@@ -2585,9 +2585,15 @@ def backups_save():
         weekly_day = max(0, min(6, int(request.form.get("weekly_day") or 0)))
     except ValueError:
         weekly_day = 0
-    if not re.match(r"^\d{1,2}:\d{2}$", daily_time):
+    def _valid_hhmm(s):
+        m = re.match(r"^(\d{1,2}):(\d{2})$", s or "")
+        if not m:
+            return False
+        h, mi = int(m.group(1)), int(m.group(2))
+        return 0 <= h <= 23 and 0 <= mi <= 59
+    if not _valid_hhmm(daily_time):
         daily_time = "03:00"
-    if not re.match(r"^\d{1,2}:\d{2}$", weekly_time):
+    if not _valid_hhmm(weekly_time):
         weekly_time = "03:00"
 
     prev_type = (settings.get("schedule") or {}).get("type", "off")
@@ -2641,9 +2647,11 @@ def backups_status():
     return jsonify(telegram_backup.public_view(telegram_backup.load_settings()))
 
 
+init_db()
+telegram_backup.start_scheduler(DB_PATH)
+
+
 if __name__ == "__main__":
-    init_db()
-    telegram_backup.start_scheduler(DB_PATH)
     port = int(os.environ.get("LICENSE_PORT", os.environ.get("PORT", 3842)))
     if ADMIN_PASSWORD == "admin":
         print("WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!")
