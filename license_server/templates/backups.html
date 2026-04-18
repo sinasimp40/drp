@@ -82,17 +82,29 @@
                     <input type="text" name="caption_prefix" value="{{ settings.caption_prefix or '' }}" placeholder="e.g. DPRS prod backup" maxlength="200">
                 </div>
                 <div class="form-group">
-                    <label>Proxy URL (optional)
+                    <label>Proxy List
                         {% if settings.proxy_set %}
-                        <span class="bk-status-pill ok" style="margin-left:8px;">Active</span>
+                        <span class="bk-status-pill ok" style="margin-left:8px;">{{ settings.proxy_count }} configured</span>
+                        {% else %}
+                        <span class="bk-status-pill err" style="margin-left:8px;">Empty</span>
                         {% endif %}
                     </label>
-                    <input type="text" name="proxy_url" value="{{ settings.proxy_url_masked or '' }}" placeholder="socks5h://user:pass@host:1080  or  http://host:8080" maxlength="500" autocomplete="off">
+                    <textarea name="proxy_list" rows="6" placeholder="socks5h://user:pass@host:1080&#10;http://1.2.3.4:8080&#10;socks5://5.6.7.8:1080" style="font-family:'SF Mono','Consolas',monospace; font-size:12px; width:100%; resize:vertical;" autocomplete="off">{{ settings.proxy_list_text or '' }}</textarea>
                     <div class="bk-help">
-                        Use this if your server cannot reach <code>api.telegram.org</code> directly (e.g. blocked from Russia / China).
-                        Supports <code>http</code>, <code>https</code>, <code>socks5</code>, <code>socks5h</code>, <code>socks4</code>.
-                        Leave empty to connect directly. Free public SOCKS5 proxies work but are unreliable; a $1–3/mo VPS in another country is the cheapest stable option.
+                        One proxy URL per line. The server tries them <strong>in order</strong> until one works.
+                        Any proxy that fails with a network/connection error is <strong>removed automatically</strong>.
+                        Supports <code>http</code>, <code>https</code>, <code>socks5</code>, <code>socks5h</code>, <code>socks4</code>, <code>socks4a</code>.
+                        {% if settings.last_used_proxy %}
+                        <br>Last successful path: <code>{{ settings.last_used_proxy }}</code>
+                        {% endif %}
                     </div>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" name="try_direct_first" value="1" {% if settings.try_direct_first %}checked{% endif %} style="width:auto; margin:0;">
+                        <span>Try direct connection first (before proxies)</span>
+                    </label>
+                    <div class="bk-help">Leave off if your server cannot reach <code>api.telegram.org</code> directly — the direct attempt will just waste time.</div>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Credentials</button>
                 <div id="bk-creds-feedback" class="bk-feedback"></div>
@@ -115,7 +127,6 @@
         <form id="bk-sched-form" method="POST" action="{{ url_for('backups_save') }}">
             <input type="hidden" name="chat_id" value="{{ settings.chat_id or '' }}">
             <input type="hidden" name="caption_prefix" value="{{ settings.caption_prefix or '' }}">
-            <input type="hidden" name="proxy_url" value="{{ settings.proxy_url_masked or '' }}">
             <div class="body">
                 <div class="form-group">
                     <label>Frequency</label>
@@ -185,7 +196,18 @@
                 <div>
                     <span class="bk-status-pill {% if h.status == 'ok' %}ok{% else %}err{% endif %}">{{ h.status }}</span>
                 </div>
-                <div class="msg">{{ h.message }}</div>
+                <div class="msg">
+                    {{ h.message }}
+                    {% if h.used_proxy %}
+                    <div style="color:var(--text-mute); font-size:11px; margin-top:3px;">via <code>{{ h.used_proxy }}</code></div>
+                    {% endif %}
+                    {% if h.evictions %}
+                    <div style="color:var(--bad); font-size:11px; margin-top:3px;">
+                        Removed {{ h.evictions|length }} dead proxy(ies):
+                        {% for ev in h.evictions %}<code>{{ ev.proxy }}</code> ({{ ev.reason }}){% if not loop.last %}, {% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>

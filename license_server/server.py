@@ -2846,11 +2846,40 @@ def backups_save():
     settings["chat_id"] = chat_id
     settings["caption_prefix"] = caption_prefix[:200]
 
-    if "proxy_url" in request.form:
-        proxy_input = (request.form.get("proxy_url") or "").strip()
-        # Skip overwrite if the field still shows the masked value
-        if "***" not in proxy_input:
-            settings["proxy_url"] = proxy_input[:500]
+    # Proxy list (textarea, one URL per line) — only update if the field was
+    # submitted (the schedule form omits it so it doesn't clobber the list).
+    if "proxy_list" in request.form:
+        raw = request.form.get("proxy_list") or ""
+        allowed_schemes = ("http://", "https://", "socks5://", "socks5h://", "socks4://", "socks4a://")
+        cleaned = []
+        seen = set()
+        invalid = []
+        for line in raw.splitlines():
+            url = line.strip()
+            if not url:
+                continue
+            if url in seen:
+                continue
+            if not url.lower().startswith(allowed_schemes):
+                invalid.append(url[:80])
+                continue
+            seen.add(url)
+            cleaned.append(url[:500])
+            if len(cleaned) >= telegram_backup.MAX_PROXY_LIST:
+                break
+        if invalid and not _wants_json():
+            flash(
+                "Skipped invalid proxy lines (must start with http:// https:// socks5:// socks5h:// socks4:// or socks4a://): "
+                + ", ".join(invalid[:3]),
+                "error",
+            )
+        settings["proxy_list"] = cleaned
+        # Clear the legacy single field so it can't resurrect on next migrate.
+        settings["proxy_url"] = ""
+
+    if "try_direct_first" in request.form:
+        val = (request.form.get("try_direct_first") or "").strip().lower()
+        settings["try_direct_first"] = val in ("1", "true", "on", "yes")
 
     sched_type = (request.form.get("schedule_type") or "off").strip()
     if sched_type not in ("off", "interval", "daily", "weekly"):
@@ -2899,12 +2928,8 @@ def backups_save():
 @app.route("/backups/test", methods=["POST"])
 @require_admin
 def backups_test():
-    settings = telegram_backup.load_settings()
-    token = settings.get("bot_token", "")
-    chat_id = settings.get("chat_id", "")
-    proxy_url = settings.get("proxy_url", "")
     text = (request.form.get("text") or "DPRS backup test message").strip()
-    success, message = telegram_backup.send_message(token, chat_id, text, proxy_url=proxy_url)
+    success, message = telegram_backup.test_connection(text)
     if _wants_json():
         return jsonify({"success": success, "message": message})
     flash(message, "success" if success else "error")

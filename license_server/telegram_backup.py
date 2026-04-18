@@ -3,10 +3,15 @@
 Self-contained module: persistent JSON settings, stdlib-only Telegram
 sender (Bot API), and a background scheduler thread that uploads the
 licenses database on a configured schedule.
+
+Supports a *list* of proxies tried in order with auto-eviction of dead
+ones (network/SOCKS/connect/timeout/proxy-407/proxy-502 failures).
+Telegram-side errors (401/413/429/etc.) never evict the proxy.
 """
 
 import json
 import os
+import socket
 import threading
 import time
 import uuid
@@ -17,13 +22,19 @@ from datetime import datetime
 
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backup_settings.json")
 HISTORY_LIMIT = 10
-HTTP_TIMEOUT = 60
+HTTP_TIMEOUT = 60          # full read timeout once a connection is established
+CONNECT_TIMEOUT = 8        # short timeout used during the initial handshake
+MAX_PROXY_ATTEMPTS = 8     # cap proxies tried per backup so the scheduler can't hang
+MAX_TOTAL_SECONDS = 120    # overall wall-clock cap per backup attempt
+MAX_PROXY_LIST = 200       # hard cap on persisted list size
 
 _DEFAULTS = {
     "bot_token": "",
     "chat_id": "",
     "caption_prefix": "",
-    "proxy_url": "",
+    "proxy_url": "",                # legacy, migrated into proxy_list on load
+    "proxy_list": [],               # ordered list of proxy URLs
+    "try_direct_first": False,      # if True, try a direct connection before walking the list
     "schedule": {
         "type": "off",          # off | interval | daily | weekly
         "interval_hours": 24,
@@ -32,6 +43,7 @@ _DEFAULTS = {
         "weekly_time": "03:00",
     },
     "last_run_at": 0.0,
+    "last_used_proxy": "",          # masked URL of the proxy that worked last time
     "history": [],
 }
 
@@ -50,16 +62,29 @@ def _deep_merge(base, override):
     return out
 
 
+def _migrate(settings):
+    """Move legacy single proxy_url into proxy_list[0] if not present."""
+    legacy = (settings.get("proxy_url") or "").strip()
+    proxy_list = settings.get("proxy_list")
+    if not isinstance(proxy_list, list):
+        proxy_list = []
+    if legacy and legacy not in proxy_list:
+        proxy_list.insert(0, legacy)
+    settings["proxy_list"] = proxy_list
+    settings["proxy_url"] = ""
+    return settings
+
+
 def load_settings():
     with _lock:
         if not os.path.isfile(SETTINGS_FILE):
-            return json.loads(json.dumps(_DEFAULTS))
+            return _migrate(json.loads(json.dumps(_DEFAULTS)))
         try:
             with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
-            return json.loads(json.dumps(_DEFAULTS))
-        return _deep_merge(_DEFAULTS, data)
+            return _migrate(json.loads(json.dumps(_DEFAULTS)))
+        return _migrate(_deep_merge(_DEFAULTS, data))
 
 
 def save_settings(settings):
@@ -84,12 +109,19 @@ def public_view(settings):
         s["bot_token_masked"] = ""
         s["bot_token_set"] = False
     s["chat_id_set"] = bool(s.get("chat_id"))
-    proxy = (s.get("proxy_url") or "").strip()
-    s["proxy_set"] = bool(proxy)
-    if proxy:
-        s["proxy_url_masked"] = _mask_proxy(proxy)
-    else:
-        s["proxy_url_masked"] = ""
+
+    proxy_list = [p for p in (s.get("proxy_list") or []) if isinstance(p, str) and p.strip()]
+    s["proxy_list"] = proxy_list
+    s["proxy_list_text"] = "\n".join(proxy_list)
+    s["proxy_list_masked"] = [_mask_proxy(p) for p in proxy_list]
+    s["proxy_count"] = len(proxy_list)
+    s["proxy_set"] = bool(proxy_list)
+    s["try_direct_first"] = bool(s.get("try_direct_first"))
+    s["last_used_proxy"] = s.get("last_used_proxy") or ""
+
+    # Legacy compatibility for any template still referencing these:
+    s["proxy_url_masked"] = s["proxy_list_masked"][0] if s["proxy_list_masked"] else ""
+
     s.pop("bot_token", None)
     s.pop("proxy_url", None)
     return s
@@ -159,8 +191,11 @@ def _build_opener(proxy_url):
                 sock = socks.socksocket()
                 sock.set_proxy(stype, proxy_host, proxy_port, rdns=rdns,
                                username=proxy_user, password=proxy_pass)
-                sock.settimeout(self.timeout)
+                # Use the short connect timeout for the SOCKS handshake +
+                # destination connect, then raise it for the upload itself.
+                sock.settimeout(CONNECT_TIMEOUT)
                 sock.connect((self.host, self.port))
+                sock.settimeout(self.timeout)
                 self.sock = self._context.wrap_socket(
                     sock, server_hostname=self.host)
 
@@ -179,9 +214,76 @@ def _build_opener(proxy_url):
     return urllib.request.build_opener(proxy_handler)
 
 
-def send_message(token, chat_id, text, proxy_url=""):
+# ---------- Failure classification ----------------------------------------
+
+# Outcomes returned by _attempt_*:
+#   "success"        — proxy + Telegram both happy
+#   "telegram_error" — request reached Telegram which returned a real API error
+#                      (401/413/429/etc.) — DO NOT evict the proxy
+#   "evict_proxy"    — network / SOCKS / connect / timeout / proxy-407 / 502 etc.
+#   "bad_input"      — token / chat id missing
+#
+# Each returns: (outcome, message)
+
+
+def _classify_http_error(err):
+    """An HTTPError can be from Telegram OR from an upstream proxy.
+
+    Treat as Telegram error only if the body parses as Telegram's
+    {ok:false, description:...} envelope. Otherwise assume proxy.
+    """
+    code = getattr(err, "code", 0) or 0
+    try:
+        body = err.read().decode("utf-8", errors="replace")
+    except Exception:
+        body = ""
+    desc = ""
+    looks_like_telegram = False
+    try:
+        data = json.loads(body) if body else None
+        if isinstance(data, dict) and "ok" in data:
+            looks_like_telegram = True
+            desc = data.get("description") or body
+    except Exception:
+        pass
+    if not desc:
+        desc = body[:200] if body else str(err)
+
+    if looks_like_telegram:
+        return "telegram_error", f"HTTP {code}: {desc}"
+
+    # Proxy-side codes we definitely treat as dead proxy.
+    if code in (407, 502, 503, 504):
+        return "evict_proxy", f"proxy HTTP {code}"
+    # Anything else without a Telegram envelope is suspicious — assume proxy.
+    return "evict_proxy", f"HTTP {code} (non-Telegram response)"
+
+
+def _classify_url_error(err):
+    reason = getattr(err, "reason", err)
+    text = str(reason).lower()
+    # All of these strongly suggest the proxy / network path is dead.
+    return "evict_proxy", f"network: {reason}"
+
+
+def _classify_exception(e):
+    name = type(e).__name__
+    text = str(e).lower()
+    # PySocks raises socks.ProxyError / GeneralProxyError / ConnectionError
+    if "socks" in name.lower() or "proxy" in text or "socks" in text:
+        return "evict_proxy", f"SOCKS handshake failed: {e}"
+    if isinstance(e, (socket.timeout, TimeoutError)):
+        return "evict_proxy", "timeout"
+    if isinstance(e, ConnectionError):
+        return "evict_proxy", f"connection: {e}"
+    return "evict_proxy", f"{name}: {e}"
+
+
+# ---------- Single-attempt senders (no list logic) ------------------------
+
+def _attempt_send_message(token, chat_id, text, proxy_url):
     if not token or not chat_id:
-        return False, "Bot token and chat ID are required"
+        return "bad_input", "Bot token and chat ID are required"
     url = _api_url(token, "sendMessage")
     body = urllib.parse.urlencode({
         "chat_id": chat_id,
@@ -195,24 +297,52 @@ def send_message(token, chat_id, text, proxy_url=""):
         with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
             payload = json.loads(resp.read().decode("utf-8", errors="replace"))
             if payload.get("ok"):
-                return True, "Message delivered"
-            return False, f"Telegram error: {payload.get('description', 'unknown')}"
+                return "success", "Message delivered"
+            return "telegram_error", f"Telegram error: {payload.get('description', 'unknown')}"
     except urllib.error.HTTPError as e:
-        return False, _http_error_msg(e)
+        return _classify_http_error(e)
     except urllib.error.URLError as e:
-        return False, f"Network error: {e.reason}"
+        return _classify_url_error(e)
     except Exception as e:
-        return False, f"Unexpected error: {e}"
+        return _classify_exception(e)
 
 
-def _http_error_msg(err):
+def _attempt_send_document(token, chat_id, file_path, caption, proxy_url):
+    if not token or not chat_id:
+        return "bad_input", "Bot token and chat ID are required"
+    if not os.path.isfile(file_path):
+        return "bad_input", f"File not found: {file_path}"
     try:
-        body = err.read().decode("utf-8", errors="replace")
-        data = json.loads(body)
-        desc = data.get("description") or body
-    except Exception:
-        desc = str(err)
-    return f"HTTP {err.code}: {desc}"
+        with open(file_path, "rb") as f:
+            content = f.read()
+    except Exception as e:
+        return "bad_input", f"Failed to read file: {e}"
+
+    filename = os.path.basename(file_path)
+    fields = {"chat_id": chat_id}
+    if caption:
+        fields["caption"] = caption[:1024]
+    files = {"document": (filename, content, "application/octet-stream")}
+    boundary, body = _build_multipart(fields, files)
+
+    url = _api_url(token, "sendDocument")
+    req = urllib.request.Request(url, data=body, method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    req.add_header("Content-Length", str(len(body)))
+    try:
+        opener = _build_opener(proxy_url)
+        with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+            if payload.get("ok"):
+                size_kb = len(content) / 1024.0
+                return "success", f"Uploaded {filename} ({size_kb:.1f} KB)"
+            return "telegram_error", f"Telegram error: {payload.get('description', 'unknown')}"
+    except urllib.error.HTTPError as e:
+        return _classify_http_error(e)
+    except urllib.error.URLError as e:
+        return _classify_url_error(e)
+    except Exception as e:
+        return _classify_exception(e)
 
 
 def _build_multipart(fields, files):
@@ -240,95 +370,189 @@ def _build_multipart(fields, files):
     return boundary, body
 
 
+# ---------- List-walking driver -------------------------------------------
+
+def _walk_proxies(settings, attempt_fn):
+    """Try direct (optional) then each proxy in the list until one works.
+
+    `attempt_fn(proxy_url)` must return (outcome, message).
+
+    Mutates settings["proxy_list"] and settings["last_used_proxy"] in place
+    based on the outcomes. Returns a dict:
+        {
+            "success": bool,
+            "message": str,                # human-readable summary
+            "used_proxy": str,             # masked URL, "" for direct
+            "evictions": [ {proxy, reason}, ... ],
+        }
+    The caller is responsible for save_settings() under the same lock.
+    """
+    proxy_list = list(settings.get("proxy_list") or [])
+    try_direct = bool(settings.get("try_direct_first"))
+
+    candidates = []
+    if try_direct:
+        candidates.append(("", True))   # (url, is_direct)
+    for p in proxy_list:
+        candidates.append((p, False))
+
+    if not candidates:
+        return {
+            "success": False,
+            "message": "No proxies configured and direct connection is disabled.",
+            "used_proxy": "",
+            "evictions": [],
+        }
+
+    evictions = []           # [{proxy, reason}]
+    last_msg = ""
+    last_outcome = ""
+    started = time.time()
+    proxy_attempts = 0
+    new_list = list(proxy_list)
+
+    for url, is_direct in candidates:
+        if not is_direct:
+            if proxy_attempts >= MAX_PROXY_ATTEMPTS:
+                last_msg = f"stopped after {proxy_attempts} proxy attempts (cap reached)"
+                break
+            if (time.time() - started) >= MAX_TOTAL_SECONDS:
+                last_msg = f"stopped after {int(time.time() - started)}s wall-clock cap"
+                break
+            proxy_attempts += 1
+
+        outcome, msg = attempt_fn(url)
+        last_outcome, last_msg = outcome, msg
+
+        if outcome == "success":
+            used = "direct" if is_direct else _mask_proxy(url)
+            settings["proxy_list"] = new_list
+            settings["last_used_proxy"] = used
+            return {
+                "success": True,
+                "message": f"{msg} via {used}" if not is_direct else f"{msg} via direct",
+                "used_proxy": used,
+                "evictions": evictions,
+            }
+
+        if outcome == "telegram_error" or outcome == "bad_input":
+            # Proxy worked, Telegram (or our config) is the problem — stop.
+            settings["proxy_list"] = new_list
+            return {
+                "success": False,
+                "message": msg,
+                "used_proxy": "direct" if is_direct else _mask_proxy(url),
+                "evictions": evictions,
+            }
+
+        # outcome == "evict_proxy"
+        if not is_direct:
+            evictions.append({"proxy": _mask_proxy(url), "reason": msg})
+            try:
+                new_list.remove(url)
+            except ValueError:
+                pass
+
+    # Exhausted all candidates without success.
+    settings["proxy_list"] = new_list
+    parts = [f"all {len(candidates)} attempt(s) failed"]
+    if evictions:
+        parts.append(f"{len(evictions)} proxy(ies) removed")
+    if last_msg:
+        parts.append(f"last error: {last_msg}")
+    return {
+        "success": False,
+        "message": "; ".join(parts),
+        "used_proxy": "",
+        "evictions": evictions,
+    }
+
+
+# ---------- Public entrypoints --------------------------------------------
+
+def send_message(token, chat_id, text, proxy_url=""):
+    """Backwards-compatible single-attempt sender (no list walking).
+
+    Used by callers that want to test one specific proxy without touching
+    the saved list. Returns (success_bool, message).
+    """
+    outcome, msg = _attempt_send_message(token, chat_id, text, proxy_url)
+    return (outcome == "success"), msg
+
+
 def send_document(token, chat_id, file_path, caption="", proxy_url=""):
-    if not token or not chat_id:
-        return False, "Bot token and chat ID are required"
-    if not os.path.isfile(file_path):
-        return False, f"File not found: {file_path}"
-    try:
-        with open(file_path, "rb") as f:
-            content = f.read()
-    except Exception as e:
-        return False, f"Failed to read file: {e}"
-
-    filename = os.path.basename(file_path)
-    fields = {"chat_id": chat_id}
-    if caption:
-        fields["caption"] = caption[:1024]
-    files = {"document": (filename, content, "application/octet-stream")}
-    boundary, body = _build_multipart(fields, files)
-
-    url = _api_url(token, "sendDocument")
-    req = urllib.request.Request(url, data=body, method="POST")
-    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-    req.add_header("Content-Length", str(len(body)))
-    try:
-        opener = _build_opener(proxy_url)
-        with opener.open(req, timeout=HTTP_TIMEOUT) as resp:
-            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
-            if payload.get("ok"):
-                size_kb = len(content) / 1024.0
-                return True, f"Uploaded {filename} ({size_kb:.1f} KB)"
-            return False, f"Telegram error: {payload.get('description', 'unknown')}"
-    except urllib.error.HTTPError as e:
-        return False, _http_error_msg(e)
-    except urllib.error.URLError as e:
-        return False, f"Network error: {e.reason}"
-    except Exception as e:
-        return False, f"Unexpected error: {e}"
+    outcome, msg = _attempt_send_document(token, chat_id, file_path, caption, proxy_url)
+    return (outcome == "success"), msg
 
 
-# ---------- Run + history --------------------------------------------------
+def test_connection(text="DPRS backup test message"):
+    """Walk the saved proxy list with a tiny sendMessage call.
+
+    Returns (success_bool, message_string). Mutates the saved proxy list:
+    dead proxies are removed, the working one is recorded.
+    """
+    with _lock:
+        settings = load_settings()
+        token = settings.get("bot_token", "")
+        chat_id = settings.get("chat_id", "")
+
+        if not token or not chat_id:
+            return False, "Bot token and chat ID must be configured"
+
+        result = _walk_proxies(
+            settings,
+            lambda proxy: _attempt_send_message(token, chat_id, text, proxy),
+        )
+        save_settings(settings)
+        return result["success"], result["message"]
+
 
 def run_backup(db_path, run_type="manual"):
-    """Send the database file once. Records the attempt in history.
+    """Send the database file once, walking the proxy list with auto-eviction.
 
-    Returns (success, message).
+    Records the attempt (and any evictions) in history. Returns
+    (success_bool, message_string).
     """
     with _lock:
         settings = load_settings()
         token = settings.get("bot_token", "")
         chat_id = settings.get("chat_id", "")
         prefix = (settings.get("caption_prefix") or "").strip()
-        proxy_url = (settings.get("proxy_url") or "").strip()
 
-    if not token or not chat_id:
-        msg = "Bot token and chat ID must be configured"
-        with _lock:
-            s = load_settings()
-            append_history(s, _entry(run_type, False, msg))
-            save_settings(s)
-        return False, msg
+        if not token or not chat_id:
+            msg = "Bot token and chat ID must be configured"
+            append_history(settings, _entry(run_type, False, msg, "", []))
+            save_settings(settings)
+            return False, msg
 
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    caption = f"{prefix + ' — ' if prefix else ''}{run_type} backup at {ts}"
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        caption = f"{prefix + ' — ' if prefix else ''}{run_type} backup at {ts}"
 
-    success, message = send_document(token, chat_id, db_path, caption=caption, proxy_url=proxy_url)
-    if not success:
-        # Single retry on failure
-        time.sleep(2)
-        success, retry_msg = send_document(token, chat_id, db_path, caption=caption, proxy_url=proxy_url)
-        if success:
-            message = retry_msg + " (after retry)"
-        else:
-            message = f"{message} | retry: {retry_msg}"
+        result = _walk_proxies(
+            settings,
+            lambda proxy: _attempt_send_document(token, chat_id, db_path, caption, proxy),
+        )
 
-    with _lock:
-        s = load_settings()
-        append_history(s, _entry(run_type, success, message))
-        if success:
-            s["last_run_at"] = time.time()
-        save_settings(s)
-    return success, message
+        append_history(
+            settings,
+            _entry(run_type, result["success"], result["message"],
+                   result["used_proxy"], result["evictions"]),
+        )
+        if result["success"]:
+            settings["last_run_at"] = time.time()
+        save_settings(settings)
+        return result["success"], result["message"]
 
 
-def _entry(run_type, success, message):
+def _entry(run_type, success, message, used_proxy="", evictions=None):
     return {
         "ts": time.time(),
         "ts_text": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "type": run_type,
         "status": "ok" if success else "error",
         "message": message,
+        "used_proxy": used_proxy or "",
+        "evictions": list(evictions or []),
     }
 
 
