@@ -1847,10 +1847,20 @@ def main():
             app.processEvents()
 
             try:
-                process = subprocess.Popen(
-                    [exe_path],
-                    cwd=paths["roblox"],
-                )
+                _roblox_popen_kwargs = {
+                    "cwd": paths["roblox"],
+                    "close_fds": True,
+                }
+                if sys.platform == "win32":
+                    _DETACHED_PROCESS = 0x00000008
+                    _CREATE_NEW_PROCESS_GROUP = 0x00000200
+                    _CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+                    _roblox_popen_kwargs["creationflags"] = (
+                        _DETACHED_PROCESS
+                        | _CREATE_NEW_PROCESS_GROUP
+                        | _CREATE_BREAKAWAY_FROM_JOB
+                    )
+                process = subprocess.Popen([exe_path], **_roblox_popen_kwargs)
                 app._roblox_pid = process.pid
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
