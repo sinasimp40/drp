@@ -163,6 +163,30 @@ By default, Windows blocks incoming connections. Even if the server is running, 
 
 ### 6a. Open the port in Windows Firewall
 
+**Option 1 — One-line command (fastest):**
+
+Open **PowerShell as Administrator** and paste:
+
+```
+New-NetFirewallRule -DisplayName "License Server" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow
+```
+
+Replace `5000` with whatever port you chose in Step 4d. Done — the port is now open.
+
+To **remove** the rule later:
+
+```
+Remove-NetFirewallRule -DisplayName "License Server"
+```
+
+To **check** that the rule exists:
+
+```
+Get-NetFirewallRule -DisplayName "License Server"
+```
+
+**Option 2 — Click-through (if you prefer the GUI):**
+
 1. Press **Win + R**, type `wf.msc`, press Enter. (This opens Windows Defender Firewall with Advanced Security.)
 2. Click **Inbound Rules** (left sidebar) → **New Rule…** (right sidebar).
 3. Choose **Port** → click **Next**.
