@@ -171,6 +171,16 @@ def init_db():
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE build_configs ADD COLUMN embedded_key TEXT DEFAULT ''")
         conn.commit()
+    try:
+        conn.execute("SELECT minimum_supported_version FROM build_configs LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE build_configs ADD COLUMN minimum_supported_version TEXT DEFAULT ''")
+        conn.commit()
+    try:
+        conn.execute("SELECT required_update FROM builds LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE builds ADD COLUMN required_update INTEGER DEFAULT 0")
+        conn.commit()
     conn.close()
 
 
@@ -1732,16 +1742,25 @@ def builds_page():
 
     build_list = []
     for b in past_builds:
+        try:
+            req = bool(b["required_update"])
+        except (KeyError, IndexError):
+            req = False
         build_list.append({
             "id": b["id"], "version": b["version"], "status": b["status"],
             "total": b["total_configs"], "completed": b["completed_configs"],
             "started": format_time(b["started_at"]), "finished": format_time(b["completed_at"]),
             "error": b["error_message"] or "",
             "artifacts": all_artifacts.get(b["id"], []),
+            "required_update": req,
         })
 
     config_list = []
     for c in configs:
+        try:
+            min_ver = c["minimum_supported_version"] or ""
+        except (KeyError, IndexError):
+            min_ver = ""
         config_list.append({
             "id": c["id"], "app_name": c["app_name"],
             "hardcoded_path": c["hardcoded_path"],
@@ -1749,6 +1768,7 @@ def builds_page():
             "license_note": c["license_note"] or "",
             "has_icon": bool(c["icon_filename"]),
             "license_server_url": c["license_server_url"] or "",
+            "minimum_supported_version": min_ver,
         })
 
     return render_template("builds.html", configs=config_list, builds=build_list)
@@ -1766,6 +1786,10 @@ def create_build_config():
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
+        min_supported = request.form.get("minimum_supported_version", "").strip()
+        if min_supported and not re.match(r'^\d+\.\d+\.\d+$', min_supported):
+            flash("Minimum supported version must be in format X.Y.Z (e.g. 1.2.0)", "error")
+            return redirect(url_for("create_build_config"))
 
         icon_filename = ""
         icon_file = request.files.get("icon")
@@ -1781,8 +1805,8 @@ def create_build_config():
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, icon_filename))
 
         conn.execute(
-            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time())
+            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, minimum_supported_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, min_supported, time.time())
         )
         conn.commit()
         conn.close()
@@ -1814,6 +1838,10 @@ def edit_build_config(config_id):
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
+        min_supported = request.form.get("minimum_supported_version", "").strip()
+        if min_supported and not re.match(r'^\d+\.\d+\.\d+$', min_supported):
+            flash("Minimum supported version must be in format X.Y.Z (e.g. 1.2.0)", "error")
+            return redirect(url_for("edit_build_config", config_id=config_id))
 
         icon_filename = config["icon_filename"]
         icon_file = request.files.get("icon")
@@ -1829,8 +1857,8 @@ def edit_build_config(config_id):
                 icon_filename = new_icon
 
         conn.execute(
-            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, updated_at=? WHERE id=?",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time(), config_id)
+            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, minimum_supported_version=?, updated_at=? WHERE id=?",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, min_supported, time.time(), config_id)
         )
         conn.commit()
         conn.close()
@@ -1841,12 +1869,17 @@ def edit_build_config(config_id):
         "SELECT id, license_key, note, status FROM licenses WHERE status IN ('active', 'pending', 'suspended') ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
+    try:
+        cfg_min_ver = config["minimum_supported_version"] or ""
+    except (KeyError, IndexError):
+        cfg_min_ver = ""
     config_dict = {
         "id": config["id"], "license_id": config["license_id"],
         "app_name": config["app_name"], "hardcoded_path": config["hardcoded_path"],
         "license_server_url": config["license_server_url"],
         "license_secret": config["license_secret"], "icon_filename": config["icon_filename"],
         "embedded_key": config["embedded_key"] or "",
+        "minimum_supported_version": cfg_min_ver,
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
 
@@ -2125,6 +2158,24 @@ def delete_build(build_id):
                 pass
 
     flash(f"Build v{version} deleted", "success")
+    return redirect(url_for("builds_page"))
+
+
+@app.route("/build/<int:build_id>/toggle_required", methods=["POST"])
+@require_admin
+def toggle_build_required(build_id):
+    conn = get_db()
+    build = conn.execute("SELECT id, version, COALESCE(required_update, 0) AS required_update FROM builds WHERE id = ?", (build_id,)).fetchone()
+    if not build:
+        conn.close()
+        flash("Build not found", "error")
+        return redirect(url_for("builds_page"))
+    new_val = 0 if build["required_update"] else 1
+    conn.execute("UPDATE builds SET required_update = ? WHERE id = ?", (new_val, build_id))
+    conn.commit()
+    conn.close()
+    state = "marked as REQUIRED" if new_val else "marked as optional"
+    flash(f"Build v{build['version']} {state}", "success")
     return redirect(url_for("builds_page"))
 
 
@@ -2546,10 +2597,10 @@ def api_update_check():
 
     config = None
     if client_config_id:
-        config = conn.execute("SELECT id, app_name FROM build_configs WHERE id = ?", (client_config_id,)).fetchone()
+        config = conn.execute("SELECT id, app_name, minimum_supported_version FROM build_configs WHERE id = ?", (client_config_id,)).fetchone()
     if not config and client_config_hash_in:
         row = conn.execute(
-            "SELECT bc.id AS id, bc.app_name AS app_name "
+            "SELECT bc.id AS id, bc.app_name AS app_name, bc.minimum_supported_version AS minimum_supported_version "
             "FROM build_artifacts ba JOIN build_configs bc ON ba.build_config_id = bc.id "
             "WHERE ba.config_hash = ? ORDER BY ba.id DESC LIMIT 1",
             (client_config_hash_in,)
@@ -2557,14 +2608,14 @@ def api_update_check():
         if row:
             config = row
     if not config:
-        config = conn.execute("SELECT id, app_name FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
+        config = conn.execute("SELECT id, app_name, minimum_supported_version FROM build_configs WHERE license_id = ?", (license_row["id"],)).fetchone()
     if not config:
-        config = conn.execute("SELECT id, app_name FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
+        config = conn.execute("SELECT id, app_name, minimum_supported_version FROM build_configs WHERE embedded_key = ?", (key,)).fetchone()
     if not config and client_app_name:
-        config = conn.execute("SELECT id, app_name FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
+        config = conn.execute("SELECT id, app_name, minimum_supported_version FROM build_configs WHERE app_name = ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 1", (client_app_name,)).fetchone()
     if not config and client_app_name:
         row = conn.execute(
-            "SELECT bc.id AS id, bc.app_name AS app_name "
+            "SELECT bc.id AS id, bc.app_name AS app_name, bc.minimum_supported_version AS minimum_supported_version "
             "FROM build_artifacts ba JOIN build_configs bc ON ba.build_config_id = bc.id "
             "WHERE ba.app_name_snapshot = ? COLLATE NOCASE ORDER BY ba.id DESC LIMIT 1",
             (client_app_name,)
@@ -2580,12 +2631,18 @@ def api_update_check():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     artifact = conn.execute("""
-        SELECT ba.exe_filename, ba.file_size, ba.config_hash, b.version
+        SELECT ba.exe_filename, ba.file_size, ba.config_hash, b.version,
+               COALESCE(b.required_update, 0) AS required_update
         FROM build_artifacts ba
         JOIN builds b ON ba.build_id = b.id
         WHERE ba.build_config_id = ? AND ba.status = 'completed' AND b.status = 'completed'
         ORDER BY b.created_at DESC LIMIT 1
     """, (config["id"],)).fetchone()
+    min_supported_version = ""
+    try:
+        min_supported_version = (config["minimum_supported_version"] or "").strip()
+    except (KeyError, IndexError):
+        pass
     conn.close()
 
     if not artifact:
@@ -2605,13 +2662,23 @@ def api_update_check():
         elif server_config_hash != client_config_hash:
             config_changed = True
 
+    build_required_flag = bool(artifact["required_update"]) if "required_update" in artifact.keys() else False
+    min_required = False
+    if min_supported_version:
+        try:
+            if _version_compare(min_supported_version, current_version) > 0:
+                min_required = True
+        except Exception:
+            min_required = False
+    required_update = (version_newer and (build_required_flag or min_required))
+
     decision = "UPDATE" if (version_newer or config_changed) else "NO_UPDATE"
     msg = f"cfg#{config['id']} '{config['app_name']}' client_v={current_version} latest_v={latest_version} client_hash={client_config_hash[:16]} server_hash={server_config_hash[:16]} ver_newer={version_newer} cfg_changed={config_changed} -> {decision}"
     print(f"[OTA] {msg}")
     _record_ota({"ts": time.time(), "result": decision.lower(), "key": key[:8]+"...", "app_name": client_app_name, "matched_config_id": config["id"], "matched_app_name": config["app_name"], "client_config_id": client_config_id, "current_version": current_version, "latest_version": latest_version, "client_hash": client_config_hash[:16], "server_hash": server_config_hash[:16], "ver_newer": version_newer, "cfg_changed": config_changed, "msg": msg})
 
     if not version_newer and not config_changed:
-        resp = {"update_available": False, "latest_version": latest_version, "config_hash": server_config_hash}
+        resp = {"update_available": False, "latest_version": latest_version, "config_hash": server_config_hash, "required_update": False}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     file_path = os.path.join(BUILDS_DIR, latest_version, str(config["id"]), artifact["exe_filename"])
@@ -2639,6 +2706,8 @@ def api_update_check():
         "app_name": echo_app_name,
         "new_app_name": (config["app_name"] if config else ""),
         "config_hash": server_config_hash,
+        "required_update": bool(required_update),
+        "minimum_supported_version": min_supported_version,
     }
     return jsonify({"data": resp, "signature": sign_response(resp)})
 

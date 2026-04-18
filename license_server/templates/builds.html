@@ -160,6 +160,7 @@
                                 <th style="width:36px;"><input type="checkbox" id="builds-select-all" onclick="toggleAll('history-table','build_ids', this.checked); updateBuildsBulkBtn()"></th>
                                 <th>Version</th>
                                 <th>Status</th>
+                                <th>Required</th>
                                 <th>Progress</th>
                                 <th>Started</th>
                                 <th>Finished</th>
@@ -178,6 +179,16 @@
                                     {% elif b.status == 'building' %}<span class="badge badge-pending">Building</span>
                                     {% elif b.status == 'failed' %}<span class="badge badge-revoked">Failed</span>
                                     {% else %}<span class="badge badge-offline">{{ b.status }}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if b.status not in ('pending', 'building') %}
+                                    <form method="POST" action="{{ url_for('toggle_build_required', build_id=b.id) }}" style="display:inline;" onsubmit="return confirm('{% if b.required_update %}Unmark v{{ b.version }} as a required update?{% else %}Mark v{{ b.version }} as a REQUIRED update?\n\nLaunchers on older versions will refuse to start until they install this build.{% endif %}')">
+                                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:11px; color: {% if b.required_update %}var(--accent){% else %}var(--text-mute){% endif %};">
+                                            <input type="checkbox" {% if b.required_update %}checked{% endif %} onclick="this.form.submit()" title="Required update">
+                                            {% if b.required_update %}<span style="font-weight:700;">REQUIRED</span>{% else %}<span>Optional</span>{% endif %}
+                                        </label>
+                                    </form>
+                                    {% else %}<span style="color:var(--text-mute);">—</span>{% endif %}
                                 </td>
                                 <td>{{ b.completed }}/{{ b.total }}</td>
                                 <td>{{ b.started }}</td>
