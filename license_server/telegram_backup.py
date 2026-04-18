@@ -134,6 +134,20 @@ def public_view(settings, include_proxy_raw=False):
     except (TypeError, ValueError):
         s["auto_check_minutes"] = 60
     s["last_check_at"] = float(s.get("last_check_at") or 0.0)
+    s["auto_check_last_text"] = ""
+    s["auto_check_next_text"] = ""
+    if s["auto_check_enabled"]:
+        if s["last_check_at"] > 0:
+            try:
+                s["auto_check_last_text"] = datetime.fromtimestamp(
+                    s["last_check_at"]).strftime("%H:%M")
+                s["auto_check_next_text"] = datetime.fromtimestamp(
+                    s["last_check_at"] + s["auto_check_minutes"] * 60
+                ).strftime("%H:%M")
+            except (OverflowError, OSError, ValueError):
+                pass
+        else:
+            s["auto_check_next_text"] = "pending"
 
     if include_proxy_raw:
         s["proxy_list"] = proxy_list

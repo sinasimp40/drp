@@ -134,6 +134,11 @@
                 {% elif settings.schedule.type == 'weekly' %}Weekly {{ settings.schedule.weekly_time }}
                 {% endif %}
             </span>
+            {% if settings.auto_check_enabled %}
+            <span class="bk-status-pill ok" id="bk-autocheck-pill" style="margin-left:6px;" title="Automatic proxy check timing">
+                Auto-check: Last {{ settings.auto_check_last_text or '—' }} / Next {{ settings.auto_check_next_text or '—' }}
+            </span>
+            {% endif %}
         </div>
         <form id="bk-sched-form" method="POST" action="{{ url_for('backups_save') }}">
             <input type="hidden" name="chat_id" value="{{ settings.chat_id or '' }}">
