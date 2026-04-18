@@ -1201,6 +1201,18 @@ def apply_update_and_restart(new_exe_path):
 
         update_state_heartbeat(phase="restarting")
 
+        child_env = os.environ.copy()
+        for _pyi_var in (
+            "_MEIPASS2",
+            "_PYI_APPLICATION_HOME_DIR",
+            "_PYI_ARCHIVE_FILE",
+            "_PYI_PARENT_PROCESS_LEVEL",
+            "_PYI_SPLASH_IPC",
+            "PYI_SPLASH_IPC",
+        ):
+            child_env.pop(_pyi_var, None)
+        child_env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+
         try:
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -1211,10 +1223,15 @@ def apply_update_and_restart(new_exe_path):
                 creationflags=flags,
                 close_fds=True,
                 cwd=os.path.dirname(current_exe) or None,
+                env=child_env,
             )
         except Exception:
             try:
-                subprocess.Popen([current_exe, "--post-update-restart"], close_fds=True)
+                subprocess.Popen(
+                    [current_exe, "--post-update-restart"],
+                    close_fds=True,
+                    env=child_env,
+                )
             except Exception:
                 pass
 
