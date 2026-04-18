@@ -1157,6 +1157,8 @@ def api_history_data():
             "note": row["note"] or "",
             "status": row["status"],
             "duration_text": format_duration(row["duration_seconds"]),
+            "duration_seconds": int(row["duration_seconds"] or 0),
+            "expires_at_ts": row["expires_at"],
             "version": row["launcher_version"] or "",
         })
 
