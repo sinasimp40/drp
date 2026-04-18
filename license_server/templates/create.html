@@ -64,7 +64,9 @@
     </div>
 
 </div>
+{% endblock %}
 
+{% block extra_head %}
 <style>
     .content-inner { max-width: 1100px !important; }
 
@@ -128,7 +130,9 @@
     .cw-row .copy-btn:hover { color: var(--text); border-color: var(--text-mute); }
     .cw-row .copy-btn.copied { background: rgba(52,211,153,0.1); color: var(--good); border-color: rgba(52,211,153,0.3); opacity: 1; }
 </style>
+{% endblock %}
 
+{% block scripts %}
 <script>
 (function() {
     var keys = []; // session-only
