@@ -102,10 +102,14 @@ A zero-interaction portable Roblox launcher. Double-click the .exe and it does e
 5. Both stay open because both launchers hold the mutex in background
 6. Close Roblox → launcher detects it → clears rbx-storage.db → exits
 
-### Lock File (Multi-Instance Race Condition Fix)
-- A `.launcher_lock` file prevents race conditions when two launcher instances start within seconds
-- The lock contains PID and timestamp; if the lock is < 10 seconds old and the PID is alive, the second instance skips re-prompting for a license
-- Lock is released after Roblox launches successfully
+### Single-Instance Lock & Update Safety
+- Real Windows kernel mutex (`CreateMutexW`, name scoped to install path hash) enforces one launcher per install. The OS releases it automatically on crash/exit.
+- If a second launcher starts while one is already running, it shows a brief "Launcher is already running" / "Update in progress — please wait" splash and exits cleanly.
+- Mutex is released only after Roblox launches successfully, so the user can re-run the launcher to start additional Roblox sessions.
+- `.update_state` JSON file (pid, phase, target_version, started_at, last_heartbeat) is the dedicated update gate. A background heartbeat thread refreshes it every 15s while downloading/applying. Stale gates (dead PID or heartbeat > 120s) are cleared at startup.
+- Update swap is atomic: stage `current.exe.new`, `os.replace` current → `.bak`, `os.replace` `.new` → current, with rollback if the second step fails. `current.exe` is never left missing.
+- After applying the update, the new exe is spawned with `--post-update-restart`; the child retries mutex acquisition for up to 10 s to ride over the brief overlap with the exiting parent.
+- Startup recovery restores `current.exe` from `.bak` if the previous run was killed mid-swap.
 
 ## Folder Structure
 ```

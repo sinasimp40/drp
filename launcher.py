@@ -369,51 +369,240 @@ def clear_instance_login(my_files):
     return f"cleared_{cleared}"
 
 
-def get_lock_file():
-    return os.path.join(APP_DIR, ".launcher_lock")
+_launcher_mutex_handle = None
+_update_heartbeat_stop = None
+UPDATE_STATE_FILE = ".update_state"
+UPDATE_HEARTBEAT_TIMEOUT = 120
 
 
-def acquire_launcher_lock():
-    lock_path = get_lock_file()
+def _singleton_mutex_name():
+    h = hashlib.sha1(APP_DIR.lower().encode("utf-8", "replace")).hexdigest()[:16]
+    return f"Local\\DenfiLauncher_{h}"
+
+
+def acquire_singleton_mutex():
+    global _launcher_mutex_handle
+    if sys.platform != "win32":
+        return True
     try:
-        if os.path.isfile(lock_path):
+        ERROR_ALREADY_EXISTS = 183
+        kernel32 = ctypes.windll.kernel32
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_wchar_p]
+        kernel32.GetLastError.restype = ctypes.c_uint
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        handle = kernel32.CreateMutexW(None, 1, _singleton_mutex_name())
+        if not handle:
+            return False
+        last_err = kernel32.GetLastError()
+        if last_err == ERROR_ALREADY_EXISTS:
             try:
-                with open(lock_path, "r") as f:
-                    lock_data = json.load(f)
-                lock_time = lock_data.get("time", 0)
-                lock_pid = lock_data.get("pid", 0)
-                if import_time() - lock_time < 10:
-                    if lock_pid and lock_pid != os.getpid():
-                        if sys.platform == "win32":
-                            try:
-                                result = subprocess.run(
-                                    ["tasklist", "/FI", f"PID eq {lock_pid}", "/NH"],
-                                    capture_output=True, text=True,
-                                    creationflags=0x08000000
-                                )
-                                if str(lock_pid) in result.stdout:
-                                    return False
-                            except Exception:
-                                pass
+                kernel32.CloseHandle(handle)
             except Exception:
                 pass
-        with open(lock_path, "w") as f:
-            json.dump({"time": import_time(), "pid": os.getpid()}, f)
+            return False
+        _launcher_mutex_handle = handle
         return True
     except Exception:
-        return True
+        return False
 
 
-def release_launcher_lock():
-    lock_path = get_lock_file()
+def acquire_singleton_mutex_with_retry(timeout_s=10.0, interval_s=0.25):
+    import time as _t
+    deadline = import_time() + timeout_s
+    while True:
+        if acquire_singleton_mutex():
+            return True
+        if import_time() >= deadline:
+            return False
+        try:
+            _t.sleep(interval_s)
+        except Exception:
+            pass
+
+
+def release_singleton_mutex():
+    global _launcher_mutex_handle
+    if _launcher_mutex_handle is None or sys.platform != "win32":
+        _launcher_mutex_handle = None
+        return
     try:
-        if os.path.isfile(lock_path):
-            with open(lock_path, "r") as f:
-                lock_data = json.load(f)
-            if lock_data.get("pid") == os.getpid():
-                os.remove(lock_path)
+        kernel32 = ctypes.windll.kernel32
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        kernel32.CloseHandle(_launcher_mutex_handle)
     except Exception:
         pass
+    _launcher_mutex_handle = None
+
+
+def get_update_state_file():
+    return os.path.join(APP_DIR, UPDATE_STATE_FILE)
+
+
+def write_update_state(phase, target_version=""):
+    try:
+        with open(get_update_state_file(), "w") as f:
+            json.dump({
+                "pid": os.getpid(),
+                "phase": phase,
+                "target_version": target_version,
+                "started_at": import_time(),
+                "last_heartbeat": import_time(),
+            }, f)
+    except Exception:
+        pass
+
+
+def update_state_heartbeat(phase=None, target_version=None):
+    try:
+        path = get_update_state_file()
+        data = {}
+        if os.path.isfile(path):
+            try:
+                with open(path, "r") as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+        existing_pid = data.get("pid")
+        if existing_pid and existing_pid != os.getpid():
+            return
+        data["pid"] = os.getpid()
+        data["last_heartbeat"] = import_time()
+        if "started_at" not in data:
+            data["started_at"] = import_time()
+        if phase is not None:
+            data["phase"] = phase
+        if target_version is not None:
+            data["target_version"] = target_version
+        with open(path, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+
+def read_update_state():
+    try:
+        with open(get_update_state_file(), "r") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def clear_update_state():
+    try:
+        os.remove(get_update_state_file())
+    except Exception:
+        pass
+
+
+def _is_pid_alive(pid):
+    if not pid:
+        return False
+    if sys.platform != "win32":
+        return False
+    try:
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+            capture_output=True, text=True,
+            creationflags=0x08000000,
+        )
+        return str(pid) in result.stdout
+    except Exception:
+        return False
+
+
+def is_update_state_stale(state):
+    if not state:
+        return True
+    pid = state.get("pid")
+    if pid and pid != os.getpid() and not _is_pid_alive(pid):
+        return True
+    hb = state.get("last_heartbeat", 0)
+    if import_time() - hb > UPDATE_HEARTBEAT_TIMEOUT:
+        return True
+    return False
+
+
+def start_update_heartbeat():
+    global _update_heartbeat_stop
+    import threading
+    import time as _t
+    _update_heartbeat_stop = threading.Event()
+    stop_evt = _update_heartbeat_stop
+
+    def _loop():
+        while not stop_evt.is_set():
+            update_state_heartbeat()
+            stop_evt.wait(15)
+
+    t = threading.Thread(target=_loop, daemon=True)
+    t.start()
+
+
+def stop_update_heartbeat():
+    global _update_heartbeat_stop
+    if _update_heartbeat_stop is not None:
+        try:
+            _update_heartbeat_stop.set()
+        except Exception:
+            pass
+        _update_heartbeat_stop = None
+
+
+def recover_from_interrupted_update():
+    """Run at startup, before acquiring the singleton mutex.
+
+    1. If current.exe is missing but current.exe.bak exists (a swap was
+       interrupted), restore the backup.
+    2. If the update-gate state file is stale (PID dead or heartbeat
+       expired), clear it and remove leftover _update/ temp files.
+    3. If no fresh update gate exists and current.exe is in place, the
+       leftover .bak from a previous successful update can be removed.
+    """
+    state = read_update_state()
+    state_is_stale = is_update_state_stale(state) if state else True
+
+    if state and state_is_stale:
+        clear_update_state()
+
+    if not state_is_stale:
+        return
+
+    if sys.platform == "win32" and getattr(sys, 'frozen', False):
+        try:
+            current_exe = sys.executable
+            bak_path = current_exe + ".bak"
+            new_path = current_exe + ".new"
+            if os.path.exists(bak_path) and not os.path.exists(current_exe):
+                try:
+                    os.replace(bak_path, current_exe)
+                except Exception:
+                    pass
+            if os.path.exists(new_path) and os.path.exists(current_exe):
+                try:
+                    os.remove(new_path)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    update_dir = os.path.join(APP_DIR, "_update")
+    if os.path.isdir(update_dir):
+        try:
+            shutil.rmtree(update_dir, ignore_errors=True)
+        except Exception:
+            pass
+    if getattr(sys, 'frozen', False):
+        try:
+            current_exe = sys.executable
+            bak_path = current_exe + ".bak"
+            if os.path.exists(bak_path) and os.path.exists(current_exe):
+                try:
+                    os.remove(bak_path)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
 
 class SplashScreen(QSplashScreen):
@@ -974,20 +1163,33 @@ def apply_update_and_restart(new_exe_path):
         return False
     if not getattr(sys, 'frozen', False):
         return False
-    backup_path = None
+
+    current_exe = sys.executable
+    backup_path = current_exe + ".bak"
+    staging_path = current_exe + ".new"
+
     try:
-        current_exe = sys.executable
-        backup_path = current_exe + ".bak"
+        update_state_heartbeat(phase="applying")
 
-        if os.path.exists(backup_path):
-            try:
-                os.remove(backup_path)
-            except Exception:
-                pass
+        for p in (backup_path, staging_path):
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
-        os.rename(current_exe, backup_path)
+        shutil.copy2(new_exe_path, staging_path)
 
-        shutil.copy2(new_exe_path, current_exe)
+        os.replace(current_exe, backup_path)
+        try:
+            os.replace(staging_path, current_exe)
+        except Exception:
+            if os.path.exists(backup_path) and not os.path.exists(current_exe):
+                try:
+                    os.replace(backup_path, current_exe)
+                except Exception:
+                    pass
+            raise
 
         try:
             os.remove(new_exe_path)
@@ -997,10 +1199,7 @@ def apply_update_and_restart(new_exe_path):
         except Exception:
             pass
 
-        try:
-            release_launcher_lock()
-        except Exception:
-            pass
+        update_state_heartbeat(phase="restarting")
 
         try:
             DETACHED_PROCESS = 0x00000008
@@ -1008,24 +1207,29 @@ def apply_update_and_restart(new_exe_path):
             CREATE_BREAKAWAY_FROM_JOB = 0x01000000
             flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB
             subprocess.Popen(
-                [current_exe],
+                [current_exe, "--post-update-restart"],
                 creationflags=flags,
                 close_fds=True,
                 cwd=os.path.dirname(current_exe) or None,
             )
         except Exception:
             try:
-                subprocess.Popen([current_exe], close_fds=True)
+                subprocess.Popen([current_exe, "--post-update-restart"], close_fds=True)
             except Exception:
                 pass
 
         return True
     except Exception:
-        if backup_path and os.path.exists(backup_path) and not os.path.exists(current_exe):
-            try:
-                os.rename(backup_path, current_exe)
-            except Exception:
-                pass
+        try:
+            if os.path.exists(staging_path):
+                os.remove(staging_path)
+        except Exception:
+            pass
+        try:
+            if os.path.exists(backup_path) and not os.path.exists(current_exe):
+                os.replace(backup_path, current_exe)
+        except Exception:
+            pass
         return False
 
 
@@ -1438,19 +1642,36 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
-    if getattr(sys, 'frozen', False):
-        bak_path = sys.executable + ".bak"
-        if os.path.exists(bak_path):
-            try:
-                os.remove(bak_path)
-            except Exception:
-                pass
-        update_dir = os.path.join(APP_DIR, "_update")
-        if os.path.isdir(update_dir):
-            try:
-                shutil.rmtree(update_dir, ignore_errors=True)
-            except Exception:
-                pass
+    recover_from_interrupted_update()
+
+    is_post_update_restart = "--post-update-restart" in sys.argv
+
+    if is_post_update_restart:
+        got_mutex = acquire_singleton_mutex_with_retry(timeout_s=10.0)
+        if got_mutex:
+            clear_update_state()
+    else:
+        got_mutex = acquire_singleton_mutex()
+
+    if not got_mutex:
+        state = read_update_state()
+        if state and not is_update_state_stale(state):
+            ver = state.get("target_version") or ""
+            if ver:
+                msg = f"Update to v{ver} in progress\nPlease wait..."
+            else:
+                msg = "Update in progress\nPlease wait..."
+        else:
+            msg = "Launcher is already running"
+
+        splash_pix = create_splash_pixmap()
+        splash = SplashScreen(splash_pix)
+        splash.set_progress(100, msg)
+        splash.show()
+        app.processEvents()
+        QTimer.singleShot(2500, app.quit)
+        app.exec_()
+        sys.exit(0)
 
     splash_pix = create_splash_pixmap()
     splash = SplashScreen(splash_pix)
@@ -1458,21 +1679,8 @@ def main():
     splash.show()
     app.processEvents()
 
-    if not acquire_launcher_lock():
-        saved_key = load_saved_license()
-        if saved_key and LICENSE_SERVER_URL:
-            splash.set_progress(5, "Checking license...")
-            app.processEvents()
-            hb = validate_license(saved_key, "heartbeat")
-            if hb.get("valid"):
-                pass
-            else:
-                error_msg = hb.get("error", "")
-                if _is_suspended_error(error_msg):
-                    _show_suspended_and_exit(app, splash)
-
     if not check_license_or_prompt(app, splash):
-        release_launcher_lock()
+        release_singleton_mutex()
         sys.exit(0)
 
     saved_key_for_update = load_saved_license()
@@ -1490,22 +1698,31 @@ def main():
                 splash.set_progress(8 + int(pct * 0.85), f"Downloading v{new_version}... {dl_mb:.1f}/{size_mb:.1f} MB")
                 app.processEvents()
 
-            splash.set_progress(8, f"Update v{new_version} found ({size_mb:.1f} MB)...")
-            app.processEvents()
-
-            new_exe = download_update(update_info, on_download_progress)
-            if new_exe:
-                splash.set_progress(95, f"Installing v{new_version}...")
+            write_update_state("downloading", new_version)
+            start_update_heartbeat()
+            handing_off_to_child = False
+            try:
+                splash.set_progress(8, f"Update v{new_version} found ({size_mb:.1f} MB)...")
                 app.processEvents()
-                if apply_update_and_restart(new_exe):
-                    splash.set_progress(100, f"Restarting into v{new_version}...")
+
+                new_exe = download_update(update_info, on_download_progress)
+                if new_exe:
+                    splash.set_progress(95, f"Installing v{new_version}...")
                     app.processEvents()
-                    QTimer.singleShot(800, app.quit)
-                    app.exec_()
-                    sys.exit(0)
-                else:
-                    splash.set_progress(8, "Update failed, continuing...")
-                    app.processEvents()
+                    if apply_update_and_restart(new_exe):
+                        handing_off_to_child = True
+                        splash.set_progress(100, f"Restarting into v{new_version}...")
+                        app.processEvents()
+                        QTimer.singleShot(800, app.quit)
+                        app.exec_()
+                        sys.exit(0)
+                    else:
+                        splash.set_progress(8, "Update failed, continuing...")
+                        app.processEvents()
+            finally:
+                stop_update_heartbeat()
+                if not handing_off_to_child:
+                    clear_update_state()
 
     paths = get_paths()
 
@@ -1654,7 +1871,7 @@ def main():
             app.processEvents()
             write_log(paths["logs"], "\n".join(log_lines))
 
-            release_launcher_lock()
+            release_singleton_mutex()
 
             app.setQuitOnLastWindowClosed(False)
             start_license_watchdog(app)
