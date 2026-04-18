@@ -1692,21 +1692,17 @@ def main():
             new_version = update_info.get("latest_version", "?")
             file_size = update_info.get("file_size", 0)
             size_mb = file_size / 1024 / 1024 if file_size else 0
-            is_required = bool(update_info.get("required_update"))
 
             def on_download_progress(pct, downloaded, total):
                 dl_mb = downloaded / 1024 / 1024
-                prefix = "Required update" if is_required else "Downloading"
-                splash.set_progress(8 + int(pct * 0.85), f"{prefix} v{new_version}... {dl_mb:.1f}/{size_mb:.1f} MB")
+                splash.set_progress(8 + int(pct * 0.85), f"Downloading v{new_version}... {dl_mb:.1f}/{size_mb:.1f} MB")
                 app.processEvents()
 
             write_update_state("downloading", new_version)
             start_update_heartbeat()
             handing_off_to_child = False
-            update_failed_required = False
             try:
-                label = f"Required update v{new_version} ({size_mb:.1f} MB)..." if is_required else f"Update v{new_version} found ({size_mb:.1f} MB)..."
-                splash.set_progress(8, label)
+                splash.set_progress(8, f"Update v{new_version} found ({size_mb:.1f} MB)...")
                 app.processEvents()
 
                 new_exe = download_update(update_info, on_download_progress)
@@ -1721,33 +1717,12 @@ def main():
                         app.exec_()
                         sys.exit(0)
                     else:
-                        if is_required:
-                            update_failed_required = True
-                        else:
-                            splash.set_progress(8, "Update failed, continuing...")
-                            app.processEvents()
-                else:
-                    if is_required:
-                        update_failed_required = True
+                        splash.set_progress(8, "Update failed, continuing...")
+                        app.processEvents()
             finally:
                 stop_update_heartbeat()
                 if not handing_off_to_child:
                     clear_update_state()
-
-            if update_failed_required:
-                splash.hide()
-                reason = (
-                    f"Update to v{new_version} is required to keep using {APP_NAME}.\n\n"
-                    "The update could not be installed automatically.\n"
-                    "Check your internet connection and try again."
-                )
-                lock = LockScreen(reason)
-                lock.show()
-                app._lock_screen = lock
-                QTimer.singleShot(20000, app.quit)
-                app.exec_()
-                release_singleton_mutex()
-                sys.exit(1)
 
     paths = get_paths()
 

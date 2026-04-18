@@ -46,12 +46,6 @@
             </div>
 
             <div class="form-group">
-                <label>Minimum Supported Launcher Version (optional)</label>
-                <input type="text" name="minimum_supported_version" value="{{ config.minimum_supported_version if config else '' }}" placeholder="e.g. 1.2.0 — leave blank to allow any version" pattern="\d+\.\d+\.\d+" autocomplete="off">
-                <p style="color: var(--text-mute); font-size: 11px; margin: 6px 0 0;">Launchers running below this version will be forced to update before they can run.</p>
-            </div>
-
-            <div class="form-group">
                 <label>Icon (PNG, JPG, JFIF, ICO, BMP, WebP)</label>
                 <input type="file" name="icon" accept=".ico,.png,.jpg,.jpeg,.jfif,.bmp,.webp,image/*" style="color: var(--text-dim);">
                 {% if config and config.icon_filename %}
