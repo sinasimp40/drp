@@ -603,6 +603,8 @@ def dashboard():
             "note": row["note"] or "",
             "status": row["status"],
             "version": row["launcher_version"] or "",
+            "expires_at_ts": row["expires_at"],
+            "duration_seconds": row["duration_seconds"],
         })
 
     kpis = {
@@ -697,6 +699,156 @@ def create_license():
         return redirect(url_for("dashboard"))
 
     return render_template("create.html")
+
+
+MAX_EDIT_SECONDS = 10 * 365 * 86400  # 10 years cap
+
+
+@app.route("/license/<int:license_id>/edit", methods=["POST"])
+@require_admin
+def edit_license(license_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    def _fail(msg, http=400):
+        if is_ajax:
+            return jsonify({"success": False, "error": msg}), http
+        flash(msg, "error")
+        return redirect(request.referrer or url_for("dashboard"))
+
+    mode = (request.form.get("mode") or "").strip()  # "extend" | "set" | "note_only"
+    unit = (request.form.get("unit") or "days").strip()
+    amount_raw = (request.form.get("amount") or "").strip()
+    note = (request.form.get("note") or "").strip()
+
+    if mode not in ("extend", "set", "note_only"):
+        return _fail("Invalid edit mode")
+
+    multipliers = {"minutes": 60, "hours": 3600, "days": 86400}
+    if unit not in multipliers:
+        return _fail("Invalid time unit (use minutes, hours, or days)")
+
+    delta_seconds = 0
+    if mode in ("extend", "set"):
+        if amount_raw == "":
+            return _fail("Amount is required")
+        try:
+            amount = float(amount_raw)
+        except ValueError:
+            return _fail("Amount must be a number")
+        delta_seconds = int(round(amount * multipliers[unit]))
+        if mode == "set" and delta_seconds <= 0:
+            return _fail("New remaining time must be greater than 0")
+        if abs(delta_seconds) > MAX_EDIT_SECONDS:
+            return _fail("Time change exceeds 10 year safety cap")
+
+    conn = get_db()
+    row = conn.execute("SELECT * FROM licenses WHERE id = ?", (license_id,)).fetchone()
+    if not row:
+        conn.close()
+        return _fail("License not found", 404)
+
+    status = row["status"]
+    if status in ("revoked", "deleted"):
+        conn.close()
+        return _fail(f"Cannot edit a {status} license")
+
+    now = time.time()
+    new_status = status
+    new_expires_at = row["expires_at"]
+    new_duration_seconds = row["duration_seconds"]
+    summary_parts = []
+
+    if mode != "note_only":
+        if status == "pending":
+            # Never activated yet — adjust the stored duration that will start ticking on first activation.
+            base = row["duration_seconds"] or 0
+            new_duration_seconds = delta_seconds if mode == "set" else base + delta_seconds
+            if new_duration_seconds < 60:
+                new_duration_seconds = 60  # never store an immediately-expired pending key
+            summary_parts.append(f"duration → {format_duration(new_duration_seconds)}")
+        elif status == "suspended":
+            # Suspended licenses keep their expiry frozen on the row; unsuspend computes
+            # remaining from (expires_at - now). Edit expires_at to keep that consistent.
+            current_expires = row["expires_at"] or now
+            if mode == "set":
+                new_expires_at = now + delta_seconds
+            else:  # extend
+                new_expires_at = current_expires + delta_seconds
+            if new_expires_at <= now:
+                summary_parts.append("no time left (will mark expired on unsuspend)")
+            else:
+                summary_parts.append(f"remaining → {format_duration(new_expires_at - now)} (suspended)")
+        elif status == "active":
+            current_expires = row["expires_at"] or now
+            if mode == "set":
+                new_expires_at = now + delta_seconds
+            else:  # extend
+                new_expires_at = current_expires + delta_seconds
+            if new_expires_at <= now:
+                new_status = "expired"
+                summary_parts.append("now expired")
+            else:
+                summary_parts.append(f"remaining → {format_duration(new_expires_at - now)}")
+        elif status == "expired":
+            # Revive: extend uses original expiry as base if positive delta makes sense, else set from now.
+            if mode == "set":
+                new_expires_at = now + delta_seconds
+            else:  # extend an expired license — relative to now, not the past expiry
+                if delta_seconds <= 0:
+                    conn.close()
+                    return _fail("Cannot extend an expired license by a non-positive amount")
+                new_expires_at = now + delta_seconds
+            if new_expires_at > now:
+                new_status = "active"
+                summary_parts.append(f"reactivated, remaining → {format_duration(new_expires_at - now)}")
+                # Preserve activated_at if previously set; otherwise stamp now.
+                if row["activated_at"] is None:
+                    conn.execute("UPDATE licenses SET activated_at = ? WHERE id = ?", (now, license_id))
+            else:
+                summary_parts.append("still expired")
+
+    # Apply
+    conn.execute(
+        "UPDATE licenses SET note = ?, duration_seconds = ?, expires_at = ?, status = ? WHERE id = ?",
+        (note, int(new_duration_seconds), new_expires_at, new_status, license_id)
+    )
+    conn.commit()
+    conn.close()
+
+    if mode == "note_only":
+        summary_parts.append("note updated")
+    elif note != (row["note"] or ""):
+        summary_parts.append("note updated")
+
+    msg = "License updated: " + "; ".join(summary_parts) if summary_parts else "License updated"
+
+    if is_ajax:
+        # Compute fresh remaining for response
+        remaining_seconds = 0
+        if new_status == "active" and new_expires_at:
+            remaining_seconds = max(0, int(new_expires_at - time.time()))
+        elif new_status == "suspended" and new_expires_at:
+            remaining_seconds = max(0, int(new_expires_at - time.time()))
+        elif new_status == "pending":
+            remaining_seconds = int(new_duration_seconds)
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "license": {
+                "id": license_id,
+                "status": new_status,
+                "expires_at": new_expires_at,
+                "duration_seconds": int(new_duration_seconds),
+                "remaining_seconds": remaining_seconds,
+                "remaining_text": format_duration(remaining_seconds) if remaining_seconds > 0 else (
+                    "Expired" if new_status == "expired" else format_duration(new_duration_seconds)
+                ),
+                "note": note,
+            },
+        })
+
+    flash(msg, "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/revoke/<int:license_id>", methods=["POST"])
@@ -948,6 +1100,8 @@ def api_dashboard_data():
             "note": row["note"] or "",
             "status": row["status"],
             "version": row["launcher_version"] or "",
+            "expires_at_ts": row["expires_at"],
+            "duration_seconds": row["duration_seconds"],
         })
 
     return jsonify({
