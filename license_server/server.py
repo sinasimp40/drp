@@ -2823,7 +2823,7 @@ def api_ota_status():
 @app.route("/backups")
 @require_admin
 def backups_page():
-    settings = telegram_backup.public_view(telegram_backup.load_settings())
+    settings = telegram_backup.public_view(telegram_backup.load_settings(), include_proxy_raw=True)
     return render_template("backups.html", settings=settings)
 
 

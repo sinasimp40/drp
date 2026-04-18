@@ -1,3 +1,7 @@
 *.db
 license_server/licenses.db
 license_server/backup_settings.json
+
+# Python
+__pycache__/
+*.pyc

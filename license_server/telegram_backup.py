@@ -95,8 +95,14 @@ def save_settings(settings):
         os.replace(tmp, SETTINGS_FILE)
 
 
-def public_view(settings):
-    """Return a copy safe for templating: bot token is masked."""
+def public_view(settings, include_proxy_raw=False):
+    """Return a copy safe for templating: bot token is masked.
+
+    When `include_proxy_raw` is False (default — used for API/status
+    responses), the raw proxy_list and proxy_list_text are stripped and
+    only the masked variants are returned. The Backups admin page passes
+    True so that the textarea can be pre-populated for editing.
+    """
     s = json.loads(json.dumps(settings))
     tok = s.get("bot_token") or ""
     if tok:
@@ -111,13 +117,18 @@ def public_view(settings):
     s["chat_id_set"] = bool(s.get("chat_id"))
 
     proxy_list = [p for p in (s.get("proxy_list") or []) if isinstance(p, str) and p.strip()]
-    s["proxy_list"] = proxy_list
-    s["proxy_list_text"] = "\n".join(proxy_list)
     s["proxy_list_masked"] = [_mask_proxy(p) for p in proxy_list]
     s["proxy_count"] = len(proxy_list)
     s["proxy_set"] = bool(proxy_list)
     s["try_direct_first"] = bool(s.get("try_direct_first"))
     s["last_used_proxy"] = s.get("last_used_proxy") or ""
+
+    if include_proxy_raw:
+        s["proxy_list"] = proxy_list
+        s["proxy_list_text"] = "\n".join(proxy_list)
+    else:
+        s["proxy_list"] = s["proxy_list_masked"]
+        s["proxy_list_text"] = "\n".join(s["proxy_list_masked"])
 
     # Legacy compatibility for any template still referencing these:
     s["proxy_url_masked"] = s["proxy_list_masked"][0] if s["proxy_list_masked"] else ""
