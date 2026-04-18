@@ -1199,8 +1199,41 @@ def apply_update_and_restart(new_exe_path):
         except Exception:
             pass
 
-        update_state_heartbeat(phase="installed")
-        clear_update_state()
+        update_state_heartbeat(phase="restarting")
+
+        child_env = os.environ.copy()
+        for _pyi_var in (
+            "_MEIPASS2",
+            "_PYI_APPLICATION_HOME_DIR",
+            "_PYI_ARCHIVE_FILE",
+            "_PYI_PARENT_PROCESS_LEVEL",
+            "_PYI_SPLASH_IPC",
+            "PYI_SPLASH_IPC",
+        ):
+            child_env.pop(_pyi_var, None)
+        child_env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+
+        try:
+            DETACHED_PROCESS = 0x00000008
+            CREATE_NEW_PROCESS_GROUP = 0x00000200
+            CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+            flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB
+            subprocess.Popen(
+                [current_exe, "--post-update-restart"],
+                creationflags=flags,
+                close_fds=True,
+                cwd=os.path.dirname(current_exe) or None,
+                env=child_env,
+            )
+        except Exception:
+            try:
+                subprocess.Popen(
+                    [current_exe, "--post-update-restart"],
+                    close_fds=True,
+                    env=child_env,
+                )
+            except Exception:
+                pass
 
         return True
     except Exception:
@@ -1695,15 +1728,10 @@ def main():
                     app.processEvents()
                     if apply_update_and_restart(new_exe):
                         handing_off_to_child = True
-                        splash.set_progress(100, f"Update v{new_version} installed!")
+                        splash.set_progress(100, f"Restarting into v{new_version}...")
                         app.processEvents()
-                        splash.hide()
-                        try:
-                            release_singleton_mutex()
-                        except Exception:
-                            pass
-                        dlg = UpdateInstalledDialog(version=new_version)
-                        dlg.exec_()
+                        QTimer.singleShot(800, app.quit)
+                        app.exec_()
                         sys.exit(0)
                     else:
                         splash.set_progress(8, "Update failed, continuing...")
