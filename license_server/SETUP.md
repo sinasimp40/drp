@@ -68,31 +68,71 @@ Wait until it finishes. You'll see "Successfully installed ..." at the end.
 
 ---
 
-## Step 4 — Set your admin password (recommended, but optional)
+## Step 4 — Configure the server (password, shared key, port)
 
-By default the admin login is:
+These are the three settings you should configure **before** starting the server for the first time. All of them are set as Windows environment variables.
 
-- **Username:** `admin`
-- **Password:** `admin`
+### 4a. Set the admin password
 
-**You should change this before going live.** To set your own password, open PowerShell as Administrator and run:
+By default, the admin login is **`admin` / `admin`** — anyone who finds your server URL can log in. **Change this immediately.**
+
+Open **PowerShell as Administrator** (right-click PowerShell → Run as Administrator) and run:
 
 ```
-setx LICENSE_ADMIN_PASSWORD "YOUR_STRONG_PASSWORD_HERE"
+setx LICENSE_ADMIN_PASSWORD "YourStrongPasswordHere123!"
 ```
 
-Then **close and reopen** PowerShell so the new password is picked up.
+Use a strong password — long, mixed case, numbers, symbols. There is no in-app password change yet, so this `setx` command is the only way to change it.
 
-You can also set:
+### 4b. Set the shared license-signing key
 
-- `LICENSE_SHARED_SECRET` — the secret used to sign license tokens. Change this once and never change it again, otherwise all existing licenses break.
-- `FLASK_SECRET_KEY` — optional. Used for admin sessions. If unset, a random one is generated each time the server starts (which logs admins out on every restart).
+This is the secret the server uses to sign license tokens that the launcher checks. Pick a long random string and **never change it again** — if you change it later, every license you've ever issued will stop working.
+
+```
+setx LICENSE_SHARED_SECRET "PickALongRandomString_AtLeast32Chars_KeepSecret"
+```
+
+If you don't set this, the server uses a built-in default. That works, but anyone who has the source code knows what it is, so for production you should set your own.
+
+### 4c. (Optional) Set the Flask session key
+
+This keeps admins logged in across server restarts. Without it, every restart logs everyone out.
+
+```
+setx FLASK_SECRET_KEY "AnotherLongRandomString_DifferentFromTheOneAbove"
+```
+
+### 4d. (Optional) Choose a different port
+
+The server runs on port **5000** by default. If port 5000 is already in use (or you want a different one), set:
+
+```
+setx PORT "8080"
+```
+
+Replace `8080` with whatever port you want. Common choices: `80` (standard HTTP, lets users skip typing the port), `8080`, `5000`.
+
+> **Important:** After running any `setx` command, **close all PowerShell / Command Prompt windows and open a fresh one.** Environment variables only apply to new windows. If you skip this, the server will still use the old values.
+
+### Verify your settings
+
+In a fresh PowerShell window, type:
+
+```
+echo %LICENSE_ADMIN_PASSWORD%
+echo %LICENSE_SHARED_SECRET%
+echo %PORT%
+```
+
+(Or in PowerShell: `$env:LICENSE_ADMIN_PASSWORD`)
+
+You should see the values you set. If you see blank lines, the variable wasn't saved or you didn't open a fresh window.
 
 ---
 
 ## Step 5 — Start the server
 
-In the same PowerShell window, inside the `license_server` folder, run:
+In a **fresh** PowerShell window (so it picks up the env vars from Step 4), navigate to the `license_server` folder and run:
 
 ```
 python server.py
@@ -104,22 +144,55 @@ You should see something like:
 * Running on http://0.0.0.0:5000
 ```
 
-The admin panel is now live at **http://localhost:5000** on the server itself, and at **http://YOUR_SERVER_IP:5000** from anywhere on the internet.
+(or whatever port you chose in Step 4d).
 
-Log in with `admin` / `admin` (or whatever password you set in Step 4).
+The admin panel is now live at:
+
+- **http://localhost:5000** when you're on the server itself
+- **http://YOUR_SERVER_IP:5000** from anywhere on the internet (once the firewall is open — see Step 6)
+
+Log in with username `admin` and the password you set in Step 4a.
 
 To stop the server, press **Ctrl + C** in the PowerShell window.
 
 ---
 
-## Step 6 — Make sure port 5000 is open
+## Step 6 — Open the port in the firewall
 
-If users can't reach the server from outside:
+By default, Windows blocks incoming connections. Even if the server is running, no one outside the machine can reach it until you open the port.
 
-1. Open **Windows Defender Firewall** → **Advanced settings**.
-2. **Inbound Rules** → **New Rule** → **Port** → **TCP** → **Specific local ports: 5000** → **Allow** → tick all profiles → name it "License Server".
+### 6a. Open the port in Windows Firewall
 
-If you're on a VPS (Hostinger, AWS, etc.), also open port 5000 in the provider's control panel / security group.
+1. Press **Win + R**, type `wf.msc`, press Enter. (This opens Windows Defender Firewall with Advanced Security.)
+2. Click **Inbound Rules** (left sidebar) → **New Rule…** (right sidebar).
+3. Choose **Port** → click **Next**.
+4. Choose **TCP**, then **Specific local ports** and type **`5000`** (or whatever port you chose in Step 4d) → **Next**.
+5. Choose **Allow the connection** → **Next**.
+6. Tick **all three** boxes (Domain, Private, Public) → **Next**.
+7. Name it **"License Server"** → **Finish**.
+
+### 6b. Open the port at your VPS provider (if applicable)
+
+If your server is a VPS (Hostinger, AWS, DigitalOcean, Vultr, Contabo, etc.), the provider also has its own firewall in front of your machine. You must open the port there too:
+
+| Provider | Where to open the port |
+|---|---|
+| Hostinger | hPanel → VPS → Firewall → Add rule (TCP, port 5000) |
+| AWS | EC2 → Security Groups → Inbound rules → Add rule |
+| DigitalOcean | Networking → Firewalls → Edit rule |
+| Vultr / Contabo | Settings → Firewall (usually open by default) |
+
+If you're on a home internet connection (not a VPS), you'll also need to **port-forward** port 5000 in your home router and use your public IP — but I'd really recommend a VPS instead, home internet is not reliable enough for paying customers.
+
+### 6c. Test that the port is open
+
+From a **different machine** (not the server), open a browser and go to:
+
+```
+http://YOUR_SERVER_IP:5000
+```
+
+You should see the admin login page. If it times out or refuses connection, the firewall isn't open yet — go back through 6a and 6b.
 
 ---
 
