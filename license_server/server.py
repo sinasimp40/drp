@@ -874,6 +874,61 @@ def delete_license(license_id):
     return redirect(request.referrer or url_for("dashboard"))
 
 
+@app.route("/license/<int:license_id>/purge", methods=["POST"])
+@require_admin
+def purge_license(license_id):
+    """Hard-delete a license row. Only allowed for already soft-deleted rows."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, status FROM licenses WHERE id = ?", (license_id,)
+    ).fetchone()
+    if not row:
+        conn.close()
+        if _wants_json():
+            return jsonify({"success": False, "message": "License not found"}), 404
+        flash("License not found", "error")
+        return redirect(request.referrer or url_for("history"))
+    if row["status"] != "deleted":
+        conn.close()
+        msg = "Soft-delete first: only rows with status='deleted' can be purged"
+        if _wants_json():
+            return jsonify({"success": False, "message": msg}), 400
+        flash(msg, "error")
+        return redirect(request.referrer or url_for("history"))
+    # Detach build_configs (FK is nullable, kept for build artifact history)
+    conn.execute("UPDATE build_configs SET license_id = NULL WHERE license_id = ?", (license_id,))
+    conn.execute("UPDATE build_artifacts SET license_id = NULL WHERE license_id = ?", (license_id,))
+    conn.execute("DELETE FROM licenses WHERE id = ?", (license_id,))
+    conn.commit()
+    conn.close()
+    if _wants_json():
+        return jsonify({"success": True, "message": "License permanently deleted"})
+    flash("License permanently deleted", "success")
+    return redirect(request.referrer or url_for("history"))
+
+
+@app.route("/licenses/purge_all_deleted", methods=["POST"])
+@require_admin
+def purge_all_deleted_licenses():
+    """Hard-delete every row that is in the soft-deleted state."""
+    conn = get_db()
+    rows = conn.execute("SELECT id FROM licenses WHERE status = 'deleted'").fetchall()
+    ids = [r["id"] for r in rows]
+    count = len(ids)
+    if count:
+        placeholders = ",".join("?" * count)
+        conn.execute(f"UPDATE build_configs SET license_id = NULL WHERE license_id IN ({placeholders})", ids)
+        conn.execute(f"UPDATE build_artifacts SET license_id = NULL WHERE license_id IN ({placeholders})", ids)
+        conn.execute(f"DELETE FROM licenses WHERE id IN ({placeholders})", ids)
+        conn.commit()
+    conn.close()
+    msg = f"Permanently removed {count} deleted license{'s' if count != 1 else ''}"
+    if _wants_json():
+        return jsonify({"success": True, "message": msg, "count": count})
+    flash(msg, "success")
+    return redirect(request.referrer or url_for("history"))
+
+
 @app.route("/unsuspend_all", methods=["POST"])
 @require_admin
 def unsuspend_all_licenses():
