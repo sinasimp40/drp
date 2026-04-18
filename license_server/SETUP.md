@@ -7,7 +7,12 @@ Follow these steps one by one in Command Prompt on your Windows server.
 
 Download Python from https://python.org/downloads
 
-IMPORTANT: During install, check the box that says "Add Python to PATH"
+IMPORTANT: Use the **full Windows installer** (the file ending in `.exe`).
+Do NOT use the "Windows embeddable package" zip — it is missing modules
+that the build engine needs, and your built launchers will fail with
+"Server unreachable: No module named '_socket'".
+
+During install, check the box that says "Add Python to PATH".
 
 After install, open Command Prompt and type:
 ```

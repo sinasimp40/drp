@@ -1438,6 +1438,36 @@ def _run_single_build(build_id, config, version):
         if font_file:
             shutil.copy2(font_file, os.path.join(work_dir, "Roblox2017.ttf"))
 
+        _required_modules = [
+            "_socket", "socket", "ssl", "_ssl", "select",
+            "_hashlib", "encodings.idna",
+        ]
+        _hidden_imports = _required_modules + ["_bz2", "_lzma"]
+        try:
+            _check = subprocess.run(
+                [sys.executable, "-c", "import " + ", ".join(_required_modules)],
+                capture_output=True, text=True, timeout=15,
+            )
+        except Exception as _e:
+            raise Exception(
+                f"Could not run the build server's Python to verify required modules: {_e}. "
+                "Make sure Python is installed correctly."
+            )
+        if _check.returncode != 0:
+            _err = (_check.stderr or _check.stdout or "").strip().splitlines()
+            _missing = ""
+            for _line in reversed(_err):
+                if "No module named" in _line:
+                    _missing = _line.strip()
+                    break
+            _missing_text = f" ({_missing})" if _missing else ""
+            raise Exception(
+                "Build server Python is missing required modules" + _missing_text + ". "
+                "These are needed so the built launcher can reach the license server. "
+                "Reinstall the FULL Python from https://python.org/downloads "
+                "(do NOT use the 'embeddable' zip distribution), then restart the license server."
+            )
+
         cmd = [
             sys.executable, "-m", "PyInstaller",
             "--onefile", "--windowed", "--clean",
@@ -1446,6 +1476,8 @@ def _run_single_build(build_id, config, version):
             "--workpath", os.path.join(work_dir, "build"),
             "--specpath", work_dir,
         ]
+        for _hidden in _hidden_imports:
+            cmd.extend(["--hidden-import", _hidden])
         if icon_path:
             cmd.extend(["--icon", icon_path])
             cmd.extend(["--add-data", f"{icon_path}{os.pathsep}."])
