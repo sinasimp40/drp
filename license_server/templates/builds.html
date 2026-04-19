@@ -112,8 +112,23 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <code class="cc-code">{{ c.license_key }}</code>
-                                    {% if c.license_note %}<div class="ip-info">{{ c.license_note }}</div>{% endif %}
+                                    {% if c.is_trial %}
+                                        <span style="color:#ff8c33; font-size:11px; font-style:italic;" title="Trial keys are minted by the server when each user first runs the launcher — no fixed key.">Auto-issued per user</span>
+                                    {% elif c.license_key %}
+                                        <div style="display:flex; align-items:center; gap:4px;">
+                                            <code class="cc-code" id="lic-key-{{ c.id }}" style="font-size:11px;">{{ c.license_key }}</code>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;" onclick="(function(){var t=document.getElementById('lic-key-{{ c.id }}').textContent.trim();navigator.clipboard?navigator.clipboard.writeText(t):(function(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);})();})()" title="Copy license key">Copy</button>
+                                        </div>
+                                        {% if c.license_note %}<div class="ip-info">{{ c.license_note }}</div>{% endif %}
+                                    {% elif c.embedded_key %}
+                                        <div style="display:flex; align-items:center; gap:4px;">
+                                            <code class="cc-code" id="lic-key-{{ c.id }}" style="font-size:11px;" title="Embedded directly into the .exe (no linked license row)">{{ c.embedded_key }}</code>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;" onclick="(function(){var t=document.getElementById('lic-key-{{ c.id }}').textContent.trim();navigator.clipboard?navigator.clipboard.writeText(t):(function(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);})();})()" title="Copy embedded key">Copy</button>
+                                        </div>
+                                        <div class="ip-info">embedded only — no linked license</div>
+                                    {% else %}
+                                        <span style="color:#7a1f1f; font-size:11px;" title="No license linked and no embedded key set — users will be prompted on launch.">None</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if c.has_icon %}<span style="color: var(--good);">Yes</span>

@@ -2002,8 +2002,9 @@ def builds_page():
         config_list.append({
             "id": c["id"], "app_name": c["app_name"],
             "hardcoded_path": c["hardcoded_path"],
-            "license_key": c["license_key"] or "None",
+            "license_key": c["license_key"] or "",
             "license_note": c["license_note"] or "",
+            "embedded_key": (c["embedded_key"] if "embedded_key" in c.keys() else "") or "",
             "has_icon": bool(c["icon_filename"]),
             "license_server_url": c["license_server_url"] or "",
             "is_trial": bool(c["is_trial"]) if "is_trial" in c.keys() else False,

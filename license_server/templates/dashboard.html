@@ -73,7 +73,14 @@
                     data-note="{{ lic.note|e }}"
                     data-expires="{{ lic.expires_at_ts or '' }}"
                     data-duration="{{ lic.duration_seconds or 0 }}">
-                    <td><span class="key-text">{{ lic.key }}</span></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="key-text">{{ lic.key }}</span>
+                            <button type="button" class="icon-btn" title="Copy license key" aria-label="Copy" onclick="(function(btn){var t=btn.parentNode.querySelector('.key-text').textContent.trim();var done=function(){var prev=btn.innerHTML;btn.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'14\' height=\'14\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg>';btn.style.color='#42d6a4';setTimeout(function(){btn.innerHTML=prev;btn.style.color='';},1200);};if(navigator.clipboard){navigator.clipboard.writeText(t).then(done);}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}})(this)">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                    </td>
                     <td>
                         {% if lic.status == 'pending' %}
                         <span class="badge badge-pending">Pending</span>
