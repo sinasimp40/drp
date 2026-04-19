@@ -29,6 +29,7 @@ except ImportError:
     _TRUSTSTORE_STATUS = "not_installed"
 except Exception as _e:
     _TRUSTSTORE_STATUS = f"failed: {_e}"
+print(f"[telegram-backup] truststore (system CA store): {_TRUSTSTORE_STATUS}")
 
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backup_settings.json")
 HISTORY_LIMIT = 10
