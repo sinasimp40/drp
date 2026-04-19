@@ -10,7 +10,7 @@
             ZIP of a complete Roblox installation folder (containing <code>RobloxPlayerBeta.exe</code>).
             Trial-mode launchers download &amp; extract the latest bundle on first run.
         </p>
-        <form method="POST" enctype="multipart/form-data" autocomplete="off">
+        <form id="bundle-upload-form" method="POST" enctype="multipart/form-data" autocomplete="off">
             <div class="form-row" style="display:flex; gap:12px;">
                 <div class="form-group" style="flex:1;">
                     <label>Version (integer, higher = newer)</label>
@@ -25,8 +25,76 @@
                 <label>Bundle (.zip)</label>
                 <input type="file" name="bundle" accept=".zip" required>
             </div>
-            <button type="submit" class="btn btn-primary">Upload Bundle</button>
+            <button type="submit" id="bundle-upload-btn" class="btn btn-primary">Upload Bundle</button>
+
+            <div id="bundle-upload-progress" style="display:none; margin-top:14px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-mute); margin-bottom:6px;">
+                    <span id="bundle-upload-label">Uploading…</span>
+                    <span id="bundle-upload-stats">0 / 0 MB</span>
+                </div>
+                <div style="background:#0c0c14; border:1px solid #2a2a38; border-radius:6px; height:16px; overflow:hidden;">
+                    <div id="bundle-upload-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #ff6a00, #ff8c33); transition:width 0.15s ease;"></div>
+                </div>
+                <div id="bundle-upload-msg" style="margin-top:8px; font-size:12px; color:var(--text-mute);"></div>
+            </div>
         </form>
+
+        <script>
+        (function() {
+            var form = document.getElementById('bundle-upload-form');
+            if (!form) return;
+            form.addEventListener('submit', function(ev) {
+                ev.preventDefault();
+                var btn = document.getElementById('bundle-upload-btn');
+                var box = document.getElementById('bundle-upload-progress');
+                var bar = document.getElementById('bundle-upload-bar');
+                var stats = document.getElementById('bundle-upload-stats');
+                var label = document.getElementById('bundle-upload-label');
+                var msg = document.getElementById('bundle-upload-msg');
+                var fd = new FormData(form);
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', form.action || window.location.pathname);
+                box.style.display = 'block';
+                btn.disabled = true;
+                btn.textContent = 'Uploading…';
+                msg.textContent = '';
+                var startedAt = Date.now();
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (!e.lengthComputable) return;
+                    var pct = Math.round(e.loaded * 100 / e.total);
+                    bar.style.width = pct + '%';
+                    var dl = (e.loaded / 1048576).toFixed(1);
+                    var tot = (e.total / 1048576).toFixed(1);
+                    var elapsed = Math.max(0.1, (Date.now() - startedAt) / 1000);
+                    var speed = (e.loaded / 1048576 / elapsed).toFixed(2);
+                    var etaSec = e.loaded > 0 ? Math.max(0, Math.round((e.total - e.loaded) / (e.loaded / elapsed))) : 0;
+                    label.textContent = 'Uploading… ' + pct + '%';
+                    stats.textContent = dl + ' / ' + tot + ' MB  ·  ' + speed + ' MB/s  ·  ETA ' + etaSec + 's';
+                });
+                xhr.addEventListener('load', function() {
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        bar.style.width = '100%';
+                        label.textContent = 'Saving on server…';
+                        stats.textContent = 'Done';
+                        msg.textContent = 'Upload complete — reloading…';
+                        setTimeout(function() { window.location.reload(); }, 600);
+                    } else {
+                        label.textContent = 'Upload failed (' + xhr.status + ')';
+                        msg.textContent = xhr.responseText || 'Server returned an error.';
+                        btn.disabled = false;
+                        btn.textContent = 'Upload Bundle';
+                    }
+                });
+                xhr.addEventListener('error', function() {
+                    label.textContent = 'Upload failed';
+                    msg.textContent = 'Network error — check your connection and retry.';
+                    btn.disabled = false;
+                    btn.textContent = 'Upload Bundle';
+                });
+                xhr.send(fd);
+            });
+        })();
+        </script>
     </div>
 
     <div class="card" style="padding: 0;">
