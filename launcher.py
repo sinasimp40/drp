@@ -1204,65 +1204,129 @@ def _report_download_progress(pct, version, status="downloading"):
 
 
 def download_update(update_info, progress_callback=None):
+    """Download the update in a background thread so the Qt event loop on the
+    main thread keeps running. This is what stops the splash GIF from freezing
+    while the .exe is being pulled down."""
     if not LICENSE_SERVER_URL:
         return None
+
+    import threading
+    import time as _time
+    import urllib.request
     try:
-        import urllib.request
-        token = update_info.get("download_token", "")
-        if not token:
-            return None
-        version = update_info.get("latest_version", "")
-        url = LICENSE_SERVER_URL.rstrip("/") + f"/api/download_update/{token}"
-        req = urllib.request.Request(url)
-        _report_download_progress(0, version, "downloading")
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            total_size = update_info.get("file_size", 0)
-            data = bytearray()
-            block_size = 65536
-            downloaded = 0
-            last_reported = 0
-            while True:
-                chunk = resp.read(block_size)
-                if not chunk:
-                    break
-                data.extend(chunk)
-                downloaded += len(chunk)
-                if total_size > 0:
-                    pct = min(100, int(downloaded * 100 / total_size))
-                    if progress_callback:
-                        progress_callback(pct, downloaded, total_size)
-                    if pct - last_reported >= 5:
-                        last_reported = pct
-                        _report_download_progress(pct, version, "downloading")
-
-        if len(data) < 1024:
-            _report_download_progress(0, version, "failed")
-            return None
-
-        expected_hash = update_info.get("sha256", "")
-        if expected_hash:
-            actual_hash = hashlib.sha256(data).hexdigest()
-            if actual_hash != expected_hash:
-                _report_download_progress(0, version, "failed")
-                return None
-
-        if total_size > 0 and len(data) != total_size:
-            _report_download_progress(0, version, "failed")
-            return None
-
-        temp_dir = os.path.join(APP_DIR, "_update")
-        os.makedirs(temp_dir, exist_ok=True)
-        temp_path = os.path.join(temp_dir, f"update_{version or 'new'}.exe")
-        with open(temp_path, "wb") as f:
-            f.write(data)
-        _report_download_progress(100, version, "completed")
-        return temp_path
+        from PyQt5.QtWidgets import QApplication
     except Exception:
+        QApplication = None  # type: ignore
+
+    token = update_info.get("download_token", "")
+    if not token:
+        return None
+    version = update_info.get("latest_version", "")
+    total_size = update_info.get("file_size", 0)
+    expected_hash = update_info.get("sha256", "")
+    url = LICENSE_SERVER_URL.rstrip("/") + f"/api/download_update/{token}"
+
+    state = {
+        "downloaded": 0,
+        "total": total_size,
+        "pct": 0,
+        "result": None,
+        "error": None,
+        "done": False,
+        "last_reported_remote": 0,
+    }
+
+    def worker():
         try:
-            _report_download_progress(0, update_info.get("latest_version", ""), "failed")
+            req = urllib.request.Request(url)
+            _report_download_progress(0, version, "downloading")
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                data = bytearray()
+                # Smaller block size + thread isolation = the UI stays buttery
+                # smooth and we can still report fine-grained progress.
+                block_size = 16384
+                downloaded = 0
+                while True:
+                    chunk = resp.read(block_size)
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                    downloaded += len(chunk)
+                    state["downloaded"] = downloaded
+                    if total_size > 0:
+                        pct = min(100, int(downloaded * 100 / total_size))
+                        state["pct"] = pct
+                        if pct - state["last_reported_remote"] >= 5:
+                            state["last_reported_remote"] = pct
+                            try:
+                                _report_download_progress(pct, version, "downloading")
+                            except Exception:
+                                pass
+
+            if len(data) < 1024:
+                _report_download_progress(0, version, "failed")
+                state["error"] = "short_response"
+                return
+
+            if expected_hash:
+                actual_hash = hashlib.sha256(data).hexdigest()
+                if actual_hash != expected_hash:
+                    _report_download_progress(0, version, "failed")
+                    state["error"] = "hash_mismatch"
+                    return
+
+            if total_size > 0 and len(data) != total_size:
+                _report_download_progress(0, version, "failed")
+                state["error"] = "size_mismatch"
+                return
+
+            temp_dir = os.path.join(APP_DIR, "_update")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, f"update_{version or 'new'}.exe")
+            with open(temp_path, "wb") as f:
+                f.write(data)
+            _report_download_progress(100, version, "completed")
+            state["result"] = temp_path
+        except Exception as e:
+            state["error"] = e
+            try:
+                _report_download_progress(0, version, "failed")
+            except Exception:
+                pass
+        finally:
+            state["done"] = True
+
+    t = threading.Thread(target=worker, name="UpdateDownloader", daemon=True)
+    t.start()
+
+    app = QApplication.instance() if QApplication is not None else None
+    last_dispatched_pct = -1
+    last_dispatched_dl = -1
+    while not state["done"]:
+        if app is not None:
+            # Pump Qt events so QMovie animates and the splash repaints.
+            app.processEvents()
+        pct = state["pct"]
+        dl = state["downloaded"]
+        if progress_callback and (pct != last_dispatched_pct or dl - last_dispatched_dl >= 65536):
+            last_dispatched_pct = pct
+            last_dispatched_dl = dl
+            try:
+                progress_callback(pct, dl, state["total"])
+            except Exception:
+                pass
+        _time.sleep(0.03)
+
+    # Final flush of UI + progress.
+    if app is not None:
+        app.processEvents()
+    if progress_callback:
+        try:
+            progress_callback(state["pct"], state["downloaded"], state["total"])
         except Exception:
             pass
-        return None
+
+    return state["result"]
 
 
 def apply_update_and_restart(new_exe_path):

@@ -106,6 +106,21 @@ def init_db():
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE licenses ADD COLUMN launcher_version TEXT DEFAULT ''")
         conn.commit()
+    # Track *why* and *how* an auto-suspension happened so the admin can show
+    # the user proof of the IP change. These columns are populated whenever the
+    # server suspends a license because the client IP no longer matches the
+    # registered subnet, and are cleared when the license is unsuspended.
+    for col, ddl in (
+        ("suspended_at", "ALTER TABLE licenses ADD COLUMN suspended_at REAL"),
+        ("suspended_reason", "ALTER TABLE licenses ADD COLUMN suspended_reason TEXT DEFAULT ''"),
+        ("suspended_previous_ip", "ALTER TABLE licenses ADD COLUMN suspended_previous_ip TEXT DEFAULT ''"),
+        ("suspended_new_ip", "ALTER TABLE licenses ADD COLUMN suspended_new_ip TEXT DEFAULT ''"),
+    ):
+        try:
+            conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
+        except sqlite3.OperationalError:
+            conn.execute(ddl)
+            conn.commit()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS build_configs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -394,7 +409,17 @@ def api_validate():
 
         client_ip = _get_client_ip()
         if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
-            conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
+            conn.execute(
+                """UPDATE licenses
+                   SET status = 'suspended',
+                       suspended_at = ?,
+                       suspended_reason = ?,
+                       suspended_previous_ip = ?,
+                       suspended_new_ip = ?,
+                       last_ip = ?
+                   WHERE id = ?""",
+                (now, "ip_change", row["registered_ip"], client_ip, client_ip, row["id"])
+            )
             conn.commit()
             conn.close()
             resp = {"valid": False, "error": "License suspended. Contact the developer."}
@@ -492,7 +517,17 @@ def api_heartbeat():
 
     client_ip = _get_client_ip()
     if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
-        conn.execute("UPDATE licenses SET status = 'suspended' WHERE id = ?", (row["id"],))
+        conn.execute(
+            """UPDATE licenses
+               SET status = 'suspended',
+                   suspended_at = ?,
+                   suspended_reason = ?,
+                   suspended_previous_ip = ?,
+                   suspended_new_ip = ?,
+                   last_ip = ?
+               WHERE id = ?""",
+            (now, "ip_change", row["registered_ip"], client_ip, client_ip, row["id"])
+        )
         conn.commit()
         conn.close()
         resp = {"valid": False, "error": "License suspended. Contact the developer."}
@@ -619,6 +654,10 @@ def dashboard():
             "version": row["launcher_version"] or "",
             "expires_at_ts": row["expires_at"],
             "duration_seconds": row["duration_seconds"],
+            "suspended_reason": row["suspended_reason"] or "",
+            "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
+            "suspended_previous_ip": row["suspended_previous_ip"] or "",
+            "suspended_new_ip": row["suspended_new_ip"] or "",
         })
 
     kpis = {
@@ -674,6 +713,10 @@ def history():
             "duration_seconds": int(row["duration_seconds"] or 0),
             "expires_at_ts": row["expires_at"],
             "version": row["launcher_version"] or "",
+            "suspended_reason": row["suspended_reason"] or "",
+            "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
+            "suspended_previous_ip": row["suspended_previous_ip"] or "",
+            "suspended_new_ip": row["suspended_new_ip"] or "",
         })
 
     return render_template("history.html", licenses=licenses)
@@ -957,13 +1000,13 @@ def unsuspend_all_licenses():
             remaining = max(0, row["expires_at"] - now)
         if remaining > 0:
             conn.execute(
-                "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ? WHERE id = ?",
+                "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
                 (int(remaining), row["id"])
             )
             recovered += 1
         else:
             conn.execute(
-                "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL WHERE id = ?",
+                "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
                 (row["id"],)
             )
             expired += 1
@@ -993,14 +1036,14 @@ def unsuspend_license(license_id):
 
     if remaining > 0:
         conn.execute(
-            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ? WHERE id = ?",
+            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
             (int(remaining), license_id)
         )
         remaining_text = format_duration(remaining)
         flash(f"License unsuspended — {remaining_text} remaining. User can re-activate.", "success")
     else:
         conn.execute(
-            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL WHERE id = ?",
+            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
             (license_id,)
         )
         flash("License unsuspended but had no time remaining — marked as expired.", "warning")
@@ -1172,6 +1215,10 @@ def api_dashboard_data():
             "version": row["launcher_version"] or "",
             "expires_at_ts": row["expires_at"],
             "duration_seconds": row["duration_seconds"],
+            "suspended_reason": row["suspended_reason"] or "",
+            "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
+            "suspended_previous_ip": row["suspended_previous_ip"] or "",
+            "suspended_new_ip": row["suspended_new_ip"] or "",
         })
 
     return jsonify({
@@ -1229,6 +1276,10 @@ def api_history_data():
             "duration_seconds": int(row["duration_seconds"] or 0),
             "expires_at_ts": row["expires_at"],
             "version": row["launcher_version"] or "",
+            "suspended_reason": row["suspended_reason"] or "",
+            "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
+            "suspended_previous_ip": row["suspended_previous_ip"] or "",
+            "suspended_new_ip": row["suspended_new_ip"] or "",
         })
 
     return jsonify({"licenses": licenses})

@@ -104,6 +104,14 @@
                         {% if lic.registered_ip != 'N/A' and lic.registered_ip != lic.last_ip %}
                         <div class="ip-info">Reg: {{ lic.registered_ip }}</div>
                         {% endif %}
+                        {% if lic.status == 'suspended' and lic.suspended_reason == 'ip_change' %}
+                        <div class="ip-info" style="margin-top:4px; padding:4px 6px; background:rgba(255,106,0,0.08); border:1px solid rgba(255,106,0,0.35); border-radius:4px; color:#ffb070;">
+                            <div style="font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:#ff8a3a; margin-bottom:2px;">Auto-suspended · IP changed</div>
+                            <div><span style="color:#7a7a90;">From:</span> {{ lic.suspended_previous_ip or '—' }}</div>
+                            <div><span style="color:#7a7a90;">To:</span> <strong style="color:#ffb070;">{{ lic.suspended_new_ip or '—' }}</strong></div>
+                            {% if lic.suspended_at %}<div style="color:#7a7a90; font-size:10px; margin-top:2px;">{{ lic.suspended_at }}</div>{% endif %}
+                        </div>
+                        {% endif %}
                     </td>
                     <td style="color:#9a9ab0;">{{ lic.last_heartbeat }}</td>
                     <td><span style="color: {% if lic.version %}#ff9d4d{% else %}#3a3a48{% endif %}; font-size: 12px; font-family: 'SF Mono','Consolas',monospace;">{{ lic.version or '-' }}</span></td>
@@ -305,6 +313,15 @@
         var ipText = lic.last_ip;
         if (lic.registered_ip && lic.registered_ip !== 'N/A' && lic.registered_ip !== lic.last_ip) {
             ipText += '<div class="ip-info">Reg: ' + lic.registered_ip + '</div>';
+        }
+        if (lic.status === 'suspended' && lic.suspended_reason === 'ip_change') {
+            var _esc = function(s){return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+            ipText += '<div class="ip-info" style="margin-top:4px; padding:4px 6px; background:rgba(255,106,0,0.08); border:1px solid rgba(255,106,0,0.35); border-radius:4px; color:#ffb070;">' +
+                '<div style="font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:#ff8a3a; margin-bottom:2px;">Auto-suspended &middot; IP changed</div>' +
+                '<div><span style="color:#7a7a90;">From:</span> ' + _esc(lic.suspended_previous_ip || '—') + '</div>' +
+                '<div><span style="color:#7a7a90;">To:</span> <strong style="color:#ffb070;">' + _esc(lic.suspended_new_ip || '—') + '</strong></div>' +
+                (lic.suspended_at ? '<div style="color:#7a7a90; font-size:10px; margin-top:2px;">' + _esc(lic.suspended_at) + '</div>' : '') +
+            '</div>';
         }
 
         var actionsHtml = '<div class="row-actions">';
