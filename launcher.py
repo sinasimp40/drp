@@ -2016,8 +2016,6 @@ class LicenseDialog(QDialog):
 
 
 class TrialExpiredDialog(QDialog):
-    PURCHASE_URL = "https://t.me/denfistore"
-
     def __init__(self, parent=None, message=""):
         super().__init__(parent)
         self.setWindowTitle(f"{APP_NAME} - Trial Expired")
@@ -2048,26 +2046,23 @@ class TrialExpiredDialog(QDialog):
         msg.setAlignment(Qt.AlignCenter)
         msg.setWordWrap(True)
         layout.addWidget(msg)
+        contact = QLabel("Please contact the developer to continue.")
+        contact.setFont(QFont("Segoe UI", 10))
+        contact.setStyleSheet("color: #b0b0c0;")
+        contact.setAlignment(Qt.AlignCenter)
+        contact.setWordWrap(True)
+        layout.addWidget(contact)
         layout.addSpacing(8)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(10)
-        get_btn = QPushButton("Get Full License")
-        get_btn.setObjectName("primary")
-        get_btn.clicked.connect(self._open_purchase)
+        btn_row.addStretch(1)
         quit_btn = QPushButton("Quit")
-        quit_btn.setObjectName("secondary")
+        quit_btn.setObjectName("primary")
         quit_btn.clicked.connect(self.accept)
-        btn_row.addWidget(get_btn)
+        quit_btn.setMinimumWidth(140)
         btn_row.addWidget(quit_btn)
+        btn_row.addStretch(1)
         layout.addLayout(btn_row)
-
-    def _open_purchase(self):
-        try:
-            import webbrowser
-            webbrowser.open(self.PURCHASE_URL)
-        except Exception:
-            pass
-        self.accept()
 
 
 class LockScreen(QWidget):
