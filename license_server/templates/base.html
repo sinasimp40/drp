@@ -409,6 +409,65 @@
             margin-top: 3px;
         }
 
+        /* Compact card shown in the IP cell when a license was auto-suspended
+           because the client IP no longer matched the registered one.
+           Self-contained: no inherited spacing, no inline-style soup, and
+           uses the same warn (yellow) palette as the Suspended status badge
+           so the row reads as one cohesive unit. */
+        .ip-suspend-card {
+            margin-top: 6px;
+            padding: 6px 8px;
+            background: rgba(251,191,36,0.06);
+            border: 1px solid rgba(251,191,36,0.28);
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: var(--warn);
+            max-width: 260px;
+        }
+        .ip-suspend-card__head {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: var(--warn);
+            margin-bottom: 4px;
+        }
+        .ip-suspend-card__head::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--warn);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.18);
+        }
+        .ip-suspend-card__row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'SF Mono','Consolas','Menlo',monospace;
+            font-size: 11.5px;
+            color: #e9e9f3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ip-suspend-card__row .from { color: #8a8aa0; }
+        .ip-suspend-card__row .to   { color: #ffd66e; font-weight: 600; }
+        .ip-suspend-card__row .arrow {
+            color: rgba(251,191,36,0.55);
+            font-weight: 700;
+        }
+        .ip-suspend-card__time {
+            margin-top: 3px;
+            font-size: 10.5px;
+            color: var(--text-mute);
+            font-family: 'SF Mono','Consolas','Menlo',monospace;
+        }
+
         .live-indicator {
             display: inline-flex;
             align-items: center;

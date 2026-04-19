@@ -62,11 +62,14 @@
                         <div class="ip-info">Reg: {{ lic.registered_ip }}</div>
                         {% endif %}
                         {% if lic.status == 'suspended' and lic.suspended_reason == 'ip_change' %}
-                        <div class="ip-info" style="margin-top:4px; padding:4px 6px; background:rgba(255,106,0,0.08); border:1px solid rgba(255,106,0,0.35); border-radius:4px; color:#ffb070;">
-                            <div style="font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:#ff8a3a; margin-bottom:2px;">Auto-suspended · IP changed</div>
-                            <div><span style="color:#7a7a90;">From:</span> {{ lic.suspended_previous_ip or '—' }}</div>
-                            <div><span style="color:#7a7a90;">To:</span> <strong style="color:#ffb070;">{{ lic.suspended_new_ip or '—' }}</strong></div>
-                            {% if lic.suspended_at %}<div style="color:#7a7a90; font-size:10px; margin-top:2px;">{{ lic.suspended_at }}</div>{% endif %}
+                        <div class="ip-suspend-card">
+                            <div class="ip-suspend-card__head">IP changed</div>
+                            <div class="ip-suspend-card__row">
+                                <span class="from">{{ lic.suspended_previous_ip or '—' }}</span>
+                                <span class="arrow">&rarr;</span>
+                                <span class="to">{{ lic.suspended_new_ip or '—' }}</span>
+                            </div>
+                            {% if lic.suspended_at %}<div class="ip-suspend-card__time">{{ lic.suspended_at }}</div>{% endif %}
                         </div>
                         {% endif %}
                     </td>
@@ -266,11 +269,14 @@
                     }
                     if (lic.status === 'suspended' && lic.suspended_reason === 'ip_change') {
                         var _esc = function(s){return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
-                        ipText += '<div class="ip-info" style="margin-top:4px; padding:4px 6px; background:rgba(255,106,0,0.08); border:1px solid rgba(255,106,0,0.35); border-radius:4px; color:#ffb070;">' +
-                            '<div style="font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:#ff8a3a; margin-bottom:2px;">Auto-suspended &middot; IP changed</div>' +
-                            '<div><span style="color:#7a7a90;">From:</span> ' + _esc(lic.suspended_previous_ip || '—') + '</div>' +
-                            '<div><span style="color:#7a7a90;">To:</span> <strong style="color:#ffb070;">' + _esc(lic.suspended_new_ip || '—') + '</strong></div>' +
-                            (lic.suspended_at ? '<div style="color:#7a7a90; font-size:10px; margin-top:2px;">' + _esc(lic.suspended_at) + '</div>' : '') +
+                        ipText += '<div class="ip-suspend-card">' +
+                            '<div class="ip-suspend-card__head">IP changed</div>' +
+                            '<div class="ip-suspend-card__row">' +
+                                '<span class="from">' + _esc(lic.suspended_previous_ip || '—') + '</span>' +
+                                '<span class="arrow">&rarr;</span>' +
+                                '<span class="to">' + _esc(lic.suspended_new_ip || '—') + '</span>' +
+                            '</div>' +
+                            (lic.suspended_at ? '<div class="ip-suspend-card__time">' + _esc(lic.suspended_at) + '</div>' : '') +
                         '</div>';
                     }
                     var verColor = lic.version ? '#ff9d4d' : '#3a3a48';
