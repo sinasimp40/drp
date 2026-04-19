@@ -616,6 +616,9 @@ class SplashScreen(QSplashScreen):
     def __init__(self, pixmap):
         super().__init__(pixmap)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.SplashScreen)
+        # Transparent background so the rounded corners of the pixmap
+        # show through instead of sitting on a sharp rectangular window.
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.progress = 0
         self.status_msg = "Initializing..."
         self.error_msg = ""
@@ -701,6 +704,12 @@ class SplashScreen(QSplashScreen):
         right_x = ORANGE_W
         right_w = w - ORANGE_W
         pad = 28
+
+        # Clip to the same rounded shape as the base pixmap so the
+        # status row repaint never bleeds past the bottom-right corner.
+        clip_path = QPainterPath()
+        clip_path.addRoundedRect(0, 0, w, h, 14, 14)
+        painter.setClipPath(clip_path)
 
         # Bottom row in the dark right column: status (left) + counter (right)
         row_y = h - 50
@@ -859,13 +868,20 @@ def create_splash_pixmap():
         return _cached_splash_pixmap
 
     w, h = SPLASH_W, SPLASH_H
+    radius = 14
     pix = QPixmap(w, h)
-    pix.fill(QColor("#0a0a0a"))
+    pix.fill(Qt.transparent)
 
     p = QPainter(pix)
     p.setRenderHint(QPainter.Antialiasing)
     p.setRenderHint(QPainter.TextAntialiasing)
     p.setRenderHint(QPainter.SmoothPixmapTransform)
+
+    # Clip everything we draw to a rounded rectangle so the whole
+    # splash card has soft 14px corners (matching /splash_preview).
+    clip_path = QPainterPath()
+    clip_path.addRoundedRect(0, 0, w, h, radius, radius)
+    p.setClipPath(clip_path)
 
     # ---------- LEFT ORANGE BLOCK ----------
     orange_grad = QLinearGradient(0, 0, ORANGE_W, h)
@@ -913,10 +929,10 @@ def create_splash_pixmap():
     glow.setColorAt(1, QColor(0, 0, 0, 0))
     p.fillRect(right_x, 0, right_w, h, glow)
 
-    # outer 1px frame around the whole splash
+    # outer 1px frame around the whole splash (rounded to match)
     p.setBrush(Qt.NoBrush)
     p.setPen(QPen(QColor("#1c1c1c"), 1))
-    p.drawRect(0, 0, w - 1, h - 1)
+    p.drawRoundedRect(0, 0, w - 1, h - 1, radius, radius)
 
     # ---------- TOP ROW (right): "PREMIUM EDITION" + version pill ----------
     top_y = 28
