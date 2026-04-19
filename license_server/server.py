@@ -207,7 +207,7 @@ def init_db():
     for col, ddl, default in (
         ("is_trial", "ALTER TABLE build_configs ADD COLUMN is_trial INTEGER DEFAULT 0", 0),
         ("trial_duration_seconds", "ALTER TABLE build_configs ADD COLUMN trial_duration_seconds INTEGER DEFAULT 86400", 86400),
-        ("trial_max_per_subnet", "ALTER TABLE build_configs ADD COLUMN trial_max_per_subnet INTEGER DEFAULT 5", 5),
+        ("trial_max_per_subnet", "ALTER TABLE build_configs ADD COLUMN trial_max_per_subnet INTEGER DEFAULT 100", 100),
     ):
         try:
             conn.execute(f"SELECT {col} FROM build_configs LIMIT 1")
@@ -1989,7 +1989,7 @@ def create_build_config():
         except (TypeError, ValueError):
             trial_duration_seconds = 86400
         try:
-            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "5")))
+            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "100")))
         except ValueError:
             trial_max_per_subnet = 5
 
@@ -2059,9 +2059,9 @@ def edit_build_config(config_id):
         except (TypeError, ValueError):
             trial_duration_seconds = config["trial_duration_seconds"] or 86400
         try:
-            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 5))))
+            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 100))))
         except ValueError:
-            trial_max_per_subnet = 5
+            trial_max_per_subnet = 100
 
         if is_trial:
             existing_trial = conn.execute(
@@ -2110,7 +2110,7 @@ def edit_build_config(config_id):
         "embedded_key": config["embedded_key"] or "",
         "is_trial": bool(config["is_trial"]),
         "trial_duration_seconds": config["trial_duration_seconds"] or 86400,
-        "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
+        "trial_max_per_subnet": config["trial_max_per_subnet"] or 100,
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
 
@@ -2216,7 +2216,7 @@ def api_trial_register():
         return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 404
 
     duration = int(cfg["trial_duration_seconds"] or 86400)
-    max_per_subnet = int(cfg["trial_max_per_subnet"] or 5)
+    max_per_subnet = int(cfg["trial_max_per_subnet"] or 100)
 
     rows = conn.execute(
         "SELECT registered_ip FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
@@ -2541,7 +2541,7 @@ def bulk_edit_build_configs():
             "license_id": c["license_id"],
             "is_trial": bool(c["is_trial"]),
             "trial_duration_seconds": c["trial_duration_seconds"] or 86400,
-            "trial_max_per_subnet": c["trial_max_per_subnet"] or 5,
+            "trial_max_per_subnet": c["trial_max_per_subnet"] or 100,
         })
 
     if not config_list:
@@ -2726,7 +2726,7 @@ def rebuild_single_config(config_id):
         "embedded_key": embedded_key,
         "is_trial": bool(config["is_trial"]),
         "trial_duration_seconds": config["trial_duration_seconds"] or 86400,
-        "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
+        "trial_max_per_subnet": config["trial_max_per_subnet"] or 100,
     }
 
     with _build_lock:
@@ -2977,7 +2977,7 @@ def api_trigger_build():
             "embedded_key": embedded_key,
             "is_trial": bool(c["is_trial"]),
             "trial_duration_seconds": c["trial_duration_seconds"] or 86400,
-            "trial_max_per_subnet": c["trial_max_per_subnet"] or 5,
+            "trial_max_per_subnet": c["trial_max_per_subnet"] or 100,
         })
 
     if not config_list:
