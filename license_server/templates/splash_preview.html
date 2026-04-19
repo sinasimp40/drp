@@ -66,9 +66,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.linen    { color: #d6c8ad; border-color: #4a3e2a; }
-        .design-tag.mist     { color: #a8c0d4; border-color: #2a3a4a; }
-        .design-tag.sage     { color: #b4cba6; border-color: #2a3a2c; }
+        .design-tag.centerline { color: #d4dce4; border-color: #2a3340; }
+        .design-tag.plaque     { color: #e0d4b8; border-color: #4a3e28; }
+        .design-tag.shelf      { color: #c8d4dc; border-color: #2a3a48; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -756,157 +756,300 @@
         }
 
         /* ============================================================
-           CALM — shared base for Linen / Mist / Sage.
-           Same trusted Marquee composition (brand row + big editorial
-           title with one accent letter + subtitle + status row + counter
-           + full-bleed thin progress) — only the palette changes.
-           Soft, low-contrast, comfortable in the eyes.
+           CENTERLINE — symmetric horizontal split.
+           One thin rule across the vertical middle of the canvas IS
+           the loader (a brighter segment grows along it as % rises).
+           Title above the rule, mono details below. Pure architecture.
            ============================================================ */
-        .splash-calm {
+        .splash-centerline {
             position: relative;
             width: 660px; height: 380px;
+            background: #15171c;
             border-radius: 12px;
             overflow: hidden;
             font-family: 'Inter', system-ui, sans-serif;
+            color: #e6ebf2;
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.45);
         }
-        .splash-calm::before {
+        .splash-centerline::before {
             content: ''; position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'2\' stitchTiles=\'stitch\'/><feColorMatrix values=\'0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0\'/></filter><rect width=\'100%\' height=\'100%\' filter=\'url(%23n)\'/></svg>");
+            background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.025) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        /* tiny brand mark top-left, version top-right */
+        .splash-centerline .top-l, .splash-centerline .top-r {
+            position: absolute;
+            top: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(230,235,242,0.55);
+        }
+        .splash-centerline .top-l { left: 28px; }
+        .splash-centerline .top-r { right: 28px; }
+        .splash-centerline .top-l .em { color: #d4dce4; font-weight: 600; }
+        /* the centerline itself */
+        .splash-centerline .rule {
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(230,235,242,0.18) 12%, rgba(230,235,242,0.18) 88%, transparent 100%);
+        }
+        .splash-centerline .rule-fill {
+            position: absolute;
+            top: 50%; left: 0;
+            height: 1px;
+            width: 0%;
+            background: #d4dce4;
+            box-shadow: 0 0 12px rgba(212,220,228,0.55);
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        /* eyebrow above title */
+        .splash-centerline .eyebrow {
+            position: absolute;
+            top: 32%;
+            left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: rgba(230,235,242,0.55);
+            text-transform: uppercase;
+        }
+        /* big title above the rule */
+        .splash-centerline .title {
+            position: absolute;
+            bottom: 50%;
+            left: 0; right: 0;
+            margin-bottom: 28px;
+            text-align: center;
+            font-size: 78px;
+            font-weight: 700;
+            letter-spacing: -3.5px;
+            line-height: 1;
+            color: #f4f6fa;
+        }
+        /* small mono caption below the rule */
+        .splash-centerline .caption {
+            position: absolute;
+            top: 50%;
+            left: 0; right: 0;
+            margin-top: 36px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: rgba(230,235,242,0.55);
+            text-transform: uppercase;
+        }
+        .splash-centerline .caption .em { color: #d4dce4; font-weight: 500; }
+        /* status row bottom-center, very subdued */
+        .splash-centerline .status {
+            position: absolute;
+            bottom: 28px; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .splash-centerline .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #d4dce4;
+            animation: cl-pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes cl-pulse { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+        .splash-centerline .status-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; letter-spacing: 2px;
+            color: rgba(230,235,242,0.55);
+            transition: opacity 0.3s;
+            text-transform: uppercase;
+        }
+
+        /* ============================================================
+           PLAQUE — centered "museum plaque" card with a thin inset
+           border. Title in the middle, tiny mono details in the
+           corners of the plaque. Restrained and refined.
+           ============================================================ */
+        .splash-plaque {
+            position: relative;
+            width: 660px; height: 380px;
+            background: #0e0e12;
+            border-radius: 12px;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #ece4d3;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.55);
+        }
+        .splash-plaque::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 50%, rgba(224,212,184,0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .splash-plaque .plaque {
+            position: absolute;
+            top: 36px; bottom: 36px; left: 48px; right: 48px;
+            border: 1px solid rgba(224,212,184,0.18);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), inset 0 0 0 4px rgba(224,212,184,0.04);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 30px;
+        }
+        .splash-plaque .corner {
+            position: absolute;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px; letter-spacing: 3px;
+            color: rgba(224,212,184,0.6);
+            text-transform: uppercase;
+        }
+        .splash-plaque .corner.tl { top: 14px; left: 16px; }
+        .splash-plaque .corner.tr { top: 14px; right: 16px; }
+        .splash-plaque .corner.bl { bottom: 14px; left: 16px; }
+        .splash-plaque .corner.br { bottom: 14px; right: 16px; color: #e0d4b8; }
+        .splash-plaque .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; letter-spacing: 5px;
+            color: #c8b88a;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .splash-plaque .title {
+            font-size: 78px; font-weight: 700;
+            letter-spacing: -3.5px; line-height: 1;
+            color: #f4ecd8;
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .splash-plaque .rule {
+            width: 80px; height: 1px;
+            background: rgba(224,212,184,0.4);
+            margin-bottom: 18px;
+        }
+        .splash-plaque .caption {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; letter-spacing: 3px;
+            color: rgba(224,212,184,0.65);
+            text-transform: uppercase;
+        }
+        .splash-plaque .caption .em { color: #e0d4b8; font-weight: 500; }
+        .splash-plaque .status-dot {
+            display: inline-block;
+            width: 5px; height: 5px;
+            margin-left: 8px;
+            background: #e0d4b8;
+            border-radius: 50%;
+            vertical-align: middle;
+            animation: cl-pulse 1.8s ease-in-out infinite;
+        }
+
+        /* ============================================================
+           SHELF — soft dark canvas above, info shelf below.
+           Title and chrome live on the bottom shelf, like a Netflix
+           detail panel. The upper canvas breathes.
+           ============================================================ */
+        .splash-shelf {
+            position: relative;
+            width: 660px; height: 380px;
+            background: #11141a;
+            border-radius: 12px;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #e8edf3;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.5);
+        }
+        /* soft top light on the upper canvas */
+        .splash-shelf::before {
+            content: ''; position: absolute;
+            top: -180px; left: 50%; margin-left: -260px;
+            width: 520px; height: 360px;
+            background: radial-gradient(ellipse, rgba(200,212,220,0.10) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .splash-shelf::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
             opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;
         }
-        .splash-calm .meta-row {
+        /* top brand row */
+        .splash-shelf .brand-row {
             position: absolute;
             top: 28px; left: 36px; right: 32px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 3;
         }
-        .splash-calm .brand {
+        .splash-shelf .brand {
             display: flex; align-items: center; gap: 10px;
             font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(232,237,243,0.85);
         }
-        .splash-calm .brand-dot {
+        .splash-shelf .brand-dot {
             width: 6px; height: 6px; border-radius: 50%;
+            background: #c8d4dc; box-shadow: 0 0 10px rgba(200,212,220,0.45);
         }
-        .splash-calm .version {
+        .splash-shelf .version {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 11px; color: rgba(232,237,243,0.5);
             padding: 4px 10px;
             border: 1px solid rgba(255,255,255,0.10);
             border-radius: 999px;
         }
-        .splash-calm .eyebrow {
+        /* the shelf itself */
+        .splash-shelf .shelf {
             position: absolute;
-            top: 132px; left: 36px;
+            left: 0; right: 0; bottom: 0;
+            height: 38%;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 30%, rgba(0,0,0,0.7) 100%);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 22px 36px 28px 36px;
+            z-index: 2;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .splash-shelf .eyebrow {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
-            z-index: 3;
+            font-size: 10px; letter-spacing: 4px;
+            color: #c8d4dc;
+            text-transform: uppercase;
+            margin-bottom: 6px;
         }
-        .splash-calm .title {
-            position: absolute;
-            top: 162px; left: 36px; right: 36px;
-            font-size: 78px; font-weight: 700;
-            letter-spacing: -3.5px; line-height: 0.95;
-            z-index: 3;
+        .splash-shelf .title {
+            font-size: 56px; font-weight: 700;
+            letter-spacing: -2.5px; line-height: 0.95;
+            color: #f4f7fa;
         }
-        .splash-calm .subtitle {
-            position: absolute;
-            top: 252px; left: 36px;
-            font-size: 13px; font-weight: 500;
-            letter-spacing: 0.2px;
-            z-index: 3;
+        .splash-shelf .title .ac { color: #c8d4dc; }
+        .splash-shelf .footer {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 14px;
         }
-        .splash-calm .subtitle .sep { margin: 0 10px; opacity: 0.4; }
-        .splash-calm .status-row {
-            position: absolute;
-            bottom: 32px; left: 36px;
+        .splash-shelf .status {
             display: flex; align-items: center; gap: 10px;
-            z-index: 3;
         }
-        .splash-calm .status-dot {
+        .splash-shelf .status-dot {
             width: 7px; height: 7px; border-radius: 50%;
-            animation: calm-pulse 1.8s ease-in-out infinite;
+            background: #c8d4dc;
+            animation: cl-pulse 1.8s ease-in-out infinite;
         }
-        @keyframes calm-pulse {
-            0%, 100% { opacity: 0.55; transform: scale(1); }
-            50%      { opacity: 1;    transform: scale(1.15); }
-        }
-        .splash-calm .status-text {
+        .splash-shelf .status-text {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 12px; letter-spacing: 0.2px;
+            font-size: 11px; color: rgba(232,237,243,0.7);
+            letter-spacing: 0.2px;
             transition: opacity 0.3s;
         }
-        .splash-calm .counter {
-            position: absolute;
-            bottom: 32px; right: 36px;
+        .splash-shelf .counter {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; letter-spacing: 1px;
-            z-index: 3;
+            font-size: 11px; color: rgba(232,237,243,0.45); letter-spacing: 1px;
         }
-        .splash-calm .counter .num { font-weight: 500; }
-        .splash-calm .progress-bleed {
+        .splash-shelf .counter .num { color: rgba(232,237,243,0.9); font-weight: 500; }
+        .splash-shelf .progress-bleed {
             position: absolute; bottom: 0; left: 0; right: 0;
-            height: 1px;
-            z-index: 3;
+            height: 1px; background: rgba(255,255,255,0.06);
+            z-index: 4;
         }
-        .splash-calm .progress-bleed-fill {
+        .splash-shelf .progress-bleed-fill {
             height: 100%; width: 0%;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(90deg, #a8b8c4, #d4e0e8);
+            box-shadow: 0 0 10px rgba(200,212,220,0.45);
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
         }
 
-        /* LINEN — warm neutral. Cream type on warm muted dark. Muted amber accent. */
-        .splash-linen { background: #1a1714; color: #ece4d3; }
-        .splash-linen .brand            { color: rgba(236,228,211,0.88); }
-        .splash-linen .brand-dot        { background: #c89060; box-shadow: 0 0 10px rgba(200,144,96,0.45); }
-        .splash-linen .version          { color: rgba(236,228,211,0.5); border-color: rgba(236,228,211,0.10); }
-        .splash-linen .eyebrow          { color: #c89060; }
-        .splash-linen .title            { color: #f4ecd8; }
-        .splash-linen .title .ac        { color: #c89060; }
-        .splash-linen .subtitle         { color: rgba(236,228,211,0.55); }
-        .splash-linen .subtitle .sep    { color: rgba(236,228,211,0.25); }
-        .splash-linen .subtitle .em     { color: #c89060; font-weight: 600; }
-        .splash-linen .status-dot       { background: #c89060; }
-        .splash-linen .status-text      { color: rgba(236,228,211,0.7); }
-        .splash-linen .counter          { color: rgba(236,228,211,0.4); }
-        .splash-linen .counter .num     { color: rgba(236,228,211,0.85); }
-        .splash-linen .progress-bleed   { background: rgba(236,228,211,0.06); }
-        .splash-linen .progress-bleed-fill { background: linear-gradient(90deg, #c89060, #d8a878); }
-
-        /* MIST — cool slate. Soft white type on muted slate. Muted teal-blue accent. */
-        .splash-mist { background: #161a22; color: #e4ecf4; }
-        .splash-mist .brand            { color: rgba(228,236,244,0.88); }
-        .splash-mist .brand-dot        { background: #7aa2c8; box-shadow: 0 0 10px rgba(122,162,200,0.45); }
-        .splash-mist .version          { color: rgba(228,236,244,0.5); border-color: rgba(228,236,244,0.10); }
-        .splash-mist .eyebrow          { color: #7aa2c8; }
-        .splash-mist .title            { color: #f4f7fa; }
-        .splash-mist .title .ac        { color: #7aa2c8; }
-        .splash-mist .subtitle         { color: rgba(228,236,244,0.55); }
-        .splash-mist .subtitle .sep    { color: rgba(228,236,244,0.25); }
-        .splash-mist .subtitle .em     { color: #7aa2c8; font-weight: 600; }
-        .splash-mist .status-dot       { background: #7aa2c8; }
-        .splash-mist .status-text      { color: rgba(228,236,244,0.7); }
-        .splash-mist .counter          { color: rgba(228,236,244,0.4); }
-        .splash-mist .counter .num     { color: rgba(228,236,244,0.88); }
-        .splash-mist .progress-bleed   { background: rgba(228,236,244,0.06); }
-        .splash-mist .progress-bleed-fill { background: linear-gradient(90deg, #7aa2c8, #98bcd8); }
-
-        /* SAGE — natural green. Cream type on deep forest. Muted sage accent. */
-        .splash-sage { background: #131814; color: #e4ece2; }
-        .splash-sage .brand            { color: rgba(228,236,226,0.88); }
-        .splash-sage .brand-dot        { background: #a8c498; box-shadow: 0 0 10px rgba(168,196,152,0.45); }
-        .splash-sage .version          { color: rgba(228,236,226,0.5); border-color: rgba(228,236,226,0.10); }
-        .splash-sage .eyebrow          { color: #a8c498; }
-        .splash-sage .title            { color: #f4f7f0; }
-        .splash-sage .title .ac        { color: #a8c498; }
-        .splash-sage .subtitle         { color: rgba(228,236,226,0.55); }
-        .splash-sage .subtitle .sep    { color: rgba(228,236,226,0.25); }
-        .splash-sage .subtitle .em     { color: #a8c498; font-weight: 600; }
-        .splash-sage .status-dot       { background: #a8c498; }
-        .splash-sage .status-text      { color: rgba(228,236,226,0.7); }
-        .splash-sage .counter          { color: rgba(228,236,226,0.4); }
-        .splash-sage .counter .num     { color: rgba(228,236,226,0.88); }
-        .splash-sage .progress-bleed   { background: rgba(228,236,226,0.06); }
-        .splash-sage .progress-bleed-fill { background: linear-gradient(90deg, #a8c498, #c0d4b0); }
 
         /* ===========================================================
            (legacy) ORBIT — pure dark + thin animated ring around the title.
@@ -1106,7 +1249,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new variants of one calm composition — the same trusted Marquee layout (brand row, big editorial title with one accent letter, subtitle, status, counter, full-bleed thin progress) in three soft palettes that are easy on the eyes: <strong>Linen</strong> (warm neutral · muted amber accent), <strong>Mist</strong> (cool slate · muted teal-blue accent), <strong>Sage</strong> (deep forest · muted sage accent).<br>
+            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new <em>structurally different</em> compositions — all clean and calm: <strong>Centerline</strong> (a single thin rule splits the canvas — the rule itself is the loader), <strong>Plaque</strong> (centered museum plaque card with corner stamps and a refined inner border), <strong>Shelf</strong> (Netflix-style — calm dark canvas above, info shelf below).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1299,97 +1442,98 @@
     </section>
 
     <!-- ====================================================
-         LINEN — warm neutral · muted amber accent
+         CENTERLINE — single thin rule splits the canvas; rule is the loader
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag linen">NEW · 4</span>
-            <span class="design-name">Linen</span>
+            <span class="design-tag centerline">NEW · 4</span>
+            <span class="design-name">Centerline</span>
         </div>
         <div class="design-desc">
-            Warm muted dark canvas (#1a1714) with cream type and a single soft amber accent. Same trusted Marquee composition — brand row at top, big editorial title with one accent letter, mono subtitle, animated status row, counter, and a full-bleed hairline progress bar at the bottom. Quiet luxury register. Comfortable on the eyes for long sessions; the orange is dialed back into a warm muted amber so nothing shouts.
+            One thin horizontal rule slices the canvas exactly across the middle, fading to the edges. That rule <em>is</em> the loader: a brighter segment grows along it as the percent climbs. The title sits above the rule, a tiny mono caption sits below it, and a subdued status line lives at the very bottom. Symmetric, architectural, almost no UI clutter.
         </div>
         <div class="design-stage">
-            <div class="splash-calm splash-linen">
-                <div class="meta-row">
-                    <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
-                    <div class="version">v1.0.4</div>
-                </div>
+            <div class="splash-centerline">
+                <div class="top-l"><span class="em">DENFI</span> · ATELIER</div>
+                <div class="top-r">v1.0.4 · 2026</div>
+                <div class="rule"></div>
+                <div class="rule-fill" id="centerline-fill"></div>
                 <div class="eyebrow">A LICENSED RELEASE</div>
-                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
-                <div class="status-row">
+                <div class="title fit-title-cl">{{ app_name or 'Roblox' }}</div>
+                <div class="caption">BUILD <span class="em">047</span> &nbsp;·&nbsp; LIC <span class="em">7M3F-XKQR</span> &nbsp;·&nbsp; <span id="centerline-pct">0%</span></div>
+                <div class="status">
                     <span class="status-dot"></span>
-                    <span class="status-text" id="linen-status">checking roblox files</span>
+                    <span class="status-text" id="centerline-status">checking roblox files</span>
                 </div>
-                <div class="counter">BUILD <span class="num">047</span> · <span id="linen-pct">0%</span></div>
-                <div class="progress-bleed"><div class="progress-bleed-fill" id="linen-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; warm neutral · cream type · muted amber accent</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; one centerline rule · the rule itself is the loader</div>
     </section>
 
     <!-- ====================================================
-         MIST — cool slate · muted teal-blue accent
+         PLAQUE — centered museum plaque with corner stamps
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag mist">NEW · 5</span>
-            <span class="design-name">Mist</span>
+            <span class="design-tag plaque">NEW · 5</span>
+            <span class="design-name">Plaque</span>
         </div>
         <div class="design-desc">
-            Same calm composition in a cool palette. Soft slate-blue background (#161a22), almost-white type, and a single muted teal-blue accent. Reads cool and modern — closer to a desktop product like Linear or 1Password than to a game. Easy to look at for a long time; nothing fights for attention.
+            A centered "museum plaque" sits inside the canvas with a thin gold-toned inner border. Tiny mono stamps in each corner of the plaque carry the metadata; the title and a single short rule live in the middle. Refined, restrained, gallery-tier. The progress is implied by the corner percent — no bar at all.
         </div>
         <div class="design-stage">
-            <div class="splash-calm splash-mist">
-                <div class="meta-row">
-                    <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
-                    <div class="version">v1.0.4</div>
+            <div class="splash-plaque">
+                <div class="plaque">
+                    <div class="corner tl">EST · MMXXVI</div>
+                    <div class="corner tr">NO · 047 / 144</div>
+                    <div class="corner bl">DENFI · ATELIER</div>
+                    <div class="corner br"><span id="plaque-pct">0%</span><span class="status-dot"></span></div>
+                    <div class="eyebrow">A LICENSED RELEASE</div>
+                    <div class="title fit-title-pl">{{ app_name or 'Roblox' }}</div>
+                    <div class="rule"></div>
+                    <div class="caption"><span class="em" id="plaque-status">checking roblox files</span></div>
                 </div>
-                <div class="eyebrow">A LICENSED RELEASE</div>
-                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
-                <div class="status-row">
-                    <span class="status-dot"></span>
-                    <span class="status-text" id="mist-status">checking roblox files</span>
-                </div>
-                <div class="counter">BUILD <span class="num">047</span> · <span id="mist-pct">0%</span></div>
-                <div class="progress-bleed"><div class="progress-bleed-fill" id="mist-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; cool slate · soft white type · muted teal-blue accent</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; centered plaque · corner stamps · no progress bar</div>
     </section>
 
     <!-- ====================================================
-         SAGE — deep forest · muted sage accent
+         SHELF — calm canvas above, info shelf below (Netflix detail)
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag sage">NEW · 6</span>
-            <span class="design-name">Sage</span>
+            <span class="design-tag shelf">NEW · 6</span>
+            <span class="design-name">Shelf</span>
         </div>
         <div class="design-desc">
-            Same calm composition in a natural green palette. Deep forest background (#131814), cream type, and a single muted sage accent. Very calm and earthy — looks expensive without ever being loud. The accent green is desaturated enough to feel like a Linen sibling rather than anything gamer-neon.
+            The top 65% of the canvas is a calm dark surface with a soft top-light — pure breathing room. The bottom 35% is a darker info shelf carrying the title, an eyebrow, the animated status, the counter and a hairline progress at the very edge. Reads like a Netflix detail panel — the visual weight is anchored at the bottom and the upper canvas stays uncluttered.
         </div>
         <div class="design-stage">
-            <div class="splash-calm splash-sage">
-                <div class="meta-row">
+            <div class="splash-shelf">
+                <div class="brand-row">
                     <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
                     <div class="version">v1.0.4</div>
                 </div>
-                <div class="eyebrow">A LICENSED RELEASE</div>
-                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
-                <div class="status-row">
-                    <span class="status-dot"></span>
-                    <span class="status-text" id="sage-status">checking roblox files</span>
+                <div class="shelf">
+                    <div>
+                        <div class="eyebrow">A LICENSED RELEASE · 2026</div>
+                        <div class="title fit-title-sh"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
+                    </div>
+                    <div class="footer">
+                        <div class="status">
+                            <span class="status-dot"></span>
+                            <span class="status-text" id="shelf-status">checking roblox files</span>
+                        </div>
+                        <div class="counter">BUILD <span class="num">047</span> · <span id="shelf-pct">0%</span></div>
+                    </div>
                 </div>
-                <div class="counter">BUILD <span class="num">047</span> · <span id="sage-pct">0%</span></div>
-                <div class="progress-bleed"><div class="progress-bleed-fill" id="sage-fill"></div></div>
+                <div class="progress-bleed"><div class="progress-bleed-fill" id="shelf-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; deep forest · cream type · muted sage accent</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; calm canvas above · info shelf below</div>
     </section>
+
 
     <script>
     (function() {
@@ -1492,10 +1636,10 @@
         autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
         autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
 
-        // LINEN / MIST / SAGE — same composition, fit each title
-        document.querySelectorAll('.fit-title-calm').forEach(function(el) {
-            autoFitTitle(el, 78, 36);
-        });
+        // CENTERLINE / PLAQUE / SHELF — fit each title independently
+        autoFitTitle(document.querySelector('.fit-title-cl'), 78, 36);
+        autoFitTitle(document.querySelector('.fit-title-pl'), 78, 36);
+        autoFitTitle(document.querySelector('.fit-title-sh'), 56, 28);
 
         // Generic chrome animator — status text rotation + percent + bar fill
         function chromeRunner(opts) {
@@ -1524,9 +1668,9 @@
         }
 
         var calmStatuses = ['checking roblox files', 'verifying license', 'fetching latest update', 'preparing instance', 'almost ready'];
-        chromeRunner({ statusId: 'linen-status', pctId: 'linen-pct', fillId: 'linen-fill', statuses: calmStatuses });
-        chromeRunner({ statusId: 'mist-status',  pctId: 'mist-pct',  fillId: 'mist-fill',  statuses: calmStatuses });
-        chromeRunner({ statusId: 'sage-status',  pctId: 'sage-pct',  fillId: 'sage-fill',  statuses: calmStatuses });
+        chromeRunner({ statusId: 'centerline-status', pctId: 'centerline-pct', fillId: 'centerline-fill', statuses: calmStatuses });
+        chromeRunner({ statusId: 'plaque-status',     pctId: 'plaque-pct',     fillId: null,              statuses: calmStatuses });
+        chromeRunner({ statusId: 'shelf-status',      pctId: 'shelf-pct',      fillId: 'shelf-fill',      statuses: calmStatuses });
 
         // HORIZON — status + counter + title accent on first letter
         (function() {
