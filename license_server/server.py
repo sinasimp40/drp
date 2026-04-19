@@ -26,7 +26,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Set ADMIN_FORCE_HTTPS=1 in prod (Replit deploy / behind any TLS proxy)
+# so the admin session cookie is only sent over HTTPS.
+if os.environ.get("ADMIN_FORCE_HTTPS", "").lower() in ("1", "true", "yes"):
+    app.config["SESSION_COOKIE_SECURE"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
+# Cap request body to 16 MB (build artifact uploads go through their own
+# streamed paths; admin form submits are tiny). Prevents memory-exhaustion
+# DoS via giant POST bodies.
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db")
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
@@ -34,6 +42,157 @@ TRIAL_REGISTER_SECRET = os.environ.get("TRIAL_REGISTER_SECRET", "DENFI_TRIAL_REG
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 ADMIN_UNLOCK_SECRET = os.environ.get("ADMIN_UNLOCK_SECRET", "zxc1")
 _UNLOCK_PBKDF2_ITERATIONS = 60000
+
+# --- security: brute-force lockout + per-IP rate limiting ----------------
+_security_lock = threading.Lock()
+# IP -> deque of failed-login timestamps (recent window)
+_login_failures = {}
+# IP -> unlock_at_unix_ts (locked-out until this time)
+_login_lockouts = {}
+# (ip, bucket_name) -> deque of request timestamps (sliding window)
+_api_request_log = {}
+LOGIN_FAIL_WINDOW = 900          # track failures in the last 15 min
+LOGIN_FAIL_THRESHOLD = 5         # 5 fails -> lockout
+LOGIN_LOCKOUT_BASE = 900         # base lockout 15 min
+LOGIN_LOCKOUT_MAX = 6 * 3600     # cap at 6 hours
+
+@app.before_request
+def _global_rate_limit():
+    """Per-IP rate limits on the high-traffic endpoints. Runs BEFORE
+    signature decorators so even bogus / unsigned spam is throttled."""
+    path = request.path
+    ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() \
+        or (request.remote_addr or "0.0.0.0")
+    if path == "/api/validate":
+        if not _api_rate_limit(ip, "validate", 60, 60):
+            return jsonify({"error": "rate_limited"}), 429
+    elif path == "/api/heartbeat":
+        if not _api_rate_limit(ip, "heartbeat", 120, 60):
+            return jsonify({"error": "rate_limited"}), 429
+    elif path == "/login":
+        # Cap how many times a single IP can even hit the disguise page.
+        # 60/minute is plenty for a human; way under what a brute-forcer wants.
+        if not _api_rate_limit(ip, "login_hit", 60, 60):
+            return "Too many requests", 429
+    elif path.startswith("/api/"):
+        # generic catch-all for any other API endpoint
+        if not _api_rate_limit(ip, "api_other", 200, 60):
+            return jsonify({"error": "rate_limited"}), 429
+    return None
+
+
+@app.after_request
+def _apply_security_headers(resp):
+    """Defense-in-depth HTTP headers. Cheap to apply, blocks most generic
+    web attacks (clickjacking, MIME-sniffing, referrer leak, etc.)."""
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(), camera=(), microphone=(), payment=()",
+    )
+    # API responses should never be cached by intermediaries / browsers
+    if request.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.errorhandler(413)
+def _payload_too_large(e):
+    # Triggered when MAX_CONTENT_LENGTH is exceeded; return small JSON
+    return jsonify({"error": "payload_too_large"}), 413
+
+
+def _real_client_ip():
+    """Honor X-Forwarded-For when ADMIN_TRUST_PROXY=1; otherwise use the
+    socket peer. Behind Replit's TLS proxy or any nginx, set this env var."""
+    if os.environ.get("ADMIN_TRUST_PROXY", "").lower() in ("1", "true", "yes"):
+        xff = request.headers.get("X-Forwarded-For", "")
+        if xff:
+            return xff.split(",")[0].strip()
+    return request.remote_addr or "0.0.0.0"
+
+def _check_login_lockout(ip):
+    """Return (allowed, retry_after_seconds)."""
+    now = time.time()
+    with _security_lock:
+        unlock_at = _login_lockouts.get(ip)
+        if unlock_at and unlock_at > now:
+            return False, int(unlock_at - now)
+        if unlock_at and unlock_at <= now:
+            _login_lockouts.pop(ip, None)
+    return True, 0
+
+def _record_login_failure(ip):
+    now = time.time()
+    cutoff = now - LOGIN_FAIL_WINDOW
+    with _security_lock:
+        bucket = _login_failures.setdefault(ip, [])
+        bucket.append(now)
+        # prune old
+        while bucket and bucket[0] < cutoff:
+            bucket.pop(0)
+        if len(bucket) >= LOGIN_FAIL_THRESHOLD:
+            # exponential backoff: each extra failure doubles lockout
+            extra = len(bucket) - LOGIN_FAIL_THRESHOLD
+            duration = min(LOGIN_LOCKOUT_BASE * (2 ** extra), LOGIN_LOCKOUT_MAX)
+            _login_lockouts[ip] = now + duration
+            return int(duration)
+    return 0
+
+def _clear_login_failures(ip):
+    with _security_lock:
+        _login_failures.pop(ip, None)
+        _login_lockouts.pop(ip, None)
+
+def _api_rate_limit(ip, bucket_name, max_requests, window_seconds):
+    """Generic sliding-window per-IP limiter. Returns True if allowed."""
+    if not ip:
+        return True
+    now = time.time()
+    cutoff = now - window_seconds
+    key = (ip, bucket_name)
+    with _security_lock:
+        log = _api_request_log.setdefault(key, [])
+        while log and log[0] < cutoff:
+            log.pop(0)
+        if len(log) >= max_requests:
+            return False
+        log.append(now)
+    return True
+
+def _gc_security_state():
+    """Periodically prune empty buckets so dicts don't grow unbounded."""
+    now = time.time()
+    with _security_lock:
+        for ip in list(_login_failures.keys()):
+            bucket = _login_failures[ip]
+            while bucket and bucket[0] < now - LOGIN_FAIL_WINDOW:
+                bucket.pop(0)
+            if not bucket:
+                _login_failures.pop(ip, None)
+        for ip, until in list(_login_lockouts.items()):
+            if until <= now:
+                _login_lockouts.pop(ip, None)
+        for key in list(_api_request_log.keys()):
+            log = _api_request_log[key]
+            # keep at most 5 minutes of request timestamps; longer windows
+            # are uncommon and would waste memory
+            while log and log[0] < now - 300:
+                log.pop(0)
+            if not log:
+                _api_request_log.pop(key, None)
+
+_last_gc = [0.0]
+def _maybe_gc():
+    now = time.time()
+    if now - _last_gc[0] > 60:
+        _last_gc[0] = now
+        try:
+            _gc_security_state()
+        except Exception:
+            pass
 HEARTBEAT_TIMEOUT = 60
 REQUEST_TIMESTAMP_TOLERANCE = 300
 TRIAL_RATE_LIMIT_WINDOW = 3600
@@ -489,6 +648,7 @@ def expire_active_licenses(conn):
 @app.route("/api/validate", methods=["POST"])
 @require_signed_request
 def api_validate():
+    # per-IP rate limit handled in _global_rate_limit before_request hook
     data = request.get_json(silent=True)
     if not data or "key" not in data:
         resp = {"valid": False, "error": "Missing key"}
@@ -603,6 +763,7 @@ def api_validate():
 @app.route("/api/heartbeat", methods=["POST"])
 @require_signed_request
 def api_heartbeat():
+    # per-IP rate limit handled in _global_rate_limit before_request hook
     data = request.get_json(silent=True)
     if not data or "key" not in data:
         resp = {"valid": False, "error": "Missing key"}
@@ -769,13 +930,42 @@ def _build_login_form_payload(flash_messages):
 
 @app.route("/login", methods=["GET", "POST"])
 def login_page():
+    ip = _real_client_ip()
+    _maybe_gc()
+    allowed, retry = _check_login_lockout(ip)
+    if not allowed:
+        # Stay on the disguise; reveal nothing. The lockout is silent so an
+        # attacker can't easily measure when the window resets.
+        if request.method == "POST":
+            # add a small constant delay to slow distributed brute force
+            time.sleep(0.5)
+            payload = _build_login_form_payload([
+                ("error", f"Too many attempts. Try again in {retry // 60 + 1} min.")
+            ])
+            return render_template("login.html", payload=payload), 429
+        payload = _build_login_form_payload([])
+        return render_template("login.html", payload=payload), 429
+
     if request.method == "POST":
         password = request.form.get("password", "")
-        if hmac.compare_digest(password, ADMIN_PASSWORD):
+        # constant-time compare; small artificial delay to throttle attempts
+        ok = hmac.compare_digest(password, ADMIN_PASSWORD)
+        time.sleep(0.25)
+        if ok:
+            _clear_login_failures(ip)
             session.permanent = True
             session["admin_logged_in"] = True
             session["login_time"] = time.time()
+            session["login_ip"] = ip
             return redirect(url_for("dashboard"))
+        locked_for = _record_login_failure(ip)
+        if locked_for:
+            print(f"[SECURITY] Login locked out: ip={ip} duration={locked_for}s",
+                  flush=True)
+            payload = _build_login_form_payload([
+                ("error", f"Too many failed attempts. Locked for {locked_for // 60 + 1} min.")
+            ])
+            return render_template("login.html", payload=payload), 429
         flash("Invalid password", "error")
     payload = _build_login_form_payload(get_flashed_messages(with_categories=True))
     return render_template("login.html", payload=payload)
