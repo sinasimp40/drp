@@ -1852,6 +1852,27 @@ def _is_fatal_license_error(error_msg):
     return any(phrase in lower for phrase in fatal_phrases)
 
 
+def _is_network_error_msg(error_msg):
+    """True if error_msg looks like a transient transport/connectivity failure
+    (DNS, TCP refused/reset, timeout, server unreachable, no route, etc.).
+    Used to make sure we never permanently exhaust a trial because of a brief
+    outage on the user's network or our license server."""
+    if not error_msg:
+        return False
+    lower = error_msg.lower()
+    network_phrases = (
+        "unreachable", "timeout", "timed out",
+        "connection refused", "connection reset", "connection aborted",
+        "no route to host", "network is unreachable", "network unreachable",
+        "name or service not known", "name resolution",
+        "temporary failure", "getaddrinfo", "dns",
+        "ssl", "handshake", "broken pipe",
+        "bad gateway", "gateway timeout", "service unavailable",
+        "502", "503", "504",
+    )
+    return any(p in lower for p in network_phrases)
+
+
 class UpdateInstalledDialog(QDialog):
     def __init__(self, version="", parent=None):
         super().__init__(parent)
@@ -2148,6 +2169,17 @@ def check_license_or_prompt(app, splash=None):
     if not LICENSE_SERVER_URL:
         return True
 
+    # Trial builds: if a previous run already exhausted the trial, never try
+    # to mint a new one and never accept a fresh key — show the trial-ended
+    # dialog so the user has to delete the install folder to start over.
+    if IS_TRIAL and _is_trial_exhausted():
+        if splash:
+            splash.hide()
+        TrialExpiredDialog(
+            message="Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX."
+        ).exec_()
+        return False
+
     saved_key = load_saved_license()
     error_msg = ""
 
@@ -2174,12 +2206,19 @@ def check_license_or_prompt(app, splash=None):
 
         # Trial builds: an existing trial key that fails validation is
         # treated as expired/invalid — NEVER silently mint a fresh trial.
+        # Only drop the sticky marker on a *fatal* failure (expired/revoked
+        # /deleted/not found). Pure transport failures must NOT brick the
+        # trial: a brief outage should let the user retry later.
         if IS_TRIAL:
+            if not _is_network_error_msg(error_msg):
+                _mark_trial_exhausted()
             if splash:
                 splash.hide()
             lower = (error_msg or "").lower()
             if "expired" in lower:
                 msg = "Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX."
+            elif _is_network_error_msg(error_msg):
+                msg = "Could not reach the license server.\nCheck your internet and try again."
             else:
                 msg = error_msg or "Your free trial is no longer valid."
             TrialExpiredDialog(message=msg).exec_()
@@ -2206,6 +2245,11 @@ def check_license_or_prompt(app, splash=None):
         # Trial mint failed — show a friendly trial-expired/quota dialog and quit.
         err = (trial_result or {}).get("error", "Could not start your free trial.") if isinstance(trial_result, dict) else "Could not start your free trial."
         lower = (err or "").lower()
+        # If the server tells us the trial is exhausted (expired or per-subnet
+        # quota hit), drop the sticky marker so we don't keep re-asking.
+        # Plain network failures do NOT mark the trial exhausted.
+        if not _is_network_error_msg(err):
+            _mark_trial_exhausted()
         if "expired" in lower:
             msg = "Your free trial has ended.\nContact the developer to get a full license."
         elif "quota" in lower or "limit" in lower or "rate" in lower:
@@ -2270,7 +2314,7 @@ def start_license_watchdog(app):
         result = validate_license(key, "heartbeat")
         if not result.get("valid"):
             error_msg = result.get("error", "")
-            is_network_error = "unreachable" in error_msg.lower() or "timeout" in error_msg.lower()
+            is_network_error = _is_network_error_msg(error_msg)
             is_suspended = _is_suspended_error(error_msg)
             is_fatal = _is_fatal_license_error(error_msg)
 
@@ -2301,11 +2345,22 @@ def start_license_watchdog(app):
             if IS_TRIAL and not is_suspended:
                 # Trial expiry/revocation -> show the friendly trial dialog
                 # (with Get Full License + Quit) instead of the LockScreen.
-                delete_license_files()
+                # Keep .license_key on disk (do NOT delete) and drop a sticky
+                # marker so re-launching the app cannot silently mint a new
+                # trial. Only nuking the install folder resets the trial.
+                # Crucially: only flip the sticky marker on a *fatal* server
+                # response (expired/revoked/etc). After a long network outage
+                # we still kill the session, but we leave the trial recoverable
+                # so the user can come back online and resume their remaining
+                # time once connectivity returns.
+                if is_fatal:
+                    _mark_trial_exhausted()
                 err_text = result.get("error", "License expired")
                 lower_err = err_text.lower()
                 if "expired" in lower_err:
                     msg = "Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX."
+                elif is_network_error:
+                    msg = "Lost connection to the license server.\nPlease check your internet and relaunch."
                 else:
                     msg = err_text
                 dlg = TrialExpiredDialog(message=msg)
@@ -2314,11 +2369,17 @@ def start_license_watchdog(app):
                 QTimer.singleShot(10000, app.quit)
                 return
             if is_suspended:
+                # Suspended (e.g. IP/subnet change) -> keep the key file so the
+                # user auto-recovers when the admin un-suspends them.
                 lock = LockScreen("License suspended.\nContact the developer.")
             elif not EMBEDDED_LICENSE_KEY:
+                # Premium license expired or revoked -> wipe the key file so
+                # next launch prompts the user for a brand-new key.
                 delete_license_files()
                 lock = LockScreen(result.get("error", "License expired or revoked"))
             else:
+                # Embedded-key build: the key is baked into the .exe, nothing
+                # to delete. Just lock the user out.
                 lock = LockScreen(result.get("error", "License expired or revoked"))
 
             lock.show()
@@ -2524,6 +2585,33 @@ def main():
                     log_lines.append("Roblox files up to date")
             else:
                 log_lines.append("No system Roblox found")
+                # Premium build with no system Roblox install: fall back to
+                # downloading the same bundle the trial flow uses. This means
+                # the admin doesn't need to set hardcoded_path or pre-install
+                # Roblox on the user's PC. If the bundle download fails and
+                # we already have a working RobloxPlayerBeta.exe locally, we
+                # silently keep using the cached files; otherwise we hard-fail
+                # so the user doesn't end up in a half-installed state.
+                has_exe_already = os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
+                splash.set_progress(25, "Checking Roblox bundle...")
+                app.processEvents()
+                ok = download_and_extract_roblox_bundle(splash, app, paths)
+                if ok:
+                    detected = get_roblox_version(paths["roblox"])
+                    if detected:
+                        splash.roblox_version = detected
+                    log_lines.append("Server bundle ready (no system Roblox)")
+                elif not has_exe_already:
+                    log_lines.append("Bundle download failed and no local Roblox files")
+                    splash.show_error(
+                        "Could not download Roblox files.\n"
+                        "Please check your internet and retry."
+                    )
+                    write_log(paths["logs"], "\n".join(log_lines))
+                    QTimer.singleShot(5000, app.quit)
+                    return
+                else:
+                    log_lines.append("Bundle download failed; using existing local files")
 
         elif idx == 3:
             if IS_TRIAL:

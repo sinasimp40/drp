@@ -2,14 +2,7 @@ PyQt5==5.15.11
 pyinstaller==6.3.0
 Pillow>=10.0.0
 flask>=3.0.0
-flask
-flask
 flask-socketio
-Pillow
-PySocks
-flask
-flask-socketio
-Pillow
 PySocks
 python-dotenv
 requests
