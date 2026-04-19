@@ -944,23 +944,35 @@ def create_splash_pixmap():
     line1, line2 = _split_title(APP_NAME)
     max_title_w = right_w - pad * 2
 
-    # Line 1: heavy modern sans-serif, white. Use Segoe UI Black on Windows
-    # for a confident display weight that pairs well with the Roblox letterform.
+    # Line 1: clean modern condensed sans-serif, white. Prefer Bahnschrift
+    # (ships with Windows 10+) for a tall, refined display look that pairs
+    # nicely with the chunky Roblox letterform on line 2. Falls back through
+    # Segoe UI Semibold for older systems / non-Windows.
+    title1_family = "Bahnschrift"
+    f_probe = QFont(title1_family)
+    if not f_probe.exactMatch():
+        title1_family = "Segoe UI Semibold"
+        if not QFont(title1_family).exactMatch():
+            title1_family = "Segoe UI"
+
     if line1:
-        f1, fm1 = _fit_font("Segoe UI Black", line1, max_title_w, start_size=42, min_size=18, weight=QFont.Black)
+        f1, fm1 = _fit_font(title1_family, line1, max_title_w,
+                            start_size=32, min_size=16, weight=QFont.DemiBold,
+                            spacing=1)
         p.setFont(f1)
         p.setPen(QColor("#f4f4f6"))
         line1_y = eyebrow_y + 28
         p.drawText(right_x + pad, line1_y, max_title_w, fm1.height() + 4,
                    Qt.AlignLeft | Qt.AlignTop, line1)
-        line2_top = line1_y + fm1.height() + 4
+        line2_top = line1_y + fm1.height() + 2
     else:
         line2_top = eyebrow_y + 28
 
     # Line 2: Roblox font, orange (always, even if it isn't literally "ROBLOX")
     if line2:
         family = roblox_family if roblox_family else "Segoe UI"
-        f2, fm2 = _fit_font(family, line2, max_title_w, start_size=38, min_size=20, weight=QFont.Bold)
+        f2, fm2 = _fit_font(family, line2, max_title_w,
+                            start_size=32, min_size=18, weight=QFont.Bold)
         p.setFont(f2)
         p.setPen(QColor("#ff6a00"))
         p.drawText(right_x + pad, line2_top, max_title_w, fm2.height() + 8,
