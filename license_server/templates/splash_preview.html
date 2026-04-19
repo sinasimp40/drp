@@ -66,9 +66,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.vector   { color: #ff9d4d; border-color: #5a3115; }
-        .design-tag.vault    { color: #ffcf8a; border-color: #6a3a18; }
-        .design-tag.pulse    { color: #ff9d4d; border-color: #5a3115; }
+        .design-tag.linen    { color: #d6c8ad; border-color: #4a3e2a; }
+        .design-tag.mist     { color: #a8c0d4; border-color: #2a3a4a; }
+        .design-tag.sage     { color: #b4cba6; border-color: #2a3a2c; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -756,451 +756,157 @@
         }
 
         /* ============================================================
-           VECTOR — Marquee-density chrome + huge outlined edition stamp
-           on the right side. Limited-edition product launch register.
+           CALM — shared base for Linen / Mist / Sage.
+           Same trusted Marquee composition (brand row + big editorial
+           title with one accent letter + subtitle + status row + counter
+           + full-bleed thin progress) — only the palette changes.
+           Soft, low-contrast, comfortable in the eyes.
            ============================================================ */
-        .splash-vector {
+        .splash-calm {
             position: relative;
             width: 660px; height: 380px;
-            background: #0a0a0e;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             font-family: 'Inter', system-ui, sans-serif;
-            color: #f4f4f6;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.45);
         }
-        .splash-vector::before {
-            content: ''; position: absolute;
-            top: -180px; right: -180px;
-            width: 540px; height: 540px;
-            background: radial-gradient(ellipse, rgba(255,123,31,0.10) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .splash-vector::after {
+        .splash-calm::before {
             content: ''; position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'2\' stitchTiles=\'stitch\'/><feColorMatrix values=\'0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0\'/></filter><rect width=\'100%\' height=\'100%\' filter=\'url(%23n)\'/></svg>");
             opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;
         }
-        /* huge outlined edition stamp — right side */
-        .splash-vector .stamp {
+        .splash-calm .meta-row {
             position: absolute;
-            top: 50%; right: -10px;
-            transform: translateY(-50%);
-            font-family: 'Inter', system-ui, sans-serif;
-            font-weight: 900;
-            font-size: 280px;
-            line-height: 0.85;
-            letter-spacing: -12px;
-            color: transparent;
-            -webkit-text-stroke: 1.5px rgba(255,123,31,0.35);
-            text-stroke: 1.5px rgba(255,123,31,0.35);
-            user-select: none;
-            pointer-events: none;
-            white-space: nowrap;
-            z-index: 1;
-        }
-        .splash-vector .stamp .slash {
-            -webkit-text-stroke: 1.5px rgba(255,255,255,0.10);
-            margin: 0 4px;
-        }
-        .splash-vector .stamp-cap {
-            position: absolute;
-            right: 28px; top: 88px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 4px;
-            color: rgba(255,157,77,0.7);
-            text-transform: uppercase;
-            z-index: 3;
-        }
-        /* top brand row */
-        .splash-vector .meta-row {
-            position: absolute;
-            top: 26px; left: 32px; right: 28px;
+            top: 28px; left: 36px; right: 32px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 3;
         }
-        .splash-vector .brand {
+        .splash-calm .brand {
             display: flex; align-items: center; gap: 10px;
-            font-size: 11px; font-weight: 600; letter-spacing: 3px;
-            text-transform: uppercase; color: rgba(244,244,246,0.85);
+            font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
         }
-        .splash-vector .brand-dot {
-            width: 6px; height: 6px; background: #ff7b1f; border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255,123,31,0.7);
+        .splash-calm .brand-dot {
+            width: 6px; height: 6px; border-radius: 50%;
         }
-        .splash-vector .version {
+        .splash-calm .version {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.45);
+            font-size: 11px;
             padding: 4px 10px;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.10);
             border-radius: 999px;
         }
-        /* eyebrow */
-        .splash-vector .eyebrow {
+        .splash-calm .eyebrow {
             position: absolute;
-            top: 138px; left: 32px;
+            top: 132px; left: 36px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 3px;
-            color: #ff9d4d; text-transform: uppercase;
+            font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
             z-index: 3;
         }
-        .splash-vector .title {
+        .splash-calm .title {
             position: absolute;
-            top: 168px; left: 32px;
-            font-size: 78px;
-            font-weight: 700;
-            letter-spacing: -3.5px;
-            line-height: 0.95;
-            color: #fff;
+            top: 162px; left: 36px; right: 36px;
+            font-size: 78px; font-weight: 700;
+            letter-spacing: -3.5px; line-height: 0.95;
             z-index: 3;
         }
-        .splash-vector .title .ac { color: #ff7b1f; }
-        .splash-vector .subtitle {
+        .splash-calm .subtitle {
             position: absolute;
-            top: 256px; left: 32px;
+            top: 252px; left: 36px;
             font-size: 13px; font-weight: 500;
-            color: rgba(244,244,246,0.55); letter-spacing: 0.2px;
+            letter-spacing: 0.2px;
             z-index: 3;
         }
-        .splash-vector .subtitle .premium { color: #ff9d4d; font-weight: 600; }
-        .splash-vector .subtitle .sep { color: rgba(244,244,246,0.2); margin: 0 10px; }
-        /* status row */
-        .splash-vector .status-row {
+        .splash-calm .subtitle .sep { margin: 0 10px; opacity: 0.4; }
+        .splash-calm .status-row {
             position: absolute;
-            bottom: 30px; left: 32px;
+            bottom: 32px; left: 36px;
             display: flex; align-items: center; gap: 10px;
             z-index: 3;
         }
-        .splash-vector .status-dot {
-            width: 8px; height: 8px; background: #ff7b1f; border-radius: 50%;
-            animation: marquee-pulse 1.6s ease-in-out infinite;
+        .splash-calm .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            animation: calm-pulse 1.8s ease-in-out infinite;
         }
-        .splash-vector .status-text {
+        @keyframes calm-pulse {
+            0%, 100% { opacity: 0.55; transform: scale(1); }
+            50%      { opacity: 1;    transform: scale(1.15); }
+        }
+        .splash-calm .status-text {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 12px; color: rgba(244,244,246,0.7);
-            letter-spacing: 0.2px; transition: opacity 0.3s;
+            font-size: 12px; letter-spacing: 0.2px;
+            transition: opacity 0.3s;
         }
-        .splash-vector .counter {
+        .splash-calm .counter {
             position: absolute;
-            bottom: 30px; right: 32px;
+            bottom: 32px; right: 36px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.35); letter-spacing: 1px;
+            font-size: 11px; letter-spacing: 1px;
             z-index: 3;
         }
-        .splash-vector .counter .num { color: rgba(244,244,246,0.85); font-weight: 500; }
-        .splash-vector .progress-bleed {
+        .splash-calm .counter .num { font-weight: 500; }
+        .splash-calm .progress-bleed {
             position: absolute; bottom: 0; left: 0; right: 0;
-            height: 2px; background: rgba(255,255,255,0.05);
+            height: 1px;
             z-index: 3;
         }
-        .splash-vector .progress-bleed-fill {
+        .splash-calm .progress-bleed-fill {
             height: 100%; width: 0%;
-            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
-            box-shadow: 0 0 12px rgba(255,123,31,0.7);
             transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ============================================================
-           VAULT — Horizon-style split with embossed coin/seal on left.
-           Reads as "signed · verified · licensed".
-           ============================================================ */
-        .splash-vault {
-            position: relative;
-            width: 680px; height: 380px;
-            border-radius: 10px;
-            overflow: hidden;
-            display: flex;
-            font-family: 'Inter', system-ui, sans-serif;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.55);
-        }
-        .splash-vault .seal-pane {
-            flex: 0 0 280px;
-            position: relative;
-            background:
-                radial-gradient(ellipse at 30% 30%, #1a1410 0%, #0a0708 70%),
-                #07060a;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
-        }
-        .splash-vault .seal-pane .notch {
-            position: absolute;
-            top: 18px; left: 22px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,176,96,0.55);
-            letter-spacing: 2px;
-        }
-        .splash-vault .seal-pane .notch-b {
-            top: auto; bottom: 18px; left: 22px;
-            color: rgba(255,255,255,0.25);
-        }
-        /* the coin */
-        .splash-vault .coin {
-            position: relative;
-            width: 200px; height: 200px;
-        }
-        .splash-vault .coin .ring-outer {
-            position: absolute; inset: 0;
-            border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #6a3a18 0deg, #ffcf8a 60deg, #d97a2a 120deg,
-                #6a3a18 180deg, #ffcf8a 240deg, #d97a2a 300deg, #6a3a18 360deg);
-            padding: 2px;
-            animation: vault-spin 18s linear infinite;
-        }
-        @keyframes vault-spin { to { transform: rotate(360deg); } }
-        .splash-vault .coin .ring-inner-bg {
-            position: absolute; inset: 6px;
-            border-radius: 50%;
-            background: radial-gradient(ellipse at 30% 25%, #2a1a10 0%, #15100a 60%, #08060a 100%);
-            box-shadow: inset 0 4px 20px rgba(0,0,0,0.6), inset 0 -2px 10px rgba(255,176,96,0.15);
-        }
-        .splash-vault .coin .dots {
-            position: absolute; inset: 14px;
-            border-radius: 50%;
-        }
-        .splash-vault .coin .dots span {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 3px; height: 3px;
-            margin: -1.5px 0 0 -1.5px;
-            background: rgba(255,207,138,0.55);
-            border-radius: 50%;
-        }
-        .splash-vault .coin .glyph {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'Inter', system-ui, sans-serif;
-            font-weight: 900;
-            font-size: 96px;
-            letter-spacing: -4px;
-            color: transparent;
-            background: linear-gradient(180deg, #ffcf8a 0%, #ff8a3d 60%, #6a3a18 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            text-shadow: 0 2px 0 rgba(0,0,0,0.4);
-            z-index: 2;
-        }
-        .splash-vault .coin .shine {
-            position: absolute; inset: 8px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 40%);
-            pointer-events: none;
-            z-index: 3;
-        }
+        /* LINEN — warm neutral. Cream type on warm muted dark. Muted amber accent. */
+        .splash-linen { background: #1a1714; color: #ece4d3; }
+        .splash-linen .brand            { color: rgba(236,228,211,0.88); }
+        .splash-linen .brand-dot        { background: #c89060; box-shadow: 0 0 10px rgba(200,144,96,0.45); }
+        .splash-linen .version          { color: rgba(236,228,211,0.5); border-color: rgba(236,228,211,0.10); }
+        .splash-linen .eyebrow          { color: #c89060; }
+        .splash-linen .title            { color: #f4ecd8; }
+        .splash-linen .title .ac        { color: #c89060; }
+        .splash-linen .subtitle         { color: rgba(236,228,211,0.55); }
+        .splash-linen .subtitle .sep    { color: rgba(236,228,211,0.25); }
+        .splash-linen .subtitle .em     { color: #c89060; font-weight: 600; }
+        .splash-linen .status-dot       { background: #c89060; }
+        .splash-linen .status-text      { color: rgba(236,228,211,0.7); }
+        .splash-linen .counter          { color: rgba(236,228,211,0.4); }
+        .splash-linen .counter .num     { color: rgba(236,228,211,0.85); }
+        .splash-linen .progress-bleed   { background: rgba(236,228,211,0.06); }
+        .splash-linen .progress-bleed-fill { background: linear-gradient(90deg, #c89060, #d8a878); }
 
-        .splash-vault .right {
-            flex: 1;
-            position: relative;
-            background: #0a0a0e;
-            color: #f4f4f6;
-            padding: 28px 32px;
-            display: flex; flex-direction: column; justify-content: space-between;
-        }
-        .splash-vault .right::before {
-            content: ''; position: absolute;
-            top: -100px; right: -100px;
-            width: 360px; height: 360px;
-            background: radial-gradient(ellipse, rgba(255,176,96,0.07), transparent 60%);
-            pointer-events: none;
-        }
-        .splash-vault .top {
-            display: flex; justify-content: space-between; align-items: center;
-            position: relative; z-index: 2;
-        }
-        .splash-vault .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 11px; font-weight: 600; letter-spacing: 3px;
-            text-transform: uppercase; color: rgba(244,244,246,0.85);
-        }
-        .splash-vault .brand-dot {
-            width: 6px; height: 6px; background: #ffb060; border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255,176,96,0.7);
-        }
-        .splash-vault .version {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.45);
-            padding: 4px 10px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 999px;
-        }
-        .splash-vault .center { position: relative; z-index: 2; }
-        .splash-vault .eyebrow {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 3px; color: #ffb060;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .splash-vault .eyebrow .sig {
-            display: inline-block;
-            width: 12px; height: 1px; background: #ffb060;
-        }
-        .splash-vault .title {
-            font-size: 60px; font-weight: 700;
-            letter-spacing: -2.8px; line-height: 0.95;
-            color: #fff;
-        }
-        .splash-vault .title .ac { color: #ffb060; }
-        .splash-vault .sub {
-            margin-top: 10px;
-            font-size: 13px; color: rgba(244,244,246,0.55); letter-spacing: 0.2px;
-        }
-        .splash-vault .bottom {
-            display: flex; align-items: center; justify-content: space-between;
-            position: relative; z-index: 2;
-        }
-        .splash-vault .status { display: flex; align-items: center; gap: 10px; }
-        .splash-vault .status-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: #ffb060;
-            animation: marquee-pulse 1.6s ease-in-out infinite;
-        }
-        .splash-vault .status-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.7);
-            transition: opacity 0.3s;
-        }
-        .splash-vault .ratio {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.4);
-        }
-        .splash-vault .ratio .num { color: rgba(244,244,246,0.85); font-weight: 500; }
+        /* MIST — cool slate. Soft white type on muted slate. Muted teal-blue accent. */
+        .splash-mist { background: #161a22; color: #e4ecf4; }
+        .splash-mist .brand            { color: rgba(228,236,244,0.88); }
+        .splash-mist .brand-dot        { background: #7aa2c8; box-shadow: 0 0 10px rgba(122,162,200,0.45); }
+        .splash-mist .version          { color: rgba(228,236,244,0.5); border-color: rgba(228,236,244,0.10); }
+        .splash-mist .eyebrow          { color: #7aa2c8; }
+        .splash-mist .title            { color: #f4f7fa; }
+        .splash-mist .title .ac        { color: #7aa2c8; }
+        .splash-mist .subtitle         { color: rgba(228,236,244,0.55); }
+        .splash-mist .subtitle .sep    { color: rgba(228,236,244,0.25); }
+        .splash-mist .subtitle .em     { color: #7aa2c8; font-weight: 600; }
+        .splash-mist .status-dot       { background: #7aa2c8; }
+        .splash-mist .status-text      { color: rgba(228,236,244,0.7); }
+        .splash-mist .counter          { color: rgba(228,236,244,0.4); }
+        .splash-mist .counter .num     { color: rgba(228,236,244,0.88); }
+        .splash-mist .progress-bleed   { background: rgba(228,236,244,0.06); }
+        .splash-mist .progress-bleed-fill { background: linear-gradient(90deg, #7aa2c8, #98bcd8); }
 
-        /* ============================================================
-           PULSE — Marquee chrome + animated EQ waveform under the title.
-           Like a synthesizer warming up. Title above, equalizer below.
-           ============================================================ */
-        .splash-pulse {
-            position: relative;
-            width: 660px; height: 380px;
-            background: #0a0a0e;
-            border-radius: 10px;
-            overflow: hidden;
-            font-family: 'Inter', system-ui, sans-serif;
-            color: #f4f4f6;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.5);
-        }
-        .splash-pulse::before {
-            content: ''; position: absolute;
-            top: -160px; left: 50%; margin-left: -240px;
-            width: 480px; height: 480px;
-            background: radial-gradient(ellipse, rgba(255,123,31,0.10) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .splash-pulse::after {
-            content: ''; position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;
-        }
-        .splash-pulse .meta-row {
-            position: absolute;
-            top: 26px; left: 32px; right: 28px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 3;
-        }
-        .splash-pulse .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 11px; font-weight: 600; letter-spacing: 3px;
-            text-transform: uppercase; color: rgba(244,244,246,0.85);
-        }
-        .splash-pulse .brand-dot {
-            width: 6px; height: 6px; background: #ff7b1f; border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255,123,31,0.7);
-        }
-        .splash-pulse .version {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.45);
-            padding: 4px 10px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 999px;
-        }
-        .splash-pulse .eyebrow {
-            position: absolute;
-            top: 84px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 5px;
-            color: #ff9d4d; text-transform: uppercase;
-            z-index: 3;
-        }
-        .splash-pulse .title {
-            position: absolute;
-            top: 110px; left: 0; right: 0;
-            text-align: center;
-            font-size: 92px; font-weight: 700;
-            letter-spacing: -3.8px; line-height: 0.95;
-            color: #fff;
-            z-index: 3;
-        }
-        .splash-pulse .title .ac { color: #ff7b1f; }
-        /* equalizer */
-        .splash-pulse .eq {
-            position: absolute;
-            left: 0; right: 0; top: 226px;
-            display: flex; justify-content: center; align-items: flex-end;
-            gap: 5px;
-            height: 60px;
-            z-index: 3;
-        }
-        .splash-pulse .eq span {
-            display: block;
-            width: 4px;
-            background: linear-gradient(180deg, #ff9d4d 0%, #ff6a00 100%);
-            border-radius: 2px;
-            box-shadow: 0 0 6px rgba(255,123,31,0.45);
-            animation: pulse-bar 1.2s ease-in-out infinite;
-        }
-        @keyframes pulse-bar {
-            0%, 100% { height: 18%; opacity: 0.55; }
-            50%      { height: 100%; opacity: 1; }
-        }
-        .splash-pulse .sub {
-            position: absolute;
-            top: 304px; left: 0; right: 0;
-            text-align: center;
-            font-size: 12px; font-weight: 500;
-            color: rgba(244,244,246,0.5); letter-spacing: 1px;
-            text-transform: uppercase;
-            z-index: 3;
-        }
-        .splash-pulse .sub .premium { color: #ff9d4d; font-weight: 600; }
-        .splash-pulse .status-row {
-            position: absolute;
-            bottom: 26px; left: 32px;
-            display: flex; align-items: center; gap: 10px;
-            z-index: 3;
-        }
-        .splash-pulse .status-dot {
-            width: 8px; height: 8px; background: #ff7b1f; border-radius: 50%;
-            animation: marquee-pulse 1.6s ease-in-out infinite;
-        }
-        .splash-pulse .status-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px; color: rgba(244,244,246,0.7); letter-spacing: 0.2px;
-            transition: opacity 0.3s;
-        }
-        .splash-pulse .counter {
-            position: absolute;
-            bottom: 26px; right: 32px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px; color: rgba(244,244,246,0.35); letter-spacing: 1px;
-            z-index: 3;
-        }
-        .splash-pulse .counter .num { color: rgba(244,244,246,0.85); font-weight: 500; }
-        .splash-pulse .progress-bleed {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            height: 2px; background: rgba(255,255,255,0.05);
-            z-index: 3;
-        }
-        .splash-pulse .progress-bleed-fill {
-            height: 100%; width: 0%;
-            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
-            box-shadow: 0 0 12px rgba(255,123,31,0.7);
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        /* SAGE — natural green. Cream type on deep forest. Muted sage accent. */
+        .splash-sage { background: #131814; color: #e4ece2; }
+        .splash-sage .brand            { color: rgba(228,236,226,0.88); }
+        .splash-sage .brand-dot        { background: #a8c498; box-shadow: 0 0 10px rgba(168,196,152,0.45); }
+        .splash-sage .version          { color: rgba(228,236,226,0.5); border-color: rgba(228,236,226,0.10); }
+        .splash-sage .eyebrow          { color: #a8c498; }
+        .splash-sage .title            { color: #f4f7f0; }
+        .splash-sage .title .ac        { color: #a8c498; }
+        .splash-sage .subtitle         { color: rgba(228,236,226,0.55); }
+        .splash-sage .subtitle .sep    { color: rgba(228,236,226,0.25); }
+        .splash-sage .subtitle .em     { color: #a8c498; font-weight: 600; }
+        .splash-sage .status-dot       { background: #a8c498; }
+        .splash-sage .status-text      { color: rgba(228,236,226,0.7); }
+        .splash-sage .counter          { color: rgba(228,236,226,0.4); }
+        .splash-sage .counter .num     { color: rgba(228,236,226,0.88); }
+        .splash-sage .progress-bleed   { background: rgba(228,236,226,0.06); }
+        .splash-sage .progress-bleed-fill { background: linear-gradient(90deg, #a8c498, #c0d4b0); }
 
         /* ===========================================================
            (legacy) ORBIT — pure dark + thin animated ring around the title.
@@ -1400,7 +1106,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new ideas in the same family — full launcher chrome with one strong creative move each: <strong>Vector</strong> (huge outlined edition stamp), <strong>Vault</strong> (embossed coin / signed seal), <strong>Pulse</strong> (animated equalizer warming up under the title).<br>
+            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new variants of one calm composition — the same trusted Marquee layout (brand row, big editorial title with one accent letter, subtitle, status, counter, full-bleed thin progress) in three soft palettes that are easy on the eyes: <strong>Linen</strong> (warm neutral · muted amber accent), <strong>Mist</strong> (cool slate · muted teal-blue accent), <strong>Sage</strong> (deep forest · muted sage accent).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1593,115 +1299,96 @@
     </section>
 
     <!-- ====================================================
-         VECTOR — limited-edition stamp + product chrome
+         LINEN — warm neutral · muted amber accent
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag vector">NEW · 4</span>
-            <span class="design-name">Vector</span>
+            <span class="design-tag linen">NEW · 4</span>
+            <span class="design-name">Linen</span>
         </div>
         <div class="design-desc">
-            Same launcher chrome as Marquee — brand dot, version pill, eyebrow, big editorial title with one accent character, animated status, counter, full-bleed thin progress bar — but the right half of the canvas is dominated by a HUGE outlined edition stamp ("01 / 24") in stroke-only typography. Reads like a limited-edition product launch.
+            Warm muted dark canvas (#1a1714) with cream type and a single soft amber accent. Same trusted Marquee composition — brand row at top, big editorial title with one accent letter, mono subtitle, animated status row, counter, and a full-bleed hairline progress bar at the bottom. Quiet luxury register. Comfortable on the eyes for long sessions; the orange is dialed back into a warm muted amber so nothing shouts.
         </div>
         <div class="design-stage">
-            <div class="splash-vector">
-                <div class="stamp">01<span class="slash">/</span>24</div>
-                <div class="stamp-cap">LIMITED EDITION</div>
+            <div class="splash-calm splash-linen">
                 <div class="meta-row">
                     <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
                     <div class="version">v1.0.4</div>
                 </div>
                 <div class="eyebrow">A LICENSED RELEASE</div>
-                <div class="title fit-title-vector"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="premium">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
+                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
+                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
                 <div class="status-row">
                     <span class="status-dot"></span>
-                    <span class="status-text" id="vector-status">checking roblox files</span>
+                    <span class="status-text" id="linen-status">checking roblox files</span>
                 </div>
-                <div class="counter">BUILD <span class="num" id="vector-num">047</span> · <span id="vector-pct">0%</span></div>
-                <div class="progress-bleed"><div class="progress-bleed-fill" id="vector-fill"></div></div>
+                <div class="counter">BUILD <span class="num">047</span> · <span id="linen-pct">0%</span></div>
+                <div class="progress-bleed"><div class="progress-bleed-fill" id="linen-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; full chrome + huge outlined edition stamp on the right</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; warm neutral · cream type · muted amber accent</div>
     </section>
 
     <!-- ====================================================
-         VAULT — embossed coin / signed seal split layout
+         MIST — cool slate · muted teal-blue accent
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag vault">NEW · 5</span>
-            <span class="design-name">Vault</span>
+            <span class="design-tag mist">NEW · 5</span>
+            <span class="design-name">Mist</span>
         </div>
         <div class="design-desc">
-            Horizon-style split layout. The left panel is a deep-dark vault with an embossed circular coin: gold metallic ring slowly rotating, ring of dots, and the brand glyph stamped at the center with a metallic gradient and gloss highlight. The right side keeps the same product chrome — eyebrow, big title, status dot, ratio counter. Reads as "signed · verified · licensed."
+            Same calm composition in a cool palette. Soft slate-blue background (#161a22), almost-white type, and a single muted teal-blue accent. Reads cool and modern — closer to a desktop product like Linear or 1Password than to a game. Easy to look at for a long time; nothing fights for attention.
         </div>
         <div class="design-stage">
-            <div class="splash-vault">
-                <div class="seal-pane">
-                    <div class="notch">SEAL · 2026</div>
-                    <div class="notch notch-b">DENFI · ATELIER</div>
-                    <div class="coin">
-                        <div class="ring-outer"></div>
-                        <div class="ring-inner-bg"></div>
-                        <div class="dots" id="vault-dots"></div>
-                        <div class="glyph">{{ (app_name or 'D')[0] | upper }}</div>
-                        <div class="shine"></div>
-                    </div>
-                </div>
-                <div class="right">
-                    <div class="top">
-                        <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
-                        <div class="version">v1.0.4</div>
-                    </div>
-                    <div class="center">
-                        <div class="eyebrow"><span class="sig"></span>SIGNED · LICENSED · BUILD 047</div>
-                        <div class="title fit-title-vault"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                        <div class="sub">Portable edition, distributed by DENFI · Atelier.</div>
-                    </div>
-                    <div class="bottom">
-                        <div class="status">
-                            <span class="status-dot"></span>
-                            <span class="status-text" id="vault-status">verifying license</span>
-                        </div>
-                        <div class="ratio">LIC <span class="num" id="vault-pct">0%</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">680 × 380 &nbsp;|&nbsp; embossed gold coin on left · product chrome on right</div>
-    </section>
-
-    <!-- ====================================================
-         PULSE — equalizer waveform under the title
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag pulse">NEW · 6</span>
-            <span class="design-name">Pulse</span>
-        </div>
-        <div class="design-desc">
-            Same launcher chrome again, but the centerpiece is an animated equalizer of thin orange bars under the title — like a synthesizer warming up or a sound system booting. The bars rise and fall continuously, giving the splash a real sense of being alive. Title is centered with one accent character; brand row, status, counter, and full-bleed progress remain.
-        </div>
-        <div class="design-stage">
-            <div class="splash-pulse">
+            <div class="splash-calm splash-mist">
                 <div class="meta-row">
                     <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
                     <div class="version">v1.0.4</div>
                 </div>
-                <div class="eyebrow">WARMING UP</div>
-                <div class="title fit-title-pulse"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
-                <div class="eq" id="pulse-eq"></div>
-                <div class="sub">PORTABLE EDITION <span class="premium">· SIGNED BY DENFI</span></div>
+                <div class="eyebrow">A LICENSED RELEASE</div>
+                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
+                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
                 <div class="status-row">
                     <span class="status-dot"></span>
-                    <span class="status-text" id="pulse-status">preparing instance</span>
+                    <span class="status-text" id="mist-status">checking roblox files</span>
                 </div>
-                <div class="counter">BUILD <span class="num">047</span> · <span id="pulse-pct">0%</span></div>
-                <div class="progress-bleed"><div class="progress-bleed-fill" id="pulse-fill"></div></div>
+                <div class="counter">BUILD <span class="num">047</span> · <span id="mist-pct">0%</span></div>
+                <div class="progress-bleed"><div class="progress-bleed-fill" id="mist-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; full chrome + animated equalizer waveform under the title</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; cool slate · soft white type · muted teal-blue accent</div>
+    </section>
+
+    <!-- ====================================================
+         SAGE — deep forest · muted sage accent
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag sage">NEW · 6</span>
+            <span class="design-name">Sage</span>
+        </div>
+        <div class="design-desc">
+            Same calm composition in a natural green palette. Deep forest background (#131814), cream type, and a single muted sage accent. Very calm and earthy — looks expensive without ever being loud. The accent green is desaturated enough to feel like a Linen sibling rather than anything gamer-neon.
+        </div>
+        <div class="design-stage">
+            <div class="splash-calm splash-sage">
+                <div class="meta-row">
+                    <div class="brand"><span class="brand-dot"></span>DENFI · ATELIER</div>
+                    <div class="version">v1.0.4</div>
+                </div>
+                <div class="eyebrow">A LICENSED RELEASE</div>
+                <div class="title fit-title-calm"><span class="ac">{{ (app_name or 'Roblox')[0] }}</span>{{ (app_name or 'Roblox')[1:] }}</div>
+                <div class="subtitle">PORTABLE EDITION <span class="sep">·</span> <span class="em">SIGNED BY DENFI</span> <span class="sep">·</span> 2026</div>
+                <div class="status-row">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="sage-status">checking roblox files</span>
+                </div>
+                <div class="counter">BUILD <span class="num">047</span> · <span id="sage-pct">0%</span></div>
+                <div class="progress-bleed"><div class="progress-bleed-fill" id="sage-fill"></div></div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; deep forest · cream type · muted sage accent</div>
     </section>
 
     <script>
@@ -1805,45 +1492,10 @@
         autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
         autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
 
-        // VECTOR / VAULT / PULSE — fit each title independently
-        autoFitTitle(document.querySelector('.fit-title-vector'), 78, 36);
-        autoFitTitle(document.querySelector('.fit-title-vault'),  60, 28);
-        autoFitTitle(document.querySelector('.fit-title-pulse'),  92, 40);
-
-        // VAULT — sprinkle dots evenly around the coin's inner ring
-        (function() {
-            var dots = document.getElementById('vault-dots');
-            if (!dots) return;
-            var n = 24;
-            var R = 82;
-            for (var i = 0; i < n; i++) {
-                var a = (i / n) * Math.PI * 2;
-                var x = Math.cos(a) * R, y = Math.sin(a) * R;
-                var s = document.createElement('span');
-                s.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-                if (i % 6 === 0) {
-                    s.style.width = '4px'; s.style.height = '4px';
-                    s.style.margin = '-2px 0 0 -2px';
-                    s.style.background = '#ffcf8a';
-                }
-                dots.appendChild(s);
-            }
-        })();
-
-        // PULSE — build the equalizer bars
-        (function() {
-            var eq = document.getElementById('pulse-eq');
-            if (!eq) return;
-            var n = 38;
-            for (var i = 0; i < n; i++) {
-                var s = document.createElement('span');
-                var dur = (0.7 + Math.random() * 1.1).toFixed(2);
-                var del = (Math.random() * -1.5).toFixed(2);
-                s.style.animationDuration = dur + 's';
-                s.style.animationDelay    = del + 's';
-                eq.appendChild(s);
-            }
-        })();
+        // LINEN / MIST / SAGE — same composition, fit each title
+        document.querySelectorAll('.fit-title-calm').forEach(function(el) {
+            autoFitTitle(el, 78, 36);
+        });
 
         // Generic chrome animator — status text rotation + percent + bar fill
         function chromeRunner(opts) {
@@ -1871,18 +1523,10 @@
             }, 180);
         }
 
-        chromeRunner({
-            statusId: 'vector-status', pctId: 'vector-pct', fillId: 'vector-fill',
-            statuses: ['checking roblox files', 'verifying signature', 'fetching latest update', 'preparing instance', 'almost ready']
-        });
-        chromeRunner({
-            statusId: 'vault-status', pctId: 'vault-pct',
-            statuses: ['verifying license', 'validating signature', 'unlocking vault', 'preparing instance', 'almost ready']
-        });
-        chromeRunner({
-            statusId: 'pulse-status', pctId: 'pulse-pct', fillId: 'pulse-fill',
-            statuses: ['warming up', 'tuning channels', 'fetching latest update', 'preparing instance', 'almost ready']
-        });
+        var calmStatuses = ['checking roblox files', 'verifying license', 'fetching latest update', 'preparing instance', 'almost ready'];
+        chromeRunner({ statusId: 'linen-status', pctId: 'linen-pct', fillId: 'linen-fill', statuses: calmStatuses });
+        chromeRunner({ statusId: 'mist-status',  pctId: 'mist-pct',  fillId: 'mist-fill',  statuses: calmStatuses });
+        chromeRunner({ statusId: 'sage-status',  pctId: 'sage-pct',  fillId: 'sage-fill',  statuses: calmStatuses });
 
         // HORIZON — status + counter + title accent on first letter
         (function() {
