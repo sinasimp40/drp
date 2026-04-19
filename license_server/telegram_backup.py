@@ -20,6 +20,16 @@ import urllib.parse
 import urllib.error
 from datetime import datetime
 
+_TRUSTSTORE_STATUS = "not_attempted"
+try:
+    import truststore as _truststore
+    _truststore.inject_into_ssl()
+    _TRUSTSTORE_STATUS = "active"
+except ImportError:
+    _TRUSTSTORE_STATUS = "not_installed"
+except Exception as _e:
+    _TRUSTSTORE_STATUS = f"failed: {_e}"
+
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backup_settings.json")
 HISTORY_LIMIT = 10
 HTTP_TIMEOUT = 60          # full read timeout once a connection is established
