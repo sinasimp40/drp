@@ -1,0 +1,54 @@
+Task #21: zero-setup trial-mode launcher
+
+Server (license_server/server.py)
+- Schema migration: is_trial / parent_config_id on licenses; is_trial /
+  trial_duration_seconds / trial_max_per_subnet on build_configs;
+  roblox_bundles table; partial unique index enforces one trial config
+  at the DB level.
+- New trial channel: TRIAL_REGISTER_SECRET, sign_response_with_secret,
+  require_trial_signed_request, _trial_rate_limit_check.
+- Endpoints: POST /api/trial_register, POST /api/roblox_bundle/info,
+  GET /api/roblox_bundle/download/<token> (now SINGLE-USE — token is
+  popped before serving), GET /download_trial public (rate-limited),
+  admin /roblox_bundles upload + delete.
+- Build config form takes trial duration in HOURS (converted to seconds
+  server-side, min 1 hour).
+- _patch_launcher_source injects IS_TRIAL + _TRIAL_REGISTER_SECRET_XOR
+  into launcher.py source at build time.
+- Build dashboard exposes a copyable public trial download link on each
+  trial config row.
+
+Launcher (launcher.py)
+- New regex-patchable constants IS_TRIAL and _TRIAL_REGISTER_SECRET_XOR.
+- _decode_trial_secret + _sign_request_with_secret /
+  _verify_signature_with_secret for the separate trial HMAC channel.
+- register_trial_license() POSTs to /api/trial_register; accepts both
+  license_key and key in the response.
+- fetch_roblox_bundle_info() + download_and_extract_roblox_bundle():
+  threaded download with live splash progress, sha256 verification,
+  threaded extraction with HARDENED path-traversal defense (rejects
+  .., absolute, drive-prefixed entries; commonpath check),
+  .bundle_version marker for skip-on-up-to-date.
+- TrialExpiredDialog with "Get Full License" + "Quit" buttons (opens
+  https://t.me/denfistore).
+- check_license_or_prompt: in trial mode, only auto-mint when there is
+  NO saved key. An existing trial key that fails validation is treated
+  as expired and shows TrialExpiredDialog (no silent re-mint).
+- start_license_watchdog: trial fatal expiry routes through
+  TrialExpiredDialog instead of the generic LockScreen.
+- do_step idx==2: in trial mode, replaces find_system_roblox/sync_files
+  with bundle download+extract; first-run failures are hard-fail (no
+  silent fallback to stale files).
+- Non-trial path is 100% unchanged.
+
+Templates
+- roblox_bundles.html: admin upload/list/delete page.
+- base.html: nav link to Roblox Bundles.
+- build_config_form.html: TRIAL MODE checkbox + duration (hours) +
+  subnet quota.
+- builds.html: TRIAL badge plus copyable public trial download URL on
+  each trial config row.
+
+Drift: build_config.py CLI was untouched (it does not patch launcher
+source — server _patch_launcher_source is the single source of truth).
+End-to-end Windows testing deferred to follow-up #22.

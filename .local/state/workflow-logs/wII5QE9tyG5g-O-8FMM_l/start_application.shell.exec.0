@@ -1,0 +1,15 @@
+[telegram-backup] truststore (system CA store): active
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.100.34:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [19/Apr/2026 07:11:38] "[32mGET / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [19/Apr/2026 07:11:38] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 07:11:44] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -

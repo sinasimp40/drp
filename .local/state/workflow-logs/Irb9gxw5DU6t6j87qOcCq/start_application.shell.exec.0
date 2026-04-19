@@ -1,0 +1,40 @@
+[telegram-backup] truststore (system CA store): active
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.79.2:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [19/Apr/2026 11:15:18] "[32mGET / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [19/Apr/2026 11:15:19] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:19] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [19/Apr/2026 11:15:21] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:23] "[32mPOST /login HTTP/1.1[0m" 302 -
+127.0.0.1 - - [19/Apr/2026 11:15:24] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:27] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:28] "GET /builds HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:29] "GET /socket.io/?EIO=4&transport=polling&t=PsbS-JZ HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:29] "GET /api/build_status_all HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:30] "GET /api/launcher_info HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:30] "GET /roblox_bundles HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:30] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:30] "POST /socket.io/?EIO=4&transport=polling&t=PsbS-Mq&sid=MdAHvbi_X8LGtlAeAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:15:30] "GET /socket.io/?EIO=4&transport=polling&t=PsbS-Mq.0&sid=MdAHvbi_X8LGtlAeAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:05] "GET /builds HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "GET /socket.io/?EIO=4&transport=polling&t=PsbT7Gl HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "GET /api/build_status_all HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "GET /api/launcher_info HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "POST /socket.io/?EIO=4&transport=polling&t=PsbT7J_&sid=vpkO33TYD1PHTJqwAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "GET /socket.io/?EIO=4&transport=polling&t=PsbT7J_.0&sid=vpkO33TYD1PHTJqwAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:06] "POST /socket.io/?EIO=4&transport=polling&t=PsbT7NJ.0&sid=vpkO33TYD1PHTJqwAAAC HTTP/1.1" 200 -
+'Session is disconnected' vpkO33TYD1PHTJqwAAAC (further occurrences of this error will be logged with level INFO)
+127.0.0.1 - - [19/Apr/2026 11:16:06] "[31m[1mGET /socket.io/?EIO=4&transport=polling&t=PsbT7NJ&sid=vpkO33TYD1PHTJqwAAAC HTTP/1.1[0m" 400 -
+127.0.0.1 - - [19/Apr/2026 11:16:10] "GET /create HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:12] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [19/Apr/2026 11:16:13] "GET /roblox_bundles HTTP/1.1" 200 -

@@ -1,0 +1,41 @@
+VERDICT: REJECTED
+The diff introduces major trial-mode functionality, but it misses several core acceptance requirements and contains blocking behavior flaws.
+
+Critical findings:
+- Trial renewal logic is incorrect in `launcher.py` (`check_license_oVERDICT: REJECTED
+r_prompt`). For `IS_TRIAL`, it attempts `register_trial_license()` whenever validatThe diff introduces major trial-mode functionality, but it misses several core acceptance requirements and contains blocking behavior flaws.
+ion fails, not only when `.license_key` is miss
+ing. This allows an expired/invalid trial key to miCritical findings:
+nt a fresh trial (until subnet quota), violating the required “trial expired” behavior.
+- Trial expiry UX requirement is not met. `TrialExpiredDialog` only has a single “Close” button; required behavior is a friendly expiry screen with “Get Full License” + “Quit” actions.
+- Runtime expiry path is not trial-specific. In `start_license_watchdog`, fatal expiry still shows `LockScreen` and deletes license files, rather than showing the new trial-expired dialog for trial builds.
+- Roblox bundle download token is not single-use. `/api/roblox_bundle/download/<token>` validates TTL but never consumes/removes token on successful download, violating the explicit single-use token requirement.
+- Admin dashboard requirement to expose a copyable public trial download link on the trial config row is not implemented (no `download_trial` link in `builds.html`).
+
+Additional notable gap:
+- Build config form uses “Trial duration (seconds)” instead of requested hours UX. Backend supports seconds field, but admin-facing requirement was hours.
+
+Security:
+- Serious concern: non-single-use bundle tokens increase replay/download abuse window.
+- Positive: separate trial HMAC secret path is implemented; trial register endpoint includes rate limiting.
+
+Next actions (high impact):
+1) Fix launcher trial gating: only auto-register when `IS_TRIAL` and no saved key; on expired trial key, show TrialExpiredDialog (no re-mint path).
+2) Implement required trial-expired UX (Get Full License + Quit), and route watchdog fatal expiry for trial builds to that dialog.
+3) Make bundle tokens single-use (consume/pop token before/while serving) and add public trial download link rendering on the trial row in `builds.html`.- Trial renewal logic is incorrect in `launcher.py` (`check_license_or_prompt`). For `IS_TRIAL`, it attempts `register_trial_license()` whenever validation fails, not only when `.license_key` is missing. This allows an expired/invalid trial key to mint a fresh trial (until subnet quota), violating the required “trial expired” behavior.
+- Trial expiry UX requirement is not met. `TrialExpiredDialog` only has a single “Close” button; required behavior is a friendly expiry screen with “Get Full License” + “Quit” actions.
+- Runtime expiry path is not trial-specific. In `start_license_watchdog`, fatal expiry still shows `LockScreen` and deletes license files, rather than showing the new trial-expired dialog for trial builds.
+- Roblox bundle download token is not single-use. `/api/roblox_bundle/download/<token>` validates TTL but never consumes/removes token on successful download, violating the explicit single-use token requirement.
+- Admin dashboard requirement to expose a copyable public trial download link on the trial config row is not implemented (no `download_trial` link in `builds.html`).
+
+Additional notable gap:
+- Build config form uses “Trial duration (seconds)” instead of requested hours UX. Backend supports seconds field, but admin-facing requirement was hours.
+
+Security:
+- Serious concern: non-single-use bundle tokens increase replay/download abuse window.
+- Positive: separate trial HMAC secret path is implemented; trial register endpoint includes rate limiting.
+
+Next actions (high impact):
+1) Fix launcher trial gating: only auto-register when `IS_TRIAL` and no saved key; on expired trial key, show TrialExpiredDialog (no re-mint path).
+2) Implement required trial-expired UX (Get Full License + Quit), and route watchdog fatal expiry for trial builds to that dialog.
+3) Make bundle tokens single-use (consume/pop token before/while serving) and add public trial download link rendering on the trial row in `builds.html`.

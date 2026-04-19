@@ -1,0 +1,45 @@
+VERDICT: APPROVED_WITH_COMMENTS
+
+The diff substantially implements the Trial Mode Zero Setup requirements end-to-end without breaking the non-trial path, but there are a couple of non-blocking robustness gaps worth follow-up.
+
+Critical findings / anaVERDICT: APPROVED_WITH_COMMENTS
+lysis:
+- Trial licensing path is implemented correctly: `IS_TRIAL` bran
+ch in launcher activates automatically when no saved key, uses a separate trThe diff substantially implements the Trial Mode Zero Setup requirements end-to-end without breaking the non-trial path, but there are a couple of non-blocking robustness gaps worth follow-up.
+ial HMAC secret, persists key via existing save path, and avo
+ids key prompt for trial builds.
+- Expiry UX requiremenCritical findings / analysis:
+t is met: trial validation failures route to `TrialExpiredDialog` (- Trial licensing path is implemented correctly: `IS_TRIAL` branch in launcher activates automatically when no saved key, uses a separate trial HMAC secret, persists key via existing save path, and avoids key prompt for trial builds.
+startup + watchdog) instead of `LicenseDialog` or crash.
+- Server introduces required trial schema fields and `roblox_bundles` table in a backwards-compatible migration style.
+- `POST /api/trial_register` exists with separate secret verification, signed response, IP-based rate limiting, subnet quota enforcement, trial license minting (`is_trial=1`, `parent_config_id`, `expires_at`), and 429 on quota/rate hit.
+- Bundle flow is implemented: admin upload page, metadata persisted (version/size/sha256/uploaded), signed info endpoint returns single-use token, tokenized download route streams zip.
+- Launcher bundle bootstrap behavior is present with splash progress, hash verification, extraction progress from worker thread, `.bundle_version` cache, and fallback behavior that preserves cached bundle for subsequent runs.
+- Build config UI additions and single-trial enforcement are present (form fields, badge, DB unique index, create/edit guards).
+- Public `/download_trial` route and dashboard copyable link are implemented with rate limiting.
+- Non-trial launcher logic remains gated behind `if IS_TRIAL` and appears unchanged functionally.
+
+Security:
+- Serious violations: none observed relative to task intent.
+- Note: subnet quota check is read-then-insert (non-atomic), so highly concurrent requests could overshoot quota briefly. This is a race-hardening issue, not a functional blocker for typical load.
+
+Next actions (high impact):
+1) Harden quota enforcement atomically (e.g., transaction with immediate lock or dedicated subnet counter table) to remove concurrency bypass.
+2) Add pre-download disk-space check and clearer user error path for low-space/corrupt-zip edge cases.
+3) Consider separating rate-limit buckets for `/download_trial` vs `/api/trial_register` to avoid one consuming the other’s allowance.- Expiry UX requirement is met: trial validation failures route to `TrialExpiredDialog` (startup + watchdog) instead of `LicenseDialog` or crash.
+- Server introduces required trial schema fields and `roblox_bundles` table in a backwards-compatible migration style.
+- `POST /api/trial_register` exists with separate secret verification, signed response, IP-based rate limiting, subnet quota enforcement, trial license minting (`is_trial=1`, `parent_config_id`, `expires_at`), and 429 on quota/rate hit.
+- Bundle flow is implemented: admin upload page, metadata persisted (version/size/sha256/uploaded), signed info endpoint returns single-use token, tokenized download route streams zip.
+- Launcher bundle bootstrap behavior is present with splash progress, hash verification, extraction progress from worker thread, `.bundle_version` cache, and fallback behavior that preserves cached bundle for subsequent runs.
+- Build config UI additions and single-trial enforcement are present (form fields, badge, DB unique index, create/edit guards).
+- Public `/download_trial` route and dashboard copyable link are implemented with rate limiting.
+- Non-trial launcher logic remains gated behind `if IS_TRIAL` and appears unchanged functionally.
+
+Security:
+- Serious violations: none observed relative to task intent.
+- Note: subnet quota check is read-then-insert (non-atomic), so highly concurrent requests could overshoot quota briefly. This is a race-hardening issue, not a functional blocker for typical load.
+
+Next actions (high impact):
+1) Harden quota enforcement atomically (e.g., transaction with immediate lock or dedicated subnet counter table) to remove concurrency bypass.
+2) Add pre-download disk-space check and clearer user error path for low-space/corrupt-zip edge cases.
+3) Consider separating rate-limit buckets for `/download_trial` vs `/api/trial_register` to avoid one consuming the other’s allowance.
