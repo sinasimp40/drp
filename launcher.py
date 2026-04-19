@@ -1205,48 +1205,72 @@ def import_time():
 def validate_license(key, endpoint="validate"):
     if not LICENSE_SERVER_URL:
         return {"valid": True, "remaining_text": "No server configured", "remaining_seconds": 999999}
-    try:
-        import urllib.request, urllib.error
-        url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
-        body = {"key": key, "version": APP_VERSION}
-        timestamp, nonce, req_sig = sign_request(body)
-        req_data = json.dumps(body).encode('utf-8')
-        req = urllib.request.Request(url, data=req_data, headers={
-            "Content-Type": "application/json",
-            "X-Timestamp": timestamp,
-            "X-Nonce": nonce,
-            "X-Signature": req_sig,
-        })
+    import urllib.request, urllib.error, time as _time, socket as _socket
+
+    url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
+
+    # When the license server is busy (mass OTA build, etc.) a single
+    # 10s request can time out. Retry up to 3 times with a longer
+    # timeout and small backoff before giving up. Each attempt re-signs
+    # the body with a fresh timestamp/nonce so the server does not
+    # reject it as a replay.
+    attempts = 3
+    per_attempt_timeout = 25
+    last_exc_msg = ""
+
+    for attempt in range(1, attempts + 1):
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                result = json.loads(resp.read().decode('utf-8'))
-        except urllib.error.HTTPError as he:
-            body_text = ""
+            body = {"key": key, "version": APP_VERSION}
+            timestamp, nonce, req_sig = sign_request(body)
+            req_data = json.dumps(body).encode('utf-8')
+            req = urllib.request.Request(url, data=req_data, headers={
+                "Content-Type": "application/json",
+                "X-Timestamp": timestamp,
+                "X-Nonce": nonce,
+                "X-Signature": req_sig,
+            })
             try:
-                body_text = he.read().decode('utf-8', errors='replace')
-                result = json.loads(body_text)
-            except Exception:
-                hint = ""
-                if he.code == 403:
-                    hint = " (check that your PC clock is set correctly)"
-                return {"valid": False, "error": f"Server error {he.code}{hint}"}
-            data = result.get("data", {}) if isinstance(result, dict) else {}
-            err_msg = data.get("error") if isinstance(data, dict) else None
-            if not err_msg:
-                err_msg = f"Server error {he.code}"
-            if he.code == 403 and "expired" in (err_msg or "").lower():
-                err_msg += " — please correct your PC clock"
-            return {"valid": False, "error": err_msg}
+                with urllib.request.urlopen(req, timeout=per_attempt_timeout) as resp:
+                    result = json.loads(resp.read().decode('utf-8'))
+            except urllib.error.HTTPError as he:
+                # HTTP error responses are NOT retried (they're a real
+                # server reply, not a transient network problem).
+                body_text = ""
+                try:
+                    body_text = he.read().decode('utf-8', errors='replace')
+                    result = json.loads(body_text)
+                except Exception:
+                    hint = ""
+                    if he.code == 403:
+                        hint = " (check that your PC clock is set correctly)"
+                    return {"valid": False, "error": f"Server error {he.code}{hint}"}
+                data = result.get("data", {}) if isinstance(result, dict) else {}
+                err_msg = data.get("error") if isinstance(data, dict) else None
+                if not err_msg:
+                    err_msg = f"Server error {he.code}"
+                if he.code == 403 and "expired" in (err_msg or "").lower():
+                    err_msg += " — please correct your PC clock"
+                return {"valid": False, "error": err_msg}
 
-        data = result.get("data", {})
-        sig = result.get("signature", "")
+            data = result.get("data", {})
+            sig = result.get("signature", "")
 
-        if not verify_signature(data, sig):
-            return {"valid": False, "error": "Invalid server signature"}
+            if not verify_signature(data, sig):
+                return {"valid": False, "error": "Invalid server signature"}
 
-        return data
-    except Exception as e:
-        return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
+            return data
+
+        except (urllib.error.URLError, _socket.timeout, TimeoutError, ConnectionError) as e:
+            # Transient network problem — retry with a short backoff.
+            last_exc_msg = str(e)[:80]
+            if attempt < attempts:
+                _time.sleep(1.5 * attempt)
+                continue
+            return {"valid": False, "error": f"Server is busy, please try again in a moment ({last_exc_msg})"}
+        except Exception as e:
+            return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
+
+    return {"valid": False, "error": f"Server is busy, please try again in a moment ({last_exc_msg})"}
 
 
 def check_for_update(key):
