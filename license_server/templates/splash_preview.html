@@ -66,9 +66,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.hero     { color: #ffb85a; border-color: #6a3a18; }
-        .design-tag.studio   { color: #ff9a5e; border-color: #5a3115; }
-        .design-tag.boot     { color: #f4f1ea; border-color: #555; }
+        .design-tag.quiet    { color: #f4f1ea; border-color: #444; }
+        .design-tag.paper    { color: #15110d; border-color: #15110d; background: #f4ece0; }
+        .design-tag.spot     { color: #ffb060; border-color: #6a3a18; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -676,479 +676,156 @@
         .splash-console .statusbar .grow { flex: 1; }
         .splash-console .statusbar .em { color: rgba(234,234,240,0.7); }
         /* ============================================================
-           HERO TILE — Netflix / Steam library card / Apple TV+ tile
-           Big featured artwork zone with warm wash, title bottom-left,
-           small "READY TO PLAY" badge and a meta row. Premium launcher tile.
+           SHARED MINIMAL — base for Quiet / Paper / Spotlight.
+           One composition: brand · meta corners, centered title block,
+           a single hairline progress bar with one mono status line.
+           Lots of breathing room. No badges. No chrome.
            ============================================================ */
-        .splash-hero {
+        .splash-min {
             position: relative;
             width: 720px;
-            height: 420px;
-            background: #08070a;
-            color: #f4f1ea;
+            height: 380px;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
             display: flex; flex-direction: column;
         }
-        /* artwork zone (top 65%) — warm cinematic wash */
-        .splash-hero .art {
-            position: relative;
-            flex: 1;
-            background:
-                radial-gradient(ellipse at 78% 30%, rgba(255,184,90,0.35) 0%, transparent 55%),
-                radial-gradient(ellipse at 20% 70%, rgba(140,60,180,0.20) 0%, transparent 55%),
-                linear-gradient(135deg, #1a1208 0%, #0c0a0d 60%, #060509 100%);
-            overflow: hidden;
-        }
-        .splash-hero .art::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.95  0 0 0 0 0.85  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 180px 180px;
-            mix-blend-mode: overlay;
-            opacity: 0.7;
-            pointer-events: none;
-        }
-        /* faint diagonal light streaks */
-        .splash-hero .art::after {
-            content: '';
+        .splash-min .top {
             position: absolute;
-            top: -30%; left: 50%; width: 70%; height: 200%;
-            background: linear-gradient(115deg,
-                transparent 40%,
-                rgba(255,184,90,0.10) 48%,
-                rgba(255,184,90,0.02) 52%,
-                transparent 60%);
-            transform: rotate(8deg);
-            pointer-events: none;
-        }
-        /* bottom fade so title is legible */
-        .splash-hero .art-fade {
-            position: absolute;
-            left: 0; right: 0; bottom: 0; height: 60%;
-            background: linear-gradient(180deg, transparent 0%, rgba(8,7,10,0.55) 50%, rgba(8,7,10,0.92) 100%);
-            pointer-events: none;
-        }
-        /* top status bar floating in artwork */
-        .splash-hero .top-bar {
-            position: absolute; top: 0; left: 0; right: 0;
-            padding: 18px 24px;
+            top: 24px; left: 28px; right: 28px;
             display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: rgba(244,241,234,0.7);
-            letter-spacing: 2.5px;
+            letter-spacing: 3px;
             text-transform: uppercase;
             z-index: 4;
         }
-        .splash-hero .top-bar .em { color: #f4f1ea; font-weight: 600; }
-        .splash-hero .top-bar .badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 11px;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,184,90,0.5);
-            color: #ffb85a;
-            border-radius: 100px;
-            font-size: 9.5px;
-            letter-spacing: 2.5px;
-        }
-        .splash-hero .top-bar .badge .dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: #ffb85a;
-            box-shadow: 0 0 8px rgba(255,184,90,0.7);
-            animation: marquee-pulse 1.6s ease-in-out infinite;
-        }
-        /* title block sits over the lower part of the artwork */
-        .splash-hero .title-block {
+        .splash-min .bottom-row {
             position: absolute;
-            left: 28px; right: 28px; bottom: 90px;
+            left: 28px; right: 28px; bottom: 28px;
+            display: flex; flex-direction: column; gap: 10px;
             z-index: 4;
         }
-        .splash-hero .kicker {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #ffb85a;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .splash-hero .title {
-            font-weight: 800;
-            font-size: 92px;
-            line-height: 0.92;
-            letter-spacing: -3px;
-            color: #fff;
-            text-shadow: 0 4px 30px rgba(0,0,0,0.7);
-        }
-        .splash-hero .meta-line {
-            display: flex; align-items: center; gap: 14px;
-            margin-top: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            color: rgba(244,241,234,0.78);
-            text-transform: uppercase;
-        }
-        .splash-hero .meta-line .pip {
-            width: 4px; height: 4px; border-radius: 50%;
-            background: rgba(244,241,234,0.4);
-        }
-        .splash-hero .meta-line .em { color: #ffb85a; font-weight: 700; }
-        /* solid bottom strip with progress + action */
-        .splash-hero .strip {
-            position: relative;
-            height: 64px;
-            background: #0c0b0e;
-            border-top: 1px solid rgba(244,241,234,0.06);
-            padding: 0 24px;
-            display: flex; align-items: center; gap: 20px;
-            z-index: 3;
-        }
-        .splash-hero .strip .play-btn {
-            width: 38px; height: 38px;
-            background: #ffb85a;
-            color: #1a1208;
-            border-radius: 50%;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 14px;
-            font-weight: 700;
-            box-shadow: 0 0 24px rgba(255,184,90,0.35);
-            flex-shrink: 0;
-        }
-        .splash-hero .strip .play-btn::before {
-            content: '';
-            border-style: solid;
-            border-width: 7px 0 7px 11px;
-            border-color: transparent transparent transparent #1a1208;
-            margin-left: 3px;
-        }
-        .splash-hero .strip .progress {
-            flex: 1;
-            display: flex; flex-direction: column; gap: 6px;
-        }
-        .splash-hero .strip .progress .label-row {
-            display: flex; justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(244,241,234,0.65);
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
-        .splash-hero .strip .progress .label-row .em { color: #ffb85a; font-weight: 700; }
-        .splash-hero .strip .progress .track {
-            height: 3px;
-            background: rgba(244,241,234,0.08);
-            overflow: hidden;
-        }
-        .splash-hero .strip .progress .fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #ffb85a 0%, #ff7a3a 100%);
-            box-shadow: 0 0 8px rgba(255,184,90,0.6);
-        }
-
-        /* ============================================================
-           STUDIO — JetBrains / Ableton Live / Logic Pro boot splash
-           Multi-panel app boot with dark chrome, centered title,
-           and a streaming "loading modules" panel on the right.
-           ============================================================ */
-        .splash-studio {
-            position: relative;
-            width: 740px;
-            height: 420px;
-            background: #14141a;
-            color: #e6e4ee;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.04);
-            display: flex;
-        }
-        /* left main pane (60%) */
-        .splash-studio .main {
-            position: relative;
-            flex: 1;
-            background:
-                radial-gradient(circle at 30% 40%, rgba(255,140,80,0.10) 0%, transparent 55%),
-                linear-gradient(160deg, #1c1c25 0%, #131319 100%);
-            padding: 28px 32px;
-            display: flex; flex-direction: column;
-        }
-        /* faint grid */
-        .splash-studio .main::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image:
-                linear-gradient(0deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px);
-            background-size: 100% 32px, 32px 100%;
-            pointer-events: none;
-        }
-        .splash-studio .main-head {
-            position: relative; z-index: 2;
-            display: flex; align-items: center; gap: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(230,228,238,0.6);
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-        }
-        .splash-studio .main-head .glyph {
-            width: 26px; height: 26px;
-            display: inline-flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #ff8c50 0%, #ff5e3a 100%);
-            color: #1a0d08;
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 14px;
-            letter-spacing: -0.5px;
-            border-radius: 6px;
-            box-shadow: 0 4px 16px rgba(255,140,80,0.4);
-        }
-        .splash-studio .main-head .em { color: #e6e4ee; font-weight: 600; }
-        .splash-studio .main-center {
-            position: relative; z-index: 2;
-            flex: 1;
-            display: flex; flex-direction: column;
-            justify-content: center;
-        }
-        .splash-studio .main-center .pre {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #ff9a5e;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-        }
-        .splash-studio .main-center .title {
-            font-weight: 800;
-            font-size: 96px;
-            line-height: 0.9;
-            letter-spacing: -3px;
-            color: #fff;
-        }
-        .splash-studio .main-center .sub {
-            font-size: 14px;
-            color: rgba(230,228,238,0.65);
-            margin-top: 14px;
-            max-width: 320px;
-            line-height: 1.45;
-        }
-        .splash-studio .main-center .sub .em { color: #ff9a5e; font-weight: 600; }
-        .splash-studio .main-foot {
-            position: relative; z-index: 2;
+        .splash-min .bottom-row .meta {
             display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: rgba(230,228,238,0.55);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255,255,255,0.06);
-        }
-        .splash-studio .main-foot .em { color: #ff9a5e; }
-        /* right side panel — loading modules */
-        .splash-studio .side {
-            width: 240px;
-            background: #0e0e13;
-            border-left: 1px solid rgba(255,255,255,0.06);
-            padding: 22px 20px;
-            display: flex; flex-direction: column;
-            gap: 14px;
-        }
-        .splash-studio .side .title-row {
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(230,228,238,0.55);
             letter-spacing: 2.5px;
             text-transform: uppercase;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .splash-studio .side .title-row .em { color: #e6e4ee; font-weight: 600; }
-        .splash-studio .side .modules {
-            flex: 1;
-            display: flex; flex-direction: column;
-            gap: 7px;
-        }
-        .splash-studio .side .mod {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10.5px;
-            color: rgba(230,228,238,0.7);
-            letter-spacing: 0.5px;
-        }
-        .splash-studio .side .mod .check {
-            width: 12px; height: 12px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border: 1px solid rgba(230,228,238,0.25);
-            color: transparent;
-            font-size: 9px;
-            line-height: 1;
-            border-radius: 2px;
-            flex-shrink: 0;
-        }
-        .splash-studio .side .mod.done .check {
-            background: #6fdc8c;
-            border-color: #6fdc8c;
-            color: #0e0e13;
-        }
-        .splash-studio .side .mod.done .check::before { content: '✓'; }
-        .splash-studio .side .mod.active .check {
-            border-color: #ff9a5e;
-            background: transparent;
+        .splash-min .bottom-row .bar {
             position: relative;
-        }
-        .splash-studio .side .mod.active .check::before {
-            content: '';
-            width: 6px; height: 6px;
-            background: #ff9a5e;
-            border-radius: 50%;
-            box-shadow: 0 0 6px rgba(255,154,94,0.7);
-            animation: marquee-pulse 1s ease-in-out infinite;
-        }
-        .splash-studio .side .mod.done .name { color: #e6e4ee; }
-        .splash-studio .side .mod.active .name { color: #ff9a5e; }
-        .splash-studio .side .mini-track {
-            height: 3px;
-            background: rgba(255,255,255,0.06);
+            height: 2px;
+            border-radius: 1px;
             overflow: hidden;
         }
-        .splash-studio .side .mini-fill {
+        .splash-min .bottom-row .bar .fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #ff9a5e 0%, #ff5e3a 100%);
+            border-radius: 1px;
+            transition: width 0.18s linear;
         }
-        .splash-studio .side .ver {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(230,228,238,0.4);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: right;
-        }
-        .splash-studio .side .ver .em { color: rgba(230,228,238,0.7); }
-
-        /* ============================================================
-           BOOT — ultra-minimal macOS / Linux distro boot screen
-           Mostly empty space. Centered mark. One hairline progress.
-           ============================================================ */
-        .splash-boot {
-            position: relative;
-            width: 600px;
-            height: 420px;
-            background: #050507;
-            color: #f4f1ea;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+        .splash-min .center {
+            position: absolute;
+            inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-        }
-        /* faint top corner brand */
-        .splash-boot .corner-brand {
-            position: absolute;
-            top: 22px; left: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9.5px;
-            color: rgba(244,241,234,0.4);
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-        }
-        .splash-boot .corner-brand .em { color: rgba(244,241,234,0.7); font-weight: 600; }
-        .splash-boot .corner-meta {
-            position: absolute;
-            top: 22px; right: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9.5px;
-            color: rgba(244,241,234,0.4);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: right;
-        }
-        .splash-boot .corner-meta .em { color: rgba(244,241,234,0.7); }
-        /* centered glyph + mark + title stack */
-        .splash-boot .center {
-            display: flex; flex-direction: column; align-items: center;
-            margin-top: -10px;
-        }
-        .splash-boot .glyph {
-            width: 56px; height: 56px;
-            margin-bottom: 26px;
-            display: inline-flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #ffb060 0%, #ff5e3a 100%);
-            color: #14100c;
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 28px;
-            letter-spacing: -1px;
-            border-radius: 12px;
-            box-shadow:
-                0 0 0 1px rgba(255,255,255,0.05) inset,
-                0 8px 30px rgba(255,140,80,0.35);
-        }
-        .splash-boot .title {
-            font-weight: 700;
-            font-size: 56px;
-            line-height: 1;
-            letter-spacing: -1.5px;
-            color: #f4f1ea;
-            margin-bottom: 8px;
-        }
-        .splash-boot .sub {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(244,241,234,0.5);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-        .splash-boot .sub .em { color: rgba(244,241,234,0.85); }
-        /* hairline progress at bottom-center */
-        .splash-boot .boot-bar-wrap {
-            position: absolute;
-            bottom: 60px; left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 10px;
-        }
-        .splash-boot .boot-bar {
-            width: 100%;
-            height: 2px;
-            background: rgba(244,241,234,0.10);
-            overflow: hidden;
-            border-radius: 1px;
-        }
-        .splash-boot .boot-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #ffb060 0%, #ff5e3a 100%);
-            box-shadow: 0 0 6px rgba(255,140,80,0.55);
-            transition: width 0.15s linear;
-        }
-        .splash-boot .boot-status {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9.5px;
-            color: rgba(244,241,234,0.5);
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-        }
-        .splash-boot .boot-status .em { color: rgba(244,241,234,0.85); }
-        .splash-boot .footer-line {
-            position: absolute;
-            bottom: 22px; left: 0; right: 0;
             text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(244,241,234,0.3);
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
+            z-index: 3;
         }
-        .splash-boot .footer-line .em { color: rgba(244,241,234,0.55); }
+        .splash-min .pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 7px;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+        .splash-min .title {
+            font-weight: 700;
+            font-size: 100px;
+            line-height: 1;
+            letter-spacing: -3.5px;
+        }
+        .splash-min .sub {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            margin-top: 18px;
+            max-width: 460px;
+        }
+
+        /* QUIET — pure dark variant (deep ink, white type) */
+        .splash-quiet { background: #0a0a0c; color: #f4f1ea; }
+        .splash-quiet .top         { color: rgba(244,241,234,0.5); }
+        .splash-quiet .top .em     { color: rgba(244,241,234,0.85); font-weight: 600; }
+        .splash-quiet .pre         { color: rgba(244,241,234,0.55); }
+        .splash-quiet .pre .em     { color: #ffb060; }
+        .splash-quiet .title       { color: #f4f1ea; }
+        .splash-quiet .sub         { color: rgba(244,241,234,0.65); }
+        .splash-quiet .sub .em     { color: rgba(244,241,234,0.9); font-weight: 500; }
+        .splash-quiet .bar         { background: rgba(244,241,234,0.08); }
+        .splash-quiet .bar .fill   { background: #f4f1ea; }
+        .splash-quiet .meta        { color: rgba(244,241,234,0.5); }
+        .splash-quiet .meta .em    { color: rgba(244,241,234,0.9); }
+
+        /* PAPER — light cream variant (warm off-white, deep ink type) */
+        .splash-paper { background: #f5f1e9; color: #15110d; }
+        .splash-paper::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 180px 180px;
+            mix-blend-mode: multiply;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .splash-paper .top         { color: rgba(21,17,13,0.55); }
+        .splash-paper .top .em     { color: #15110d; font-weight: 600; }
+        .splash-paper .pre         { color: rgba(21,17,13,0.6); }
+        .splash-paper .pre .em     { color: #c0432a; }
+        .splash-paper .title       { color: #15110d; }
+        .splash-paper .sub         { color: rgba(21,17,13,0.65); }
+        .splash-paper .sub .em     { color: #15110d; font-weight: 500; }
+        .splash-paper .bar         { background: rgba(21,17,13,0.10); }
+        .splash-paper .bar .fill   { background: #c0432a; }
+        .splash-paper .meta        { color: rgba(21,17,13,0.55); }
+        .splash-paper .meta .em    { color: #15110d; }
+
+        /* SPOTLIGHT — dark + a single warm orange glow behind the title */
+        .splash-spot { background: #07060a; color: #f4f1ea; }
+        .splash-spot::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 520px; height: 320px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(ellipse at 50% 50%,
+                rgba(255,176,96,0.22) 0%,
+                rgba(255,140,80,0.10) 40%,
+                transparent 70%);
+            filter: blur(8px);
+            pointer-events: none;
+        }
+        .splash-spot::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 160px 160px;
+            mix-blend-mode: overlay;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        .splash-spot .top         { color: rgba(244,241,234,0.5); }
+        .splash-spot .top .em     { color: rgba(244,241,234,0.9); font-weight: 600; }
+        .splash-spot .pre         { color: #ffb060; }
+        .splash-spot .title       { color: #fff; text-shadow: 0 4px 40px rgba(255,176,96,0.35); }
+        .splash-spot .sub         { color: rgba(244,241,234,0.7); }
+        .splash-spot .sub .em     { color: #ffb060; font-weight: 500; }
+        .splash-spot .bar         { background: rgba(244,241,234,0.08); }
+        .splash-spot .bar .fill   { background: linear-gradient(90deg, #ffb060 0%, #ff7a3a 100%); box-shadow: 0 0 8px rgba(255,140,80,0.5); }
+        .splash-spot .meta        { color: rgba(244,241,234,0.55); }
+        .splash-spot .meta .em    { color: #ffb060; }
 
     </style>
 </head>
@@ -1157,7 +834,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new directions in the same launcher/software register — <strong>Hero Tile</strong> (Netflix / Steam library card), <strong>Studio</strong> (JetBrains / Ableton boot splash with loading modules), <strong>Boot</strong> (ultra-minimal macOS-style boot screen).<br>
+            First 3 designs (Marquee · Horizon · Console) kept untouched. Three clean minimal variants of one composition — same calm restrained layout in <strong>Quiet</strong> (pure dark), <strong>Paper</strong> (warm cream), and <strong>Spotlight</strong> (dark with one warm orange glow behind the title).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1350,131 +1027,105 @@
     </section>
 
     <!-- ====================================================
-         HERO TILE — Netflix / Steam library card
+         QUIET — pure dark minimal
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag hero">NEW · 4</span>
-            <span class="design-name">Hero Tile</span>
+            <span class="design-tag quiet">NEW · 4</span>
+            <span class="design-name">Quiet</span>
         </div>
         <div class="design-desc">
-            <strong>Featured library tile, premium launcher register.</strong> Top 65% is a cinematic artwork zone — warm orange wash from the upper-right, faint purple bloom in the lower-left, diagonal light streak, fine grain. A frosted "READY · TLS 1.3" badge sits in the upper-right corner. The title sits bottom-left in 92px bold white with a small orange "DENFI · ATELIER" kicker above it and a meta-row beneath (LICENSED · v1.0.4 · BANGKOK · 42ms). A solid bottom strip carries an orange round Play button, a labeled progress bar ("INSTALLED · CHECKING FILES" → "READY") and the licensee tag. Reads exactly like a premium game-launcher tile (Steam Big Picture / Apple TV+ / Riot Client).
+            <strong>The most restrained option.</strong> Pure deep-black canvas, white refined title at 100px centered, a single mono pre-line ("DENFI · ATELIER · 2026") above it, and a single mono sub-line below. Two tiny corner stamps for brand and version. One hairline white progress bar at the bottom with one mono status line above it. Nothing else. No badges, no glow, no chrome. This is the design that says "premium" by saying almost nothing — like a Vercel or Linear product page.
         </div>
         <div class="design-stage">
-            <div class="splash-hero">
-                <div class="art">
-                    <div class="art-fade"></div>
-                    <div class="top-bar">
-                        <span><span class="em">DENFI</span> · ATELIER</span>
-                        <span class="badge"><span class="dot"></span>READY · TLS 1.3</span>
-                    </div>
-                    <div class="title-block">
-                        <div class="kicker">DENFI · ATELIER · 2026</div>
-                        <div class="title fit-title-hero">{{ app_name or 'Roblox' }}</div>
-                        <div class="meta-line">
-                            <span><span class="em">LICENSED</span></span>
-                            <span class="pip"></span>
-                            <span>v1.0.4</span>
-                            <span class="pip"></span>
-                            <span>BANGKOK · TH-BKK</span>
-                            <span class="pip"></span>
-                            <span><span class="em">42ms</span></span>
-                        </div>
-                    </div>
+            <div class="splash-min splash-quiet">
+                <div class="top">
+                    <span><span class="em">DENFI</span> · ATELIER</span>
+                    <span>v1.0.4 · <span class="em">2026</span></span>
                 </div>
-                <div class="strip">
-                    <div class="play-btn"></div>
-                    <div class="progress">
-                        <div class="label-row">
-                            <span>CHECKING FILES · <span class="em" id="hero-pct">0%</span></span>
-                            <span>LIC <span class="em">7M3F-XKQR</span></span>
-                        </div>
-                        <div class="track"><div class="fill" id="hero-fill"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">720 × 420 &nbsp;|&nbsp; artwork wash · frosted badge · play button · labeled progress</div>
-    </section>
-
-    <!-- ====================================================
-         STUDIO — JetBrains / Ableton boot splash
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag studio">NEW · 5</span>
-            <span class="design-name">Studio</span>
-        </div>
-        <div class="design-desc">
-            <strong>Premium creative-software boot splash</strong> (JetBrains IntelliJ / Ableton Live / Logic Pro). Two-pane window with subtle dot/grid texture: the wide left pane has a small gradient "D" glyph mark, an orange pre-title, the title in 96px bold, and a refined sub-line; the right pane is a "loading modules" panel that lists 7 launcher subsystems (network, license, integrity check, telegram backup, etc.) — each with a checkbox that ticks green as it loads, a subtle progress fill at the bottom, and a version stamp. Real "the launcher is starting up" energy, the way pro creative apps look on first boot.
-        </div>
-        <div class="design-stage">
-            <div class="splash-studio">
-                <div class="main">
-                    <div class="main-head">
-                        <span class="glyph">D</span>
-                        <span><span class="em">DENFI</span> · ATELIER · STUDIO</span>
-                    </div>
-                    <div class="main-center">
-                        <div class="pre">A LICENSED EDITION · 2026</div>
-                        <div class="title fit-title-studio">{{ app_name or 'Roblox' }}</div>
-                        <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok. Verifying license over TLS 1.3.</div>
-                    </div>
-                    <div class="main-foot">
-                        <span><span class="em">v1.0.4</span> · BUILD 2026.04.19</span>
-                        <span>BANGKOK · TH-BKK</span>
-                    </div>
-                </div>
-                <div class="side">
-                    <div class="title-row">
-                        <span><span class="em">LOADING</span></span>
-                        <span id="studio-count">3 / 7</span>
-                    </div>
-                    <div class="modules" id="studio-modules">
-                        <div class="mod done"><span class="check"></span><span class="name">core.runtime</span></div>
-                        <div class="mod done"><span class="check"></span><span class="name">net.tls13</span></div>
-                        <div class="mod done"><span class="check"></span><span class="name">cache.warmup</span></div>
-                        <div class="mod active"><span class="check"></span><span class="name">license.verify</span></div>
-                        <div class="mod"><span class="check"></span><span class="name">integrity.check</span></div>
-                        <div class="mod"><span class="check"></span><span class="name">telegram.bridge</span></div>
-                        <div class="mod"><span class="check"></span><span class="name">launcher.ready</span></div>
-                    </div>
-                    <div class="mini-track"><div class="mini-fill" id="studio-fill"></div></div>
-                    <div class="ver">LIC <span class="em">7M3F·XKQR</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">740 × 420 &nbsp;|&nbsp; two-pane window · loading modules · live checkmarks</div>
-    </section>
-
-    <!-- ====================================================
-         BOOT — ultra-minimal macOS / Linux distro boot screen
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag boot">NEW · 6</span>
-            <span class="design-name">Boot</span>
-        </div>
-        <div class="design-desc">
-            <strong>Ultra-minimal first-boot screen</strong> (macOS startup / Asahi Linux / Steam Deck OS boot). Near-black background, 99% empty space, perfect optical centering. A single 56px gradient "D" glyph, the title below in 56px refined bold (no decoration, no caps), then a small mono "VERIFIED · v1.0.4" tag. A 200px hairline orange progress bar at bottom-center with one mono status line above it ("STARTING DENFI ROBLOX · 42%"). Tiny corner stamps for brand and edition. This is the design that says "premium" by saying almost nothing.
-        </div>
-        <div class="design-stage">
-            <div class="splash-boot">
-                <div class="corner-brand"><span class="em">DENFI</span> · ATELIER</div>
-                <div class="corner-meta">EDITION 2026<br><span class="em">BANGKOK</span></div>
                 <div class="center">
-                    <div class="glyph">D</div>
-                    <div class="title fit-title-boot">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub"><span class="em">VERIFIED</span> · v1.0.4</div>
+                    <div class="pre"><span class="em">A</span> LICENSED EDITION</div>
+                    <div class="title fit-title-min" data-key="quiet">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
                 </div>
-                <div class="boot-bar-wrap">
-                    <div class="boot-status">STARTING · <span class="em" id="boot-pct">42%</span></div>
-                    <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+                <div class="bottom-row">
+                    <div class="meta">
+                        <span>STARTING · <span class="em" id="quiet-pct">0%</span></span>
+                        <span>LIC <span class="em">7M3F-XKQR</span></span>
+                    </div>
+                    <div class="bar"><div class="fill" id="quiet-fill"></div></div>
                 </div>
-                <div class="footer-line">© <span class="em">DENFI · ATELIER</span> · BANGKOK · TH</div>
             </div>
         </div>
-        <div class="design-meta">600 × 420 &nbsp;|&nbsp; ultra-minimal · centered glyph · hairline progress</div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; pure dark · 100px refined title · hairline progress · zero chrome</div>
+    </section>
+
+    <!-- ====================================================
+         PAPER — warm cream minimal
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag paper">NEW · 5</span>
+            <span class="design-name">Paper</span>
+        </div>
+        <div class="design-desc">
+            <strong>Same composition, light register.</strong> Warm off-white #f5f1e9 background with a faint paper grain, deep ink (#15110d) title, a single burnt-orange accent on the pre-line and the progress bar. Calm and confident — closer to an Apple product page or a Notion start screen than anything dark. If you want something that feels "good in eyes" without ever being aggressive, this is it.
+        </div>
+        <div class="design-stage">
+            <div class="splash-min splash-paper">
+                <div class="top">
+                    <span><span class="em">DENFI</span> · ATELIER</span>
+                    <span>v1.0.4 · <span class="em">2026</span></span>
+                </div>
+                <div class="center">
+                    <div class="pre"><span class="em">A</span> LICENSED EDITION</div>
+                    <div class="title fit-title-min" data-key="paper">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
+                </div>
+                <div class="bottom-row">
+                    <div class="meta">
+                        <span>STARTING · <span class="em" id="paper-pct">0%</span></span>
+                        <span>LIC <span class="em">7M3F-XKQR</span></span>
+                    </div>
+                    <div class="bar"><div class="fill" id="paper-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; warm cream · ink type · single orange accent · paper grain</div>
+    </section>
+
+    <!-- ====================================================
+         SPOTLIGHT — dark with single warm orange glow
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag spot">NEW · 6</span>
+            <span class="design-name">Spotlight</span>
+        </div>
+        <div class="design-desc">
+            <strong>Same composition, with one piece of warmth.</strong> Same minimal layout as Quiet, but a single soft warm-orange glow is placed directly behind the title — the type looks lit from within. The pre-line is orange instead of grey, the progress bar is orange with a soft halo, and a faint film grain warms up the whole panel. One ingredient added to the clean base, nothing more.
+        </div>
+        <div class="design-stage">
+            <div class="splash-min splash-spot">
+                <div class="top">
+                    <span><span class="em">DENFI</span> · ATELIER</span>
+                    <span>v1.0.4 · <span class="em">2026</span></span>
+                </div>
+                <div class="center">
+                    <div class="pre">A LICENSED EDITION</div>
+                    <div class="title fit-title-min" data-key="spot">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
+                </div>
+                <div class="bottom-row">
+                    <div class="meta">
+                        <span>STARTING · <span class="em" id="spot-pct">0%</span></span>
+                        <span>LIC <span class="em">7M3F-XKQR</span></span>
+                    </div>
+                    <div class="bar"><div class="fill" id="spot-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; dark + single warm glow · orange accent · same calm composition</div>
     </section>
 
     <script>
@@ -1578,67 +1229,26 @@
         autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
         autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
 
-        // HERO TILE — fit big bold title
-        autoFitTitle(document.querySelector('.fit-title-hero'), 92, 42);
-        // STUDIO — fit big bold title in main pane
-        autoFitTitle(document.querySelector('.fit-title-studio'), 96, 44);
-        // BOOT — fit minimal centered title
-        autoFitTitle(document.querySelector('.fit-title-boot'), 56, 28);
+        // QUIET / PAPER / SPOTLIGHT — same minimal title, fit each
+        document.querySelectorAll('.fit-title-min').forEach(function(el) {
+            autoFitTitle(el, 100, 44);
+        });
 
-        // HERO TILE — animated checking-files progress
-        (function() {
-            var fill = document.getElementById('hero-fill');
-            var pct  = document.getElementById('hero-pct');
+        // QUIET / PAPER / SPOTLIGHT — single hairline progress per variant
+        function animateMinBar(fillId, pctId, step, interval) {
+            var fill = document.getElementById(fillId);
+            var pct  = document.getElementById(pctId);
             if (!fill || !pct) return;
             var p = 0;
             setInterval(function() {
-                p = (p + 3) % 101;
+                p = (p + step) % 101;
                 fill.style.width = p + '%';
                 pct.textContent  = p + '%';
-            }, 180);
-        })();
-
-        // STUDIO — cycle the active module forward over time
-        (function() {
-            var mods = document.querySelectorAll('#studio-modules .mod');
-            var fill = document.getElementById('studio-fill');
-            var cnt  = document.getElementById('studio-count');
-            if (!mods.length) return;
-            var idx = 3; // start with .active at index 3
-            setInterval(function() {
-                // mark current active as done
-                mods[idx].classList.remove('active');
-                mods[idx].classList.add('done');
-                idx = (idx + 1) % mods.length;
-                if (idx === 0) {
-                    // reset all
-                    mods.forEach(function(m, i) {
-                        m.classList.remove('done', 'active');
-                        if (i < 3) m.classList.add('done');
-                    });
-                    idx = 3;
-                }
-                mods[idx].classList.add('active');
-                var done = 0;
-                mods.forEach(function(m){ if (m.classList.contains('done')) done++; });
-                if (cnt)  cnt.textContent = done + ' / ' + mods.length;
-                if (fill) fill.style.width = ((done / mods.length) * 100) + '%';
-            }, 900);
-        })();
-
-        // BOOT — slow climbing progress bar
-        (function() {
-            var fill = document.getElementById('boot-fill');
-            var pct  = document.getElementById('boot-pct');
-            if (!fill || !pct) return;
-            var p = 8;
-            setInterval(function() {
-                p = (p + 2);
-                if (p > 100) p = 8;
-                fill.style.width = p + '%';
-                pct.textContent  = p + '%';
-            }, 240);
-        })();
+            }, interval);
+        }
+        animateMinBar('quiet-fill', 'quiet-pct', 3, 200);
+        animateMinBar('paper-fill', 'paper-pct', 3, 200);
+        animateMinBar('spot-fill',  'spot-pct',  3, 200);
 
         // HORIZON — status + counter + title accent on first letter
         (function() {
