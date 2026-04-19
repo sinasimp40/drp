@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'RobloxFont';
+            src: url('/static/fonts/Roblox2017.ttf') format('truetype');
+            font-weight: 700;
+            font-display: block;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -471,11 +477,20 @@
             text-transform: uppercase;
         }
         .splash-horizon .title {
-            font-size: 64px;
+            font-size: 46px;
             font-weight: 700;
-            letter-spacing: -3px;
-            line-height: 0.95;
-            color: #fff;
+            letter-spacing: -2px;
+            line-height: 1.0;
+            color: #f4f4f6;
+        }
+        .splash-horizon .title .roblox-line {
+            display: block;
+            font-family: 'RobloxFont', 'Segoe UI', sans-serif;
+            font-size: 56px;
+            color: #ff6a00;
+            letter-spacing: -1.5px;
+            line-height: 1.0;
+            margin-top: 2px;
         }
         .splash-horizon .sub {
             margin-top: 10px;
@@ -1051,7 +1066,7 @@
             <span class="design-name">Horizon</span>
         </div>
         <div class="design-desc">
-            Bauhaus / Stripe-homepage hero. Vertical 50/50 split — the left half is a solid orange color block carrying the logo as a graphic element with a slow diagonal sheen, the right half is dark and holds all the type. Eyebrow tag in orange mono, big tight-tracked title, status row at the bottom. High contrast, graphic, confident. The kind of layout you see on actual product marketing sites — instantly reads as "this is a real thing."
+            <strong>This is what your launcher.exe will show.</strong> Vertical 50/50 split — orange color block on the left carries the logo, dark column on the right holds the type. The app name is always rendered on two lines: the first words in white Segoe UI Bold, and the <em>last word</em> on its own line in the real <strong>Roblox font</strong> in orange. Eyebrow "// NOW LOADING" in orange mono, status row + counter at the bottom. Try <code>?app_name=JAMES ROBLOX</code> to see the title behavior.
         </div>
         <div class="design-stage">
             <div class="splash-horizon">
@@ -1071,7 +1086,12 @@
                     </div>
                     <div class="center">
                         <div class="eyebrow">// Now Loading</div>
-                        <div class="title fit-title-h">{{ app_name or 'Roblox' }}</div>
+                        {% set _name = (app_name or 'Roblox').split() %}
+                        {% if _name|length >= 2 %}
+                        <div class="title">{{ _name[:-1]|join(' ') }}<span class="roblox-line">{{ _name[-1] }}</span></div>
+                        {% else %}
+                        <div class="title"><span class="roblox-line">{{ _name[0] }}</span></div>
+                        {% endif %}
                         <div class="sub">Built for performance. Designed to disappear.</div>
                     </div>
                     <div class="bottom">
