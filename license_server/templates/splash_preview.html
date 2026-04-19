@@ -68,16 +68,9 @@
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
         .design-tag.vault    { color: #6fdc8c; border-color: #1d5a30; }
         .design-tag.card     { color: #d4af7a; border-color: #5a4525; }
-        .design-tag.operator { color: #ff7b1f; border-color: #5a2a00; }
-        .design-tag.hud      { color: #ff9d4d; border-color: #5a3115; }
-        .design-tag.chevron  { color: #ff7b1f; border-color: #5a2a00; }
-        .design-tag.hex      { color: #ffb060; border-color: #5a3a18; }
-        .design-tag.neon     { color: #ff5db1; border-color: #5a1f3e; }
-        .design-tag.arena    { color: #ff9d4d; border-color: #5a3115; }
-        .design-tag.grid     { color: #ff5db1; border-color: #5a1f3e; }
-        .design-tag.briefing { color: #d4ff66; border-color: #3a4a18; }
-        .design-tag.blade    { color: #ff7b1f; border-color: #5a2a00; }
-        .design-tag.circuit  { color: #4dd6ff; border-color: #154a5a; }
+        .design-tag.drop     { color: #ff2a2a; border-color: #5a0808; }
+        .design-tag.atelier  { color: #1a1a1a; border-color: #b0b0a8; background: #f4f1ea; }
+        .design-tag.keynote  { color: #f5f5f7; border-color: #2a2a30; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -1002,1315 +995,341 @@
         }
 
         /* ============================================================
-           OPERATOR — tactical operator card (Apex / R6 / Valorant agent select)
+           DROP — Supreme box-logo / streetwear drop card
+           Iconic red box, white italic Futura-class title.
            ============================================================ */
-        .splash-operator {
+        .splash-drop {
             position: relative;
             width: 680px;
             height: 420px;
-            background: #06060a;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            display: flex;
-            box-shadow:
-                inset 0 0 0 1px rgba(255,123,31,0.18),
-                0 30px 80px rgba(0,0,0,0.6);
-            clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
-        }
-        .splash-operator::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='28' viewBox='0 0 24 28'><polygon points='12,1 23,7 23,21 12,27 1,21 1,7' fill='none' stroke='%23ff7b1f' stroke-width='0.5' opacity='0.10'/></svg>");
-            background-size: 24px 28px;
-            pointer-events: none;
-        }
-        .splash-operator .portrait {
-            flex: 0 0 256px;
-            position: relative;
-            background: linear-gradient(180deg, #0c0c18 0%, #04040a 100%);
-            border-right: 1px solid rgba(255,123,31,0.28);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .splash-operator .portrait::after {
-            content: '';
-            position: absolute; inset: 14px;
-            border: 1px solid rgba(255,123,31,0.28);
-            clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-            pointer-events: none;
-        }
-        .splash-operator .portrait img {
-            max-width: 170px; max-height: 220px; object-fit: contain;
-        }
-        .splash-operator .portrait .lbl-top {
-            position: absolute; top: 24px; left: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #ff7b1f;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            z-index: 2;
-        }
-        .splash-operator .portrait .lbl-side {
-            position: absolute; bottom: 24px; left: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(255,255,255,0.45);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            z-index: 2;
-        }
-        .splash-operator .info {
-            flex: 1;
-            padding: 30px 30px 24px 30px;
-            display: flex; flex-direction: column;
-            position: relative;
-        }
-        .splash-operator .info .head {
-            display: flex; justify-content: space-between; align-items: baseline;
-            margin-bottom: 22px;
-        }
-        .splash-operator .info .head .l {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-        .splash-operator .info .head .l .em { color: #ff7b1f; }
-        .splash-operator .info .head .r {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #4dd6ff;
-            letter-spacing: 2px;
-        }
-        .splash-operator .info .codename {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 4px;
-            color: rgba(255,255,255,0.4);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .splash-operator .info .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 68px;
-            line-height: 0.92;
-            letter-spacing: -2px;
-            color: #fff;
-            text-transform: uppercase;
-        }
-        .splash-operator .info .role {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 4px;
-            color: #ff7b1f;
-            text-transform: uppercase;
-            margin-top: 8px;
-        }
-        .splash-operator .stats {
-            margin-top: auto;
-            margin-bottom: 16px;
-        }
-        .splash-operator .stats .stat {
-            display: flex; align-items: center; gap: 12px;
-            margin-bottom: 7px;
-        }
-        .splash-operator .stats .stat .lbl {
-            flex: 0 0 32px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(255,255,255,0.55);
-            letter-spacing: 1.5px;
-        }
-        .splash-operator .stats .stat .bar {
-            flex: 1;
-            height: 5px;
-            background: rgba(255,255,255,0.05);
-            position: relative;
-            overflow: hidden;
-            clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
-        }
-        .splash-operator .stats .stat .bar .fill {
-            position: absolute; top: 0; bottom: 0; left: 0;
-            background: linear-gradient(90deg, #ff7b1f, #ffb060);
-            box-shadow: 0 0 8px rgba(255,123,31,0.6);
-        }
-        .splash-operator .stats .stat .val {
-            flex: 0 0 36px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            text-align: right;
-            color: #fff;
-            letter-spacing: 1px;
-        }
-        .splash-operator .deploy {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #ff7b1f;
-            border-top: 1px solid rgba(255,123,31,0.25);
-            padding-top: 14px;
-        }
-        .splash-operator .deploy .dot {
-            width: 8px; height: 8px;
-            background: #ff7b1f;
-            box-shadow: 0 0 12px rgba(255,123,31,0.8);
-            animation: marquee-pulse 1.4s ease-in-out infinite;
-        }
-
-        /* ============================================================
-           HUD — sci-fi targeting HUD (Halo / Destiny / Helldivers)
-           ============================================================ */
-        .splash-hud {
-            position: relative;
-            width: 680px;
-            height: 400px;
-            background: radial-gradient(ellipse at center, #08080c 0%, #020205 100%);
-            overflow: hidden;
-            font-family: 'JetBrains Mono', monospace;
-            color: #ff9d4d;
-        }
-        .splash-hud::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: radial-gradient(circle, rgba(255,157,77,0.12) 1px, transparent 1.5px);
-            background-size: 24px 24px;
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .splash-hud .crn {
-            position: absolute;
-            width: 32px; height: 32px;
-            border: 2px solid #ff9d4d;
-            box-shadow: 0 0 14px rgba(255,157,77,0.5);
-        }
-        .splash-hud .crn.tl { top: 18px; left: 18px; border-right: 0; border-bottom: 0; }
-        .splash-hud .crn.tr { top: 18px; right: 18px; border-left: 0; border-bottom: 0; }
-        .splash-hud .crn.bl { bottom: 18px; left: 18px; border-right: 0; border-top: 0; }
-        .splash-hud .crn.br { bottom: 18px; right: 18px; border-left: 0; border-top: 0; }
-        .splash-hud .telem {
-            position: absolute;
-            font-size: 10px;
-            color: rgba(255,157,77,0.7);
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            line-height: 1.55;
-        }
-        .splash-hud .telem.tl { top: 28px; left: 64px; }
-        .splash-hud .telem.tr { top: 28px; right: 64px; text-align: right; }
-        .splash-hud .telem.bl { bottom: 28px; left: 64px; }
-        .splash-hud .telem.br { bottom: 28px; right: 64px; text-align: right; }
-        .splash-hud .telem .em { color: #fff; }
-        .splash-hud .telem .ok { color: #6fdc8c; }
-        .splash-hud .center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 3;
-        }
-        .splash-hud .reticle {
-            position: relative;
-            width: 200px; height: 130px;
-            margin: 0 auto 16px;
-        }
-        .splash-hud .reticle .frame {
-            position: absolute; inset: 0;
-            border: 1px solid rgba(255,157,77,0.5);
-            clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-        }
-        .splash-hud .reticle img {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 90px; max-height: 90px; object-fit: contain;
-            filter: drop-shadow(0 0 12px rgba(255,157,77,0.4));
-        }
-        .splash-hud .reticle::before,
-        .splash-hud .reticle::after {
-            content: '';
-            position: absolute;
-            background: #ff9d4d;
-            box-shadow: 0 0 6px rgba(255,157,77,0.6);
-        }
-        .splash-hud .reticle::before {
-            top: 50%; left: -28px;
-            width: 22px; height: 1px;
-            transform: translateY(-50%);
-        }
-        .splash-hud .reticle::after {
-            top: 50%; right: -28px;
-            width: 22px; height: 1px;
-            transform: translateY(-50%);
-        }
-        .splash-hud .acquired {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-size: 10px;
-            color: #ff9d4d;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-        .splash-hud .acquired .dot {
-            width: 7px; height: 7px;
-            background: #ff9d4d;
-            border-radius: 50%;
-            animation: marquee-pulse 1.2s ease-in-out infinite;
-        }
-        .splash-hud .title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 56px;
-            line-height: 1;
-            letter-spacing: -1.5px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 0 0 20px rgba(255,157,77,0.4);
-        }
-        .splash-hud .progress-line {
-            display: flex; align-items: center; gap: 6px;
-            justify-content: center;
-            margin-top: 14px;
-        }
-        .splash-hud .progress-line .tk {
-            width: 6px; height: 10px;
-            background: rgba(255,157,77,0.25);
-        }
-        .splash-hud .progress-line .tk.on {
-            background: #ff9d4d;
-            box-shadow: 0 0 6px rgba(255,157,77,0.7);
-        }
-        .splash-hud .scanline {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255,157,77,0.6), transparent);
-            animation: hud-scan 4s linear infinite;
-            pointer-events: none;
-        }
-        @keyframes hud-scan {
-            0%   { transform: translateY(0); }
-            100% { transform: translateY(400px); }
-        }
-
-        /* ============================================================
-           CHEVRON — esports broadcast intro (Valorant ranked / COD lobby)
-           ============================================================ */
-        .splash-chevron {
-            position: relative;
-            width: 720px;
-            height: 380px;
-            background: #08080c;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow:
-                inset 0 0 0 1px rgba(255,123,31,0.15),
-                0 30px 80px rgba(0,0,0,0.55);
-        }
-        .splash-chevron::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: repeating-linear-gradient(
-                -20deg,
-                transparent 0 22px,
-                rgba(255,255,255,0.025) 22px 23px
-            );
-            pointer-events: none;
-        }
-        .splash-chevron .chev {
-            position: absolute;
-            top: 0; bottom: 0;
-            width: 80px;
-            background: #ff7b1f;
-            clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%, 40% 50%);
-        }
-        .splash-chevron .chev.c1 { left: -30px; opacity: 1; box-shadow: 30px 0 60px rgba(255,123,31,0.3); }
-        .splash-chevron .chev.c2 { left: 50px; opacity: 0.45; background: #ff9d4d; }
-        .splash-chevron .chev.c3 { left: 130px; opacity: 0.20; background: #ffb060; }
-        .splash-chevron .chev.c4 { left: 210px; opacity: 0.10; background: #fff; }
-
-        .splash-chevron .body {
-            position: absolute;
-            top: 0; right: 0; bottom: 0; left: 280px;
-            padding: 56px 40px 56px;
-            display: flex; flex-direction: column;
-            justify-content: center;
-        }
-        .splash-chevron .tag {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            align-self: flex-start;
-        }
-        .splash-chevron .tag .em { color: #ff7b1f; font-weight: 700; }
-        .splash-chevron .tag::before {
-            content: '';
-            width: 18px; height: 1px;
-            background: #ff7b1f;
-        }
-        .splash-chevron .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 88px;
-            line-height: 0.9;
-            letter-spacing: -3px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .splash-chevron .presented {
-            display: flex; align-items: center; gap: 10px;
-            margin-top: 18px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.55);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-        .splash-chevron .presented .em { color: #fff; font-weight: 700; }
-        .splash-chevron .top-meta {
-            position: absolute;
-            top: 24px; right: 30px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.55);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: right;
-        }
-        .splash-chevron .top-meta .em { color: #ff7b1f; }
-        .splash-chevron .footer {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 36px;
-            background: linear-gradient(90deg, rgba(255,123,31,0) 0%, rgba(255,123,31,0.10) 50%, rgba(255,123,31,0) 100%);
-            border-top: 1px solid rgba(255,123,31,0.25);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 30px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .splash-chevron .footer .em { color: #ff7b1f; }
-        .splash-chevron .footer .ticks {
-            display: inline-flex; gap: 3px; margin-left: 10px; vertical-align: middle;
-        }
-        .splash-chevron .footer .ticks i {
-            width: 3px; height: 8px;
-            background: rgba(255,123,31,0.25);
-            display: block;
-        }
-        .splash-chevron .footer .ticks i.on {
-            background: #ff7b1f;
-            box-shadow: 0 0 4px rgba(255,123,31,0.7);
-        }
-
-        /* ============================================================
-           HEX — honeycomb hex grid (Destiny 2 / Halo Infinite)
-           ============================================================ */
-        .splash-hex {
-            position: relative;
-            width: 600px;
-            height: 440px;
-            background: radial-gradient(ellipse at center 40%, #0a0a14 0%, #03030a 100%);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow:
-                inset 0 0 0 1px rgba(255,176,96,0.15),
-                0 30px 80px rgba(0,0,0,0.6);
-        }
-        .splash-hex::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='70' viewBox='0 0 60 70'><polygon points='30,2 58,18 58,52 30,68 2,52 2,18' fill='none' stroke='%23ffb060' stroke-width='0.6' opacity='0.10'/></svg>");
-            background-size: 60px 70px;
-            pointer-events: none;
-        }
-        .splash-hex .top-tag {
-            position: absolute;
-            top: 28px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,176,96,0.75);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-        .splash-hex .top-tag .em { color: #ffb060; }
-        .splash-hex .hex-cluster {
-            position: absolute;
-            top: 80px; left: 50%;
-            transform: translateX(-50%);
-            width: 280px; height: 220px;
-        }
-        .splash-hex .hex-cell {
-            position: absolute;
-            background: rgba(255,176,96,0.06);
-            border: 1px solid rgba(255,176,96,0.4);
-            clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-        }
-        .splash-hex .hex-cell.center {
-            top: 30px; left: 70px;
-            width: 140px; height: 160px;
-            background: linear-gradient(160deg, rgba(255,176,96,0.18), rgba(255,123,31,0.10));
-            border: 1px solid #ffb060;
-            box-shadow: 0 0 30px rgba(255,176,96,0.30), inset 0 0 20px rgba(255,176,96,0.10);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 2;
-        }
-        .splash-hex .hex-cell.center img {
-            max-width: 90px; max-height: 90px; object-fit: contain;
-        }
-        .splash-hex .hex-cell.center .ph {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #ffb060;
-            letter-spacing: 2px;
-        }
-        .splash-hex .hex-cell.s {
-            width: 60px; height: 70px;
-            background: rgba(255,176,96,0.05);
-            border-color: rgba(255,176,96,0.35);
-            animation: hex-pulse 2.4s ease-in-out infinite;
-        }
-        @keyframes hex-pulse {
-            0%, 100% { background: rgba(255,176,96,0.05); border-color: rgba(255,176,96,0.35); }
-            50%      { background: rgba(255,176,96,0.20); border-color: #ffb060; box-shadow: 0 0 12px rgba(255,176,96,0.5); }
-        }
-        .splash-hex .hex-cell.s.h1 { top: -20px; left: 30px; animation-delay: 0s; }
-        .splash-hex .hex-cell.s.h2 { top: -20px; left: 190px; animation-delay: 0.4s; }
-        .splash-hex .hex-cell.s.h3 { top: 75px; left: 0px;  animation-delay: 0.8s; }
-        .splash-hex .hex-cell.s.h4 { top: 75px; right: 0px; animation-delay: 1.2s; }
-        .splash-hex .hex-cell.s.h5 { top: 170px; left: 30px; animation-delay: 1.6s; }
-        .splash-hex .hex-cell.s.h6 { top: 170px; left: 190px; animation-delay: 2.0s; }
-        .splash-hex .title {
-            position: absolute;
-            bottom: 80px; left: 0; right: 0;
-            text-align: center;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 50px;
-            letter-spacing: -1.5px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 0 0 20px rgba(255,176,96,0.30);
-        }
-        .splash-hex .progress {
-            position: absolute;
-            bottom: 36px; left: 0; right: 0;
-            display: flex; justify-content: center; gap: 6px;
-        }
-        .splash-hex .progress .pk {
-            width: 12px; height: 14px;
-            background: rgba(255,176,96,0.15);
-            clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-        }
-        .splash-hex .progress .pk.on {
-            background: #ffb060;
-            box-shadow: 0 0 6px rgba(255,176,96,0.7);
-        }
-        .splash-hex .bot-status {
-            position: absolute;
-            bottom: 14px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(255,255,255,0.45);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-
-        /* ============================================================
-           NEON — cyberpunk neon arcade sign (CP2077 / Stray)
-           ============================================================ */
-        .splash-neon {
-            position: relative;
-            width: 720px;
-            height: 400px;
-            background: radial-gradient(ellipse 60% 80% at 50% 30%, #2a0a30 0%, #0a0518 60%, #04020a 100%);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-        }
-        .splash-neon .skyline {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 100px;
-            background: #000;
-            clip-path: polygon(
-                0 100%, 0 70%, 4% 70%, 4% 50%, 9% 50%, 9% 65%, 14% 65%, 14% 40%, 19% 40%, 19% 60%,
-                25% 60%, 25% 35%, 30% 35%, 30% 70%, 36% 70%, 36% 45%, 42% 45%, 42% 28%, 48% 28%, 48% 55%,
-                54% 55%, 54% 38%, 60% 38%, 60% 60%, 66% 60%, 66% 32%, 72% 32%, 72% 50%, 78% 50%, 78% 65%,
-                84% 65%, 84% 42%, 90% 42%, 90% 60%, 96% 60%, 96% 70%, 100% 70%, 100% 100%
-            );
-        }
-        .splash-neon .skyline::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(circle, rgba(255,200,90,0.5) 1px, transparent 1.5px),
-                radial-gradient(circle, rgba(90,200,255,0.4) 1px, transparent 1.5px);
-            background-size: 12px 14px, 18px 18px;
-            background-position: 0 0, 8px 10px;
-            opacity: 0.55;
-        }
-        .splash-neon::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent 0 2px,
-                rgba(255,255,255,0.025) 2px 3px
-            );
-            pointer-events: none;
-            mix-blend-mode: overlay;
-        }
-        .splash-neon .top-tag {
-            position: absolute;
-            top: 30px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #4dd6ff;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            text-shadow: 0 0 8px rgba(77,214,255,0.7), 0 0 18px rgba(77,214,255,0.4);
-        }
-        .splash-neon .title {
-            position: absolute;
-            top: 100px; left: 0; right: 0;
-            text-align: center;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 110px;
-            line-height: 1;
-            letter-spacing: -4px;
-            text-transform: uppercase;
-            color: #ff5db1;
-            text-shadow:
-                0 0 4px #fff,
-                0 0 12px #ff5db1,
-                0 0 28px #ff5db1,
-                0 0 52px rgba(255,93,177,0.7),
-                0 0 90px rgba(255,93,177,0.4);
-            animation: neon-flicker 6s steps(1) infinite;
-        }
-        @keyframes neon-flicker {
-            0%, 18%, 22%, 25%, 53%, 57%, 100% {
-                opacity: 1;
-                text-shadow:
-                    0 0 4px #fff,
-                    0 0 12px #ff5db1,
-                    0 0 28px #ff5db1,
-                    0 0 52px rgba(255,93,177,0.7),
-                    0 0 90px rgba(255,93,177,0.4);
-            }
-            20%, 24%, 55% {
-                opacity: 0.55;
-                text-shadow: 0 0 4px #fff, 0 0 6px #ff5db1;
-            }
-        }
-        .splash-neon .est {
-            position: absolute;
-            top: 230px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            color: #ffb060;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            text-shadow: 0 0 6px rgba(255,176,96,0.7), 0 0 14px rgba(255,176,96,0.4);
-        }
-        .splash-neon .bot-row {
-            position: absolute;
-            bottom: 18px; left: 24px; right: 24px;
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            z-index: 5;
-        }
-        .splash-neon .bot-row .em { color: #ff5db1; text-shadow: 0 0 6px rgba(255,93,177,0.6); }
-        .splash-neon .bot-row .dot {
-            display: inline-block;
-            width: 7px; height: 7px;
-            background: #ff5db1;
-            border-radius: 50%;
-            margin-right: 6px;
-            box-shadow: 0 0 8px rgba(255,93,177,0.8);
-            animation: marquee-pulse 1.4s ease-in-out infinite;
-            vertical-align: middle;
-        }
-
-        /* ============================================================
-           ARENA — esports broadcast lower-third (League / Valorant casts)
-           ============================================================ */
-        .splash-arena {
-            position: relative;
-            width: 740px;
-            height: 320px;
-            background:
-                linear-gradient(135deg, #0c0c14 0%, #06060a 100%);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            display: flex;
-            box-shadow:
-                inset 0 0 0 1px rgba(255,157,77,0.15),
-                0 30px 80px rgba(0,0,0,0.6);
-        }
-        .splash-arena::before {
-            content: '';
-            position: absolute; top: 0; bottom: 0; left: 0;
-            width: 70%;
-            background: radial-gradient(ellipse at 0% 50%, rgba(255,157,77,0.12), transparent 70%);
-            pointer-events: none;
-        }
-        .splash-arena .team-card {
-            flex: 0 0 220px;
-            position: relative;
-            margin: 24px 0 24px 24px;
-            background: linear-gradient(160deg, rgba(255,157,77,0.20), rgba(255,123,31,0.05));
-            border: 1px solid rgba(255,157,77,0.5);
-            display: flex; align-items: center; justify-content: center;
-            clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
-            box-shadow: inset 0 0 30px rgba(255,157,77,0.08);
-        }
-        .splash-arena .team-card img {
-            max-width: 130px; max-height: 130px; object-fit: contain;
-            filter: drop-shadow(0 0 12px rgba(255,157,77,0.4));
-        }
-        .splash-arena .team-card .ph {
-            font-family: 'JetBrains Mono', monospace;
-            color: #ff9d4d;
-            font-size: 11px;
-            letter-spacing: 3px;
-        }
-        .splash-arena .team-card .corner-tag {
-            position: absolute;
-            top: 12px; left: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-        .splash-arena .middle {
-            flex: 1;
-            padding: 36px 30px 36px;
-            display: flex; flex-direction: column;
-            justify-content: center;
-        }
-        .splash-arena .middle .tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #ff9d4d;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .splash-arena .middle .tag .em { color: #fff; font-weight: 700; }
-        .splash-arena .middle .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 70px;
-            line-height: 0.92;
-            letter-spacing: -2.5px;
-            color: #fff;
-            text-transform: uppercase;
-        }
-        .splash-arena .middle .sub {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(255,255,255,0.55);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-top: 10px;
-        }
-        .splash-arena .middle .sub .em { color: #ff9d4d; }
-        .splash-arena .stats-block {
-            flex: 0 0 160px;
-            display: flex; flex-direction: column;
-            justify-content: center;
-            padding: 28px 26px;
-            border-left: 1px solid rgba(255,157,77,0.20);
-            background: rgba(255,157,77,0.04);
-            margin: 24px 24px 24px 0;
-            clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
-        }
-        .splash-arena .stats-block .row {
-            display: flex; justify-content: space-between; align-items: baseline;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255,157,77,0.10);
-        }
-        .splash-arena .stats-block .row:last-child { border-bottom: 0; }
-        .splash-arena .stats-block .row .lbl {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .splash-arena .stats-block .row .val {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 18px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .splash-arena .stats-block .row .val.em { color: #ff9d4d; }
-        .splash-arena .footer-strip {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 18px;
-            display: flex; align-items: center;
-            background: linear-gradient(90deg, #ff7b1f 0%, #ff9d4d 50%, #ff7b1f 100%);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: #06060a;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            font-weight: 700;
-            padding: 0 14px;
-            overflow: hidden;
-        }
-        .splash-arena .footer-strip .scroll {
-            white-space: nowrap;
-            animation: arena-scroll 18s linear infinite;
-            padding-left: 100%;
-        }
-        @keyframes arena-scroll {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-        }
-
-        /* ============================================================
-           GRID — synthwave perspective grid (Tron / Stranger Things)
-           ============================================================ */
-        .splash-grid {
-            position: relative;
-            width: 680px;
-            height: 400px;
-            background: linear-gradient(180deg, #0a0218 0%, #1a0530 40%, #2a0a40 70%, #100020 100%);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-        }
-        /* sun-disc */
-        .splash-grid .sun {
-            position: absolute;
-            bottom: 130px; left: 50%;
-            transform: translateX(-50%);
-            width: 220px; height: 220px;
-            border-radius: 50%;
-            background: linear-gradient(180deg, #ffb060 0%, #ff5db1 60%, #8b00ff 100%);
-            box-shadow:
-                0 0 40px rgba(255,93,177,0.5),
-                0 0 100px rgba(255,93,177,0.3);
-        }
-        /* sun horizontal slits */
-        .splash-grid .sun::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent 0 14px,
-                #0a0218 14px 18px,
-                transparent 18px 32px,
-                #0a0218 32px 38px,
-                transparent 38px 60px,
-                #0a0218 60px 67px
-            );
-            opacity: 0.85;
-            border-radius: 50%;
-        }
-        /* perspective grid */
-        .splash-grid .floor {
-            position: absolute;
-            bottom: 0; left: -50%;
-            width: 200%; height: 180px;
-            background-image:
-                linear-gradient(0deg,
-                    rgba(255,93,177,0.7) 0,
-                    rgba(255,93,177,0.7) 1px,
-                    transparent 1px),
-                linear-gradient(90deg,
-                    rgba(255,93,177,0.4) 0,
-                    rgba(255,93,177,0.4) 1px,
-                    transparent 1px);
-            background-size: 100% 24px, 40px 100%;
-            transform: perspective(220px) rotateX(60deg);
-            transform-origin: bottom;
-            animation: grid-roll 1.2s linear infinite;
-            mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
-        }
-        @keyframes grid-roll {
-            from { background-position: 0 0, 0 0; }
-            to   { background-position: 0 24px, 0 0; }
-        }
-        /* CRT scanlines */
-        .splash-grid::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent 0 2px,
-                rgba(255,255,255,0.03) 2px 3px
-            );
-            pointer-events: none;
-            mix-blend-mode: overlay;
-        }
-        .splash-grid .top-tag {
-            position: absolute;
-            top: 32px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #ffb060;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            text-shadow: 0 0 8px rgba(255,176,96,0.6);
-            z-index: 5;
-        }
-        .splash-grid .title {
-            position: absolute;
-            top: 90px; left: 0; right: 0;
-            text-align: center;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 100px;
-            line-height: 1;
-            letter-spacing: -4px;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow:
-                0 0 6px #ff5db1,
-                0 0 18px #ff5db1,
-                0 0 36px rgba(255,93,177,0.7),
-                3px 3px 0 #4dd6ff,
-                -3px -3px 0 #ff5db1;
-            z-index: 5;
-        }
-        .splash-grid .bot-row {
-            position: absolute;
-            bottom: 18px; left: 24px; right: 24px;
-            display: flex; justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            z-index: 6;
-        }
-        .splash-grid .bot-row .em { color: #ff5db1; text-shadow: 0 0 6px rgba(255,93,177,0.7); }
-
-        /* ============================================================
-           BRIEFING — tactical CRT terminal (MGS Codec / Splinter Cell)
-           ============================================================ */
-        .splash-briefing {
-            position: relative;
-            width: 660px;
-            height: 400px;
-            background: #02080a;
-            overflow: hidden;
-            font-family: 'JetBrains Mono', monospace;
-            color: #d4ff66;
-            padding: 26px 30px;
-            box-shadow:
-                inset 0 0 0 1px rgba(212,255,102,0.18),
-                inset 0 0 60px rgba(212,255,102,0.05),
-                0 30px 80px rgba(0,0,0,0.6);
-        }
-        .splash-briefing::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent 0 2px,
-                rgba(212,255,102,0.04) 2px 3px
-            );
-            pointer-events: none;
-        }
-        /* CRT vignette */
-        .splash-briefing::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
-            pointer-events: none;
-        }
-        .splash-briefing .uplink {
-            font-size: 11px;
-            color: rgba(212,255,102,0.7);
-            letter-spacing: 2px;
-            margin-bottom: 14px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .splash-briefing .uplink .blink {
-            display: inline-block;
-            width: 8px; height: 12px;
-            background: #d4ff66;
-            box-shadow: 0 0 8px rgba(212,255,102,0.8);
-            animation: brief-blink 1s steps(1) infinite;
-        }
-        @keyframes brief-blink { 50% { opacity: 0; } }
-        .splash-briefing .ascii-rule {
-            font-size: 10px;
-            color: rgba(212,255,102,0.5);
-            white-space: nowrap;
-            overflow: hidden;
-            margin-bottom: 12px;
-            letter-spacing: 0;
-        }
-        .splash-briefing .row {
-            display: flex; gap: 12px;
-            font-size: 12px;
-            margin-bottom: 6px;
-        }
-        .splash-briefing .row .k {
-            color: rgba(212,255,102,0.55);
-            min-width: 100px;
-            letter-spacing: 1px;
-        }
-        .splash-briefing .row .v {
-            color: #d4ff66;
-            text-shadow: 0 0 6px rgba(212,255,102,0.4);
-            letter-spacing: 1px;
-        }
-        .splash-briefing .row .v.bright {
-            color: #fff;
-            text-shadow: 0 0 8px rgba(255,255,255,0.4);
-        }
-        .splash-briefing .op-title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 52px;
-            line-height: 1;
-            letter-spacing: -1.5px;
-            color: #d4ff66;
-            text-transform: uppercase;
-            margin: 14px 0 18px;
-            text-shadow: 0 0 12px rgba(212,255,102,0.5), 0 0 30px rgba(212,255,102,0.3);
-        }
-        .splash-briefing .objectives {
-            margin-top: 14px;
-            font-size: 12px;
-        }
-        .splash-briefing .objectives .obj {
-            margin-bottom: 4px;
-            color: rgba(212,255,102,0.85);
-            letter-spacing: 1px;
-        }
-        .splash-briefing .objectives .obj .check {
-            display: inline-block;
-            width: 12px; color: #6fdc8c;
-            text-shadow: 0 0 6px rgba(111,220,140,0.6);
-        }
-        .splash-briefing .objectives .obj.pending .check {
-            color: rgba(212,255,102,0.4);
-            text-shadow: none;
-            animation: brief-blink 1.2s steps(1) infinite;
-        }
-        .splash-briefing .footer-line {
-            position: absolute;
-            bottom: 18px; left: 30px; right: 30px;
-            display: flex; justify-content: space-between;
-            font-size: 10px;
-            color: rgba(212,255,102,0.5);
-            letter-spacing: 2px;
-            border-top: 1px solid rgba(212,255,102,0.20);
-            padding-top: 10px;
-        }
-        .splash-briefing .footer-line .em {
-            color: #d4ff66;
-            text-shadow: 0 0 6px rgba(212,255,102,0.5);
-        }
-
-        /* ============================================================
-           BLADE — diagonal slash cuts (DMC / Bayonetta / Splatoon)
-           ============================================================ */
-        .splash-blade {
-            position: relative;
-            width: 700px;
-            height: 380px;
-            background: #08080c;
+            background: #0a0a0a;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
             color: #fff;
             box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        /* slash strips */
-        .splash-blade .slash {
-            position: absolute;
-            top: -30%; bottom: -30%;
-            transform-origin: center;
-            box-shadow: 0 0 30px rgba(255,123,31,0.4);
-        }
-        .splash-blade .slash.s1 {
-            left: -10%; width: 40px;
-            background: #ff7b1f;
-            transform: rotate(-18deg);
-        }
-        .splash-blade .slash.s2 {
-            left: 8%; width: 16px;
-            background: #fff;
-            transform: rotate(-18deg);
-            box-shadow: 0 0 18px rgba(255,255,255,0.5);
-        }
-        .splash-blade .slash.s3 {
-            right: -10%; width: 90px;
-            background: #ff7b1f;
-            transform: rotate(-18deg);
-            opacity: 0.95;
-        }
-        .splash-blade .slash.s4 {
-            right: 12%; width: 30px;
-            background: #ffb060;
-            transform: rotate(-18deg);
-            opacity: 0.7;
-        }
-        .splash-blade .slash.s5 {
-            left: 35%; width: 6px;
-            background: #fff;
-            transform: rotate(-18deg);
-            opacity: 0.85;
-        }
-        /* speed lines */
-        .splash-blade::before {
+        /* faint paper-grain texture */
+        .splash-drop::before {
             content: '';
             position: absolute; inset: 0;
-            background-image: repeating-linear-gradient(
-                -18deg,
-                transparent 0 60px,
-                rgba(255,255,255,0.025) 60px 61px
-            );
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.03), transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02), transparent 50%);
             pointer-events: none;
         }
-        .splash-blade .top-bar {
+        /* corner crop marks (print marks) */
+        .splash-drop .crop {
             position: absolute;
-            top: 24px; left: 28px; right: 28px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 5;
+            width: 14px; height: 14px;
+            border: 1px solid rgba(255,255,255,0.18);
         }
-        .splash-blade .top-bar .brand {
+        .splash-drop .crop.tl { top: 18px; left: 18px; border-right: 0; border-bottom: 0; }
+        .splash-drop .crop.tr { top: 18px; right: 18px; border-left: 0; border-bottom: 0; }
+        .splash-drop .crop.bl { bottom: 18px; left: 18px; border-right: 0; border-top: 0; }
+        .splash-drop .crop.br { bottom: 18px; right: 18px; border-left: 0; border-top: 0; }
+
+        .splash-drop .top-row,
+        .splash-drop .bot-row {
+            position: absolute;
+            left: 44px; right: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: #fff;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            background: rgba(0,0,0,0.5);
-            padding: 6px 10px;
-            backdrop-filter: blur(4px);
-        }
-        .splash-blade .top-bar .brand .em { color: #ff7b1f; }
-        .splash-blade .top-bar .ver {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #ff7b1f;
-            letter-spacing: 2px;
-            background: rgba(0,0,0,0.5);
-            padding: 6px 10px;
-            backdrop-filter: blur(4px);
-        }
-        .splash-blade .center-block {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 4;
-        }
-        .splash-blade .pre {
-            display: inline-block;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #fff;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            background: rgba(255,123,31,0.95);
-            padding: 5px 12px;
-            margin-bottom: 14px;
-            transform: skew(-12deg);
-        }
-        .splash-blade .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 110px;
-            line-height: 0.9;
-            letter-spacing: -4px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow:
-                0 4px 0 #ff7b1f,
-                6px 8px 0 rgba(0,0,0,0.5),
-                0 0 30px rgba(255,123,31,0.4);
-            transform: skew(-6deg);
-        }
-        .splash-blade .bot-bar {
-            position: absolute;
-            bottom: 24px; left: 28px; right: 28px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 5;
-        }
-        .splash-blade .bot-bar .status {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #fff;
             letter-spacing: 3px;
             text-transform: uppercase;
-            background: rgba(0,0,0,0.5);
-            padding: 6px 10px;
-            backdrop-filter: blur(4px);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .splash-blade .bot-bar .status .dot {
-            width: 7px; height: 7px;
-            background: #ff7b1f;
-            box-shadow: 0 0 8px rgba(255,123,31,0.8);
-            animation: marquee-pulse 1.4s ease-in-out infinite;
-        }
-        .splash-blade .bot-bar .pct {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
             color: rgba(255,255,255,0.55);
-            letter-spacing: 1px;
-            background: rgba(0,0,0,0.5);
-            padding: 6px 10px;
-            backdrop-filter: blur(4px);
         }
-        .splash-blade .bot-bar .pct .num { color: #fff; }
-
-        /* ============================================================
-           CIRCUIT — PCB trace frame (TRON / Watch Dogs / Mass Effect)
-           ============================================================ */
-        .splash-circuit {
-            position: relative;
-            width: 660px;
-            height: 400px;
-            background: radial-gradient(ellipse at center, #061018 0%, #02060a 100%);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow:
-                inset 0 0 0 1px rgba(77,214,255,0.15),
-                0 30px 80px rgba(0,0,0,0.6);
-        }
-        /* faint hex backdrop */
-        .splash-circuit::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='40' height='40' fill='none' stroke='%234dd6ff' stroke-width='0.4' opacity='0.10'/></svg>");
-            background-size: 40px 40px;
-            pointer-events: none;
-        }
-        /* PCB traces — SVG inline overlay */
-        .splash-circuit .traces {
-            position: absolute; inset: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .splash-circuit .traces svg {
-            width: 100%; height: 100%;
-            display: block;
-        }
-        .splash-circuit .traces svg path {
-            fill: none;
-            stroke: #4dd6ff;
-            stroke-width: 1.2;
-            opacity: 0.75;
-            filter: drop-shadow(0 0 4px rgba(77,214,255,0.6));
-        }
-        .splash-circuit .traces svg circle {
-            fill: #4dd6ff;
-            filter: drop-shadow(0 0 6px rgba(77,214,255,0.9));
-        }
-        .splash-circuit .traces svg circle.pulse {
-            animation: circuit-pulse 2.4s ease-in-out infinite;
-        }
-        @keyframes circuit-pulse {
-            0%, 100% { opacity: 0.4; }
-            50%      { opacity: 1; }
-        }
-        .splash-circuit .center-block {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 3;
-            padding: 0 60px;
-        }
-        .splash-circuit .logo-area {
-            margin-bottom: 14px;
-            opacity: 0.9;
-        }
-        .splash-circuit .logo-area img {
-            max-width: 80px; max-height: 80px; object-fit: contain;
-            filter: drop-shadow(0 0 14px rgba(77,214,255,0.5));
-        }
-        .splash-circuit .pre {
+        .splash-drop .top-row { top: 38px; }
+        .splash-drop .bot-row { bottom: 38px; }
+        .splash-drop .top-row .em,
+        .splash-drop .bot-row .em { color: #fff; }
+        .splash-drop .bot-row .red { color: #ff2a2a; }
+        .splash-drop .bot-row .dot {
             display: inline-block;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #4dd6ff;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            text-shadow: 0 0 8px rgba(77,214,255,0.6);
-        }
-        .splash-circuit .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 64px;
-            line-height: 1;
-            letter-spacing: -2px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 0 0 12px rgba(77,214,255,0.5), 0 0 30px rgba(77,214,255,0.3);
-        }
-        .splash-circuit .sub {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-top: 10px;
-        }
-        .splash-circuit .sub .em { color: #4dd6ff; text-shadow: 0 0 6px rgba(77,214,255,0.6); }
-        .splash-circuit .corner-led {
-            position: absolute;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(77,214,255,0.7);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            display: flex; align-items: center; gap: 6px;
-            z-index: 4;
-        }
-        .splash-circuit .corner-led .dot {
             width: 6px; height: 6px;
-            background: #4dd6ff;
+            background: #ff2a2a;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(77,214,255,0.9);
+            margin-right: 6px;
+            box-shadow: 0 0 8px rgba(255,42,42,0.7);
+            vertical-align: middle;
             animation: marquee-pulse 1.6s ease-in-out infinite;
         }
-        .splash-circuit .corner-led.tl { top: 22px; left: 24px; }
-        .splash-circuit .corner-led.tr { top: 22px; right: 24px; }
-        .splash-circuit .corner-led.bl { bottom: 22px; left: 24px; }
-        .splash-circuit .corner-led.br { bottom: 22px; right: 24px; }
+
+        /* the iconic red box-logo */
+        .splash-drop .box {
+            position: relative;
+            background: #ff2a2a;
+            padding: 28px 56px 32px;
+            box-shadow:
+                0 0 0 1px rgba(255,42,42,0.3),
+                0 24px 60px rgba(255,42,42,0.18);
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* crop tabs over the box for print-mark feel */
+        .splash-drop .box::before,
+        .splash-drop .box::after {
+            content: '';
+            position: absolute;
+            width: 18px; height: 1px;
+            background: #fff;
+            opacity: 0.55;
+        }
+        .splash-drop .box::before { top: 12px; left: 14px; box-shadow: 0 18px 0 -1px transparent; }
+        .splash-drop .box::after  { bottom: 12px; right: 14px; }
+        .splash-drop .box .title {
+            font-weight: 900;
+            font-style: italic;
+            font-size: 96px;
+            line-height: 0.92;
+            letter-spacing: -3.5px;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0 2px 0 rgba(0,0,0,0.08);
+        }
+        .splash-drop .box .sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.85);
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+        /* small denfi mark below the box */
+        .splash-drop .mark {
+            position: absolute;
+            bottom: 78px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+        .splash-drop .mark .em { color: #fff; }
+
+        /* ============================================================
+           ATELIER — Off-White / industrial-fashion product card
+           Cream paper, helvetica caps, "PRODUCT" labels, taped strip.
+           ============================================================ */
+        .splash-atelier {
+            position: relative;
+            width: 700px;
+            height: 420px;
+            background: #f4f1ea;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #0a0a0a;
+            padding: 40px 44px;
+            box-shadow:
+                inset 0 0 0 1px rgba(0,0,0,0.05),
+                0 30px 80px rgba(0,0,0,0.18);
+        }
+        /* subtle paper noise */
+        .splash-atelier::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                radial-gradient(circle at 30% 20%, rgba(0,0,0,0.025), transparent 60%),
+                radial-gradient(circle at 70% 80%, rgba(0,0,0,0.020), transparent 60%);
+            pointer-events: none;
+        }
+        /* hairline rule top and bottom */
+        .splash-atelier .rule-top,
+        .splash-atelier .rule-bot {
+            position: absolute;
+            left: 44px; right: 44px;
+            height: 1px;
+            background: #0a0a0a;
+        }
+        .splash-atelier .rule-top { top: 76px; }
+        .splash-atelier .rule-bot { bottom: 96px; }
+
+        .splash-atelier .head {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #0a0a0a;
+            margin-bottom: 38px;
+        }
+        .splash-atelier .head .em { color: #0a0a0a; font-weight: 700; }
+        .splash-atelier .head .mute { color: rgba(10,10,10,0.45); }
+
+        .splash-atelier .title-row {
+            display: flex; align-items: baseline; gap: 14px;
+            margin-top: 38px;
+        }
+        .splash-atelier .title-row .quote {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 100px;
+            line-height: 0.85;
+            color: #0a0a0a;
+        }
+        .splash-atelier .title {
+            font-weight: 900;
+            font-size: 92px;
+            line-height: 0.9;
+            letter-spacing: -3.5px;
+            color: #0a0a0a;
+            text-transform: uppercase;
+        }
+        .splash-atelier .meta-grid {
+            position: absolute;
+            bottom: 110px; left: 44px; right: 44px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .splash-atelier .meta-grid .m .k {
+            color: rgba(10,10,10,0.5);
+            margin-bottom: 4px;
+        }
+        .splash-atelier .meta-grid .m .v {
+            color: #0a0a0a;
+            font-weight: 700;
+        }
+        /* yellow industrial taped strip at bottom */
+        .splash-atelier .tape {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 38px;
+            background: #ffd400;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #0a0a0a;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            font-weight: 700;
+            border-top: 1px solid rgba(0,0,0,0.15);
+        }
+        .splash-atelier .tape .scroll {
+            white-space: nowrap;
+            animation: atelier-scroll 22s linear infinite;
+            padding-left: 100%;
+        }
+        @keyframes atelier-scroll {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+        .splash-atelier .tape .arrow { color: #0a0a0a; margin: 0 14px; }
+
+        /* ============================================================
+           KEYNOTE — Apple keynote / minimal product reveal
+           Pure dark, generous whitespace, refined typography.
+           ============================================================ */
+        .splash-keynote {
+            position: relative;
+            width: 720px;
+            height: 420px;
+            background:
+                radial-gradient(ellipse at 50% 30%, #1a1a1f 0%, #0a0a0c 60%, #050507 100%);
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #f5f5f7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+        }
+        /* subtle outer glow ring */
+        .splash-keynote::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 50%, rgba(255,140,40,0.06) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .splash-keynote .pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(245,245,247,0.55);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+        .splash-keynote .pre .em {
+            color: #ff8c28;
+            text-shadow: 0 0 14px rgba(255,140,40,0.35);
+        }
+        .splash-keynote .title {
+            font-weight: 700;
+            font-size: 132px;
+            line-height: 0.95;
+            letter-spacing: -5px;
+            color: #f5f5f7;
+            text-align: center;
+            background: linear-gradient(180deg, #ffffff 0%, #b8b8c0 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.5);
+        }
+        .splash-keynote .sub {
+            font-family: 'Inter', sans-serif;
+            font-size: 17px;
+            font-weight: 400;
+            color: rgba(245,245,247,0.7);
+            letter-spacing: 0.2px;
+            margin-top: 22px;
+            text-align: center;
+        }
+        .splash-keynote .sub .em {
+            color: #f5f5f7;
+            font-weight: 500;
+        }
+        /* refined hairline footer with three centered marks */
+        .splash-keynote .footer {
+            position: absolute;
+            bottom: 30px; left: 0; right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 22px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(245,245,247,0.45);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .splash-keynote .footer .sep {
+            width: 4px; height: 4px;
+            background: rgba(245,245,247,0.3);
+            border-radius: 50%;
+        }
+        .splash-keynote .footer .em {
+            color: #ff8c28;
+            text-shadow: 0 0 8px rgba(255,140,40,0.4);
+        }
+        /* tiny refined chrome dot under title */
+        .splash-keynote .dot-row {
+            display: flex; justify-content: center; gap: 8px;
+            margin-top: 30px;
+        }
+        .splash-keynote .dot-row .d {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: rgba(245,245,247,0.20);
+        }
+        .splash-keynote .dot-row .d.on {
+            background: #ff8c28;
+            box-shadow: 0 0 8px rgba(255,140,40,0.6);
+        }
 
     </style>
 </head>
@@ -2319,7 +1338,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Fifteen gaming-premium directions below — built around the visual language of premium game launchers and esports broadcasts.<br>
+            Three new premium directions added at the end — fashion-tier (Drop, Atelier) and Apple-keynote tier.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -2613,401 +1632,107 @@
     </section>
 
     <!-- ====================================================
-         OPERATOR — tactical operator card
+         DROP — Supreme box-logo / streetwear drop card
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag operator">NEW · 6</span>
-            <span class="design-name">Operator</span>
+            <span class="design-tag drop">PREMIUM · 6</span>
+            <span class="design-name">Drop</span>
         </div>
         <div class="design-desc">
-            <strong>Apex Legends / Rainbow Six Siege agent select card.</strong> Tall portrait frame on the left holding your logo as the "operator", framed by a hex-pattern background and notched corner clip. Right panel: tactical mono header ("OPERATOR // SECTOR-7"), the title in 68px italic uppercase as the operator's call sign, role label, four animated stat bars (LIC / RGN / VER / NET), and a pulsing "READY TO DEPLOY" status. Reads instantly as a premium FPS operator portrait.
+            <strong>Supreme box-logo / streetwear drop card.</strong> Pure black canvas with hairline corner crop-marks, a small mono header (<em>DENFI · ATELIER · FW26</em>) and a small mono footer (<em>DROP №07 · BANGKOK · LIVE</em>). The center is the iconic move: a single saturated red rectangle, padded heavily, with the title set inside in 96px italic black uppercase — the universally-readable streetwear "box logo" silhouette. Tiny "EDITION 01" mono caption sits under the box. Confident, restrained, instantly premium.
         </div>
         <div class="design-stage">
-            <div class="splash-operator">
-                <div class="portrait">
-                    <div class="lbl-top">OPERATOR // 04</div>
-                    {% if splash_file %}
-                    <img src="/splash_logo_file" alt="Logo">
-                    {% endif %}
-                    <div class="lbl-side">CLASSIFIED</div>
+            <div class="splash-drop">
+                <div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div>
+                <div class="top-row">
+                    <span><span class="em">DENFI</span> · ATELIER</span>
+                    <span>FW · <span class="em">26</span></span>
                 </div>
-                <div class="info">
-                    <div class="head">
-                        <div class="l">DENFI <span class="em">// SECTOR-7</span></div>
-                        <div class="r">v1.0.4</div>
-                    </div>
-                    <div class="codename">Codename</div>
-                    <div class="title fit-title-operator">{{ app_name or 'Roblox' }}</div>
-                    <div class="role">Class · Vanguard · Bangkok</div>
-                    <div class="stats">
-                        <div class="stat"><span class="lbl">LIC</span><span class="bar"><span class="fill" style="width: 96%"></span></span><span class="val">96</span></div>
-                        <div class="stat"><span class="lbl">RGN</span><span class="bar"><span class="fill" style="width: 88%"></span></span><span class="val">88</span></div>
-                        <div class="stat"><span class="lbl">VER</span><span class="bar"><span class="fill" style="width: 100%"></span></span><span class="val">100</span></div>
-                        <div class="stat"><span class="lbl">NET</span><span class="bar"><span class="fill" style="width: 92%" id="op-net-fill"></span></span><span class="val" id="op-net-val">92</span></div>
-                    </div>
-                    <div class="deploy"><span class="dot"></span>READY TO DEPLOY</div>
+                <div class="box">
+                    <div class="title fit-title-drop">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub">EDITION · 01</div>
+                </div>
+                <div class="mark">PRESENTED BY <span class="em">DENFI</span></div>
+                <div class="bot-row">
+                    <span><span class="dot"></span><span class="red">LIVE</span> · DROP №07</span>
+                    <span>BANGKOK · <span class="em">19.04.26</span></span>
                 </div>
             </div>
         </div>
-        <div class="design-meta">680 × 420 &nbsp;|&nbsp; operator card · hex pattern · animated stat bars</div>
+        <div class="design-meta">680 × 420 &nbsp;|&nbsp; iconic red box · italic black title · streetwear-tier</div>
     </section>
 
     <!-- ====================================================
-         HUD — sci-fi targeting HUD
+         ATELIER — Off-White / industrial-fashion product card
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag hud">NEW · 7</span>
-            <span class="design-name">HUD</span>
+            <span class="design-tag atelier">PREMIUM · 7</span>
+            <span class="design-name">Atelier</span>
         </div>
         <div class="design-desc">
-            <strong>Sci-fi targeting HUD à la Halo / Destiny / Helldivers 2.</strong> Pure black with a faint dot grid, four glowing orange L-brackets in the corners, telemetry text in each corner (coords, RPM, status), and a horizontal scan line passing slowly down the canvas. Center: a chamfered-rectangle reticle around your logo with extending crosshair tick marks, "TARGET ACQUIRED" tag with pulsing dot above, the title in 56px bold italic below, and a row of progress ticks. Looks like the loading screen of a AAA shooter.
+            <strong>Off-White / Acne / Highsnobiety editorial product card.</strong> Cream paper background with a faint grain — a deliberate inversion of every other splash. The title sits in 92px black helvetica caps, framed by giant inverted commas like a fashion-product tag. Two hairline rules bracket the composition; a four-column mono meta grid (PRODUCT / SEASON / REGION / EDITION) sits at the bottom like a real garment label. A yellow industrial caution-tape strip with a continuously-scrolling "DENFI · ATELIER · LICENSED · FW26" runs along the very bottom edge. Looks like something printed on a $400 hoodie tag.
         </div>
         <div class="design-stage">
-            <div class="splash-hud">
-                <div class="crn tl"></div>
-                <div class="crn tr"></div>
-                <div class="crn bl"></div>
-                <div class="crn br"></div>
-                <div class="telem tl">
-                    13°45'N / 100°31'E<br>
-                    SECTOR <span class="em">07-DNF</span>
+            <div class="splash-atelier">
+                <div class="head">
+                    <span><span class="em">DENFI</span> · ATELIER · BKK</span>
+                    <span class="mute">PRODUCT №&nbsp;A001 / 2026</span>
                 </div>
-                <div class="telem tr">
-                    UPLINK <span class="ok">●&nbsp;ONLINE</span><br>
-                    PING <span class="em">42ms</span>
+                <div class="rule-top"></div>
+                <div class="title-row">
+                    <span class="quote">&ldquo;</span>
+                    <span class="title fit-title-atelier">{{ app_name or 'Roblox' }}</span>
+                    <span class="quote">&rdquo;</span>
                 </div>
-                <div class="telem bl">
-                    OPERATOR · <span class="em">DENFI</span><br>
-                    CLEARANCE <span class="ok">A-1</span>
+                <div class="rule-bot"></div>
+                <div class="meta-grid">
+                    <div class="m"><div class="k">Product</div><div class="v">A001</div></div>
+                    <div class="m"><div class="k">Season</div><div class="v">FW · 26</div></div>
+                    <div class="m"><div class="k">Region</div><div class="v">TH · BKK</div></div>
+                    <div class="m"><div class="k">Edition</div><div class="v">01 / 01</div></div>
                 </div>
-                <div class="telem br">
-                    BUILD 2026.04.19<br>
-                    LIC <span class="em">7M3F-XKQR</span>
-                </div>
-                <div class="center">
-                    <div class="reticle">
-                        <div class="frame"></div>
-                        {% if splash_file %}
-                        <img src="/splash_logo_file" alt="Logo">
-                        {% endif %}
-                    </div>
-                    <div class="acquired"><span class="dot"></span>TARGET ACQUIRED</div>
-                    <div class="title fit-title-hud">{{ app_name or 'Roblox' }}</div>
-                    <div class="progress-line" id="hud-progress">
-                        <span class="tk on"></span><span class="tk on"></span><span class="tk on"></span>
-                        <span class="tk on"></span><span class="tk on"></span><span class="tk on"></span>
-                        <span class="tk on"></span><span class="tk"></span><span class="tk"></span>
-                        <span class="tk"></span><span class="tk"></span><span class="tk"></span>
+                <div class="tape">
+                    <div class="scroll" id="atelier-scroll">
+                        <span class="arrow">▶</span>DENFI · ATELIER<span class="arrow">▶</span>LICENSED EDITION<span class="arrow">▶</span>FW · 26<span class="arrow">▶</span>BANGKOK · TH-BKK<span class="arrow">▶</span>PRODUCT №&nbsp;A001<span class="arrow">▶</span>
+                        <span class="arrow">▶</span>DENFI · ATELIER<span class="arrow">▶</span>LICENSED EDITION<span class="arrow">▶</span>FW · 26<span class="arrow">▶</span>BANGKOK · TH-BKK<span class="arrow">▶</span>PRODUCT №&nbsp;A001<span class="arrow">▶</span>
                     </div>
                 </div>
-                <div class="scanline"></div>
             </div>
         </div>
-        <div class="design-meta">680 × 400 &nbsp;|&nbsp; HUD reticle · corner brackets · scan line · telemetry</div>
+        <div class="design-meta">700 × 420 &nbsp;|&nbsp; cream paper · helvetica caps · scrolling tape strip</div>
     </section>
 
     <!-- ====================================================
-         CHEVRON — esports broadcast intro
+         KEYNOTE — Apple keynote / minimal product reveal
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag chevron">NEW · 8</span>
-            <span class="design-name">Chevron</span>
+            <span class="design-tag keynote">PREMIUM · 8</span>
+            <span class="design-name">Keynote</span>
         </div>
         <div class="design-desc">
-            <strong>Valorant ranked / CS2 lobby / COD multiplayer intro card.</strong> Four overlapping orange chevron arrows blast in from the left edge with decreasing opacity, leading the eye into the title at 88px italic black uppercase. Tag bar with orange tick line ("MATCH 01 // RANKED · LIVE"), "PRESENTED BY DENFI" sponsor strip, and a glowing orange footer bar with version + region + animated tick marks. Pure esports broadcast energy.
+            <strong>Apple-keynote / Vision Pro reveal.</strong> Pure dark gradient with a soft warm-orange aura behind the title. A small mono "INTRODUCING <em>·</em> 2026" pre-tag, then the title in 132px tight ultra-bold with a silver-to-chrome vertical gradient (the iconic Apple-keynote shimmer), a refined sub-line ("DENFI · Licensed Edition · Bangkok"), and a row of three dots (one accent-orange) like a slide indicator. Hairline footer with version, region, and license number separated by tiny round bullets. No clutter — the typography does all the work. This is the "good in the eyes" register.
         </div>
         <div class="design-stage">
-            <div class="splash-chevron">
-                <div class="chev c4"></div>
-                <div class="chev c3"></div>
-                <div class="chev c2"></div>
-                <div class="chev c1"></div>
-                <div class="top-meta">N° 7M3F-XKQR<br><span class="em">v1.0.4</span></div>
-                <div class="body">
-                    <div class="tag">MATCH <span class="em">01</span> // RANKED · LIVE</div>
-                    <div class="title fit-title-chevron">{{ app_name or 'Roblox' }}</div>
-                    <div class="presented">— PRESENTED BY <span class="em">DENFI</span></div>
+            <div class="splash-keynote">
+                <div class="pre">INTRODUCING <span class="em">·</span> 2026</div>
+                <div class="title fit-title-keynote">{{ app_name or 'Roblox' }}</div>
+                <div class="sub">DENFI · <span class="em">Licensed Edition</span> · Bangkok</div>
+                <div class="dot-row">
+                    <span class="d"></span><span class="d on"></span><span class="d"></span>
                 </div>
                 <div class="footer">
-                    <span>BANGKOK · TH-BKK · <span class="em">42ms</span></span>
-                    <span>LICENSE <span class="em">VERIFIED</span> <span class="ticks" id="chev-ticks"></span></span>
+                    <span>v1.0.4</span>
+                    <span class="sep"></span>
+                    <span>BANGKOK · TH-BKK</span>
+                    <span class="sep"></span>
+                    <span>LIC <span class="em">7M3F-XKQR</span></span>
                 </div>
             </div>
         </div>
-        <div class="design-meta">720 × 380 &nbsp;|&nbsp; bold chevrons · esports intro · 88px italic title</div>
-    </section>
-
-    <!-- ====================================================
-         HEX — honeycomb hex grid
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag hex">NEW · 9</span>
-            <span class="design-name">Hex</span>
-        </div>
-        <div class="design-desc">
-            <strong>Destiny 2 / Halo Infinite hex-grid composition.</strong> Dark background covered in faint honeycomb hexes; the centerpiece is one large glowing orange hexagon containing your logo, surrounded by six smaller hexes that pulse in a sequenced wave around it. Title sits below the cluster in 50px bold italic uppercase. Top: tactical "DENFI // SECTOR-7" tag. Bottom: a row of small hexagons filling like a progress meter. Tactical sci-fi premium.
-        </div>
-        <div class="design-stage">
-            <div class="splash-hex">
-                <div class="top-tag">DENFI <span class="em">// SECTOR-7</span> · UPLINK</div>
-                <div class="hex-cluster">
-                    <div class="hex-cell s h1"></div>
-                    <div class="hex-cell s h2"></div>
-                    <div class="hex-cell s h3"></div>
-                    <div class="hex-cell s h4"></div>
-                    <div class="hex-cell s h5"></div>
-                    <div class="hex-cell s h6"></div>
-                    <div class="hex-cell center">
-                        {% if splash_file %}
-                        <img src="/splash_logo_file" alt="Logo">
-                        {% else %}
-                        <span class="ph">DNF</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="title fit-title-hex">{{ app_name or 'Roblox' }}</div>
-                <div class="progress" id="hex-progress">
-                    <span class="pk on"></span><span class="pk on"></span><span class="pk on"></span>
-                    <span class="pk on"></span><span class="pk on"></span><span class="pk on"></span>
-                    <span class="pk on"></span><span class="pk"></span><span class="pk"></span>
-                    <span class="pk"></span><span class="pk"></span><span class="pk"></span>
-                </div>
-                <div class="bot-status">SYNC · 7 / 12 · VERIFYING LICENSE</div>
-            </div>
-        </div>
-        <div class="design-meta">600 × 440 &nbsp;|&nbsp; hex cluster · pulsing cells · tactical sci-fi</div>
-    </section>
-
-    <!-- ====================================================
-         NEON — cyberpunk neon arcade sign
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag neon">NEW · 10</span>
-            <span class="design-name">Neon</span>
-        </div>
-        <div class="design-desc">
-            <strong>Cyberpunk 2077 / Stray / Persona 5 neon arcade sign.</strong> Deep purple-to-black gradient backdrop with a faint city-skyline silhouette at the bottom (lit windows in warm orange and cool cyan). The title is rendered as a massive 110px italic neon sign in hot magenta with full bloom and flicker animation; cyan "DENFI ARCADE" sign above, orange "EST. 2024 // BANGKOK" below. CRT scanlines layered over everything. Night-City neon energy.
-        </div>
-        <div class="design-stage">
-            <div class="splash-neon">
-                <div class="top-tag">DENFI · ARCADE</div>
-                <div class="title fit-title-neon">{{ app_name or 'Roblox' }}</div>
-                <div class="est">EST · 2024 // BANGKOK</div>
-                <div class="skyline"></div>
-                <div class="bot-row">
-                    <span><span class="dot"></span><span class="em">LICENSED</span> · v1.0.4</span>
-                    <span>UPLINK <span class="em">42ms</span></span>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">720 × 400 &nbsp;|&nbsp; neon sign · CRT scanlines · skyline silhouette · flicker</div>
-    </section>
-
-    <!-- ====================================================
-         ARENA — esports broadcast lower-third
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag arena">NEW · 11</span>
-            <span class="design-name">Arena</span>
-        </div>
-        <div class="design-desc">
-            <strong>League of Legends / Valorant casted-match lower-third.</strong> Wide cinematic format. Left: a notched orange-tinted team card holding your logo, with a corner tag ("TEAM #01"). Middle: "TEAM DENFI" small tactical label, then the title in 70px italic uppercase. Right: a stat block with W / L / RANK in mono, structured like a real broadcast scorecard. Bottom: a continuous scrolling orange "MATCH READY · PUSH START" ticker strip. Pure esports broadcast lower-third aesthetic — looks like a cast graphic from a real tournament.
-        </div>
-        <div class="design-stage">
-            <div class="splash-arena">
-                <div class="team-card">
-                    <div class="corner-tag">TEAM #01</div>
-                    {% if splash_file %}
-                    <img src="/splash_logo_file" alt="Logo">
-                    {% else %}
-                    <span class="ph">DNF</span>
-                    {% endif %}
-                </div>
-                <div class="middle">
-                    <div class="tag">TEAM <span class="em">DENFI</span> · BKK</div>
-                    <div class="title fit-title-arena">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">PUSH START · <span class="em">LICENSED</span> · v1.0.4</div>
-                </div>
-                <div class="stats-block">
-                    <div class="row"><span class="lbl">Wins</span><span class="val">47</span></div>
-                    <div class="row"><span class="lbl">Loss</span><span class="val">03</span></div>
-                    <div class="row"><span class="lbl">Rank</span><span class="val em">#1</span></div>
-                </div>
-                <div class="footer-strip">
-                    <div class="scroll" id="arena-scroll">
-                        ▶ MATCH READY &nbsp;·&nbsp; PUSH START &nbsp;·&nbsp; DENFI ATELIER &nbsp;·&nbsp; LICENSED EDITION &nbsp;·&nbsp; v1.0.4 &nbsp;·&nbsp; BANGKOK · TH-BKK &nbsp;·&nbsp; LIVE NOW &nbsp;·&nbsp;
-                        ▶ MATCH READY &nbsp;·&nbsp; PUSH START &nbsp;·&nbsp; DENFI ATELIER &nbsp;·&nbsp; LICENSED EDITION &nbsp;·&nbsp; v1.0.4 &nbsp;·&nbsp; BANGKOK · TH-BKK &nbsp;·&nbsp; LIVE NOW &nbsp;·&nbsp;
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">740 × 320 (wide) &nbsp;|&nbsp; team card · scorecard · scrolling cast strip</div>
-    </section>
-
-    <!-- ====================================================
-         GRID — synthwave perspective grid
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag grid">NEW · 12</span>
-            <span class="design-name">Grid</span>
-        </div>
-        <div class="design-desc">
-            <strong>Tron / Stranger Things / synthwave title card.</strong> Purple-to-magenta gradient sky, a horizontally-slit sun-disc rising on the horizon (orange-to-pink gradient), and a glowing magenta perspective grid floor that scrolls toward the viewer. Title sits over the horizon in 100px italic uppercase with a chromatic aberration shadow (cyan + magenta offset). Retro tactical "OUTRUN // 1986" tag above. CRT scanlines overlay. Premium retro-future — used right, this still feels current (Cyberpunk Edgerunners energy).
-        </div>
-        <div class="design-stage">
-            <div class="splash-grid">
-                <div class="sun"></div>
-                <div class="floor"></div>
-                <div class="top-tag">OUTRUN · DENFI · 1986</div>
-                <div class="title fit-title-grid">{{ app_name or 'Roblox' }}</div>
-                <div class="bot-row">
-                    <span><span class="em">▲ LICENSED</span> · v1.0.4</span>
-                    <span>BANGKOK · <span class="em">42ms</span></span>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">680 × 400 &nbsp;|&nbsp; sun + perspective floor · chromatic title · scanlines</div>
-    </section>
-
-    <!-- ====================================================
-         BRIEFING — tactical CRT terminal
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag briefing">NEW · 13</span>
-            <span class="design-name">Briefing</span>
-        </div>
-        <div class="design-desc">
-            <strong>Metal Gear Solid Codec / Splinter Cell / Helldivers mission briefing.</strong> CRT phosphor green on near-black, with curved scanlines and a vignette. "// TACTICAL UPLINK ESTABLISHED" with a blinking cursor at the top, then a real-feeling document body: OPERATION (the title in big bold), LOCATION, PERSONNEL, CLEARANCE, and an OBJECTIVES list with checkboxes (some checked, one blinking pending). Footer line shows mission status with a pulsing indicator. Exactly the screen you'd see before starting a mission in a tactical AAA game.
-        </div>
-        <div class="design-stage">
-            <div class="splash-briefing">
-                <div class="uplink">// TACTICAL UPLINK ESTABLISHED <span class="blink"></span></div>
-                <div class="ascii-rule">═══════════════════════════════════════════════════════════════════════════</div>
-                <div class="op-title fit-title-briefing">OP · {{ (app_name or 'ROBLOX')|upper }}</div>
-                <div class="row"><span class="k">LOCATION</span><span class="v">BANGKOK · TH-BKK · 144.31.48.238</span></div>
-                <div class="row"><span class="k">PERSONNEL</span><span class="v bright">1 OPERATOR · DENFI</span></div>
-                <div class="row"><span class="k">CLEARANCE</span><span class="v">A-1 · LICENSE 7M3F-XKQR</span></div>
-                <div class="row"><span class="k">DURATION</span><span class="v">∞ LIFETIME</span></div>
-                <div class="objectives">
-                    <div class="ascii-rule" style="margin: 12px 0 8px;">─── OBJECTIVES ───────────────────────────────────────────────────────────</div>
-                    <div class="obj"><span class="check">[✓]</span> ESTABLISH SECURE UPLINK</div>
-                    <div class="obj"><span class="check">[✓]</span> VERIFY LICENSE CREDENTIAL</div>
-                    <div class="obj pending"><span class="check">[ ]</span> DEPLOY TO TARGET</div>
-                </div>
-                <div class="footer-line">
-                    <span>STATUS: <span class="em">▶ MISSION READY</span></span>
-                    <span>v1.0.4 · 19.04.2026</span>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">660 × 400 &nbsp;|&nbsp; CRT terminal · phosphor green · mission objectives</div>
-    </section>
-
-    <!-- ====================================================
-         BLADE — diagonal slash cuts
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag blade">NEW · 14</span>
-            <span class="design-name">Blade</span>
-        </div>
-        <div class="design-desc">
-            <strong>Devil May Cry / Bayonetta / Splatoon kinetic intro card.</strong> Black background slashed by five overlapping diagonal blade-strikes — three thick orange ones, one thin white "edge" cut, all at the same -18° rake. The title sits in the middle in 110px italic uppercase with a deep orange offset shadow, skewed -6° to lean into the slashes. Speed lines drift across the background. Pre-title "PUSH START" tag is rendered as a skewed orange parallelogram. Top/bottom bars carry status info on translucent black plates. Pure action-game intro card — sharp, kinetic, premium.
-        </div>
-        <div class="design-stage">
-            <div class="splash-blade">
-                <div class="slash s1"></div>
-                <div class="slash s3"></div>
-                <div class="slash s4"></div>
-                <div class="slash s5"></div>
-                <div class="slash s2"></div>
-                <div class="top-bar">
-                    <div class="brand"><span class="em">DENFI</span> // ATELIER</div>
-                    <div class="ver">v1.0.4</div>
-                </div>
-                <div class="center-block">
-                    <div class="pre">PUSH START</div>
-                    <div class="title fit-title-blade">{{ app_name or 'Roblox' }}</div>
-                </div>
-                <div class="bot-bar">
-                    <div class="status"><span class="dot"></span>LICENSED · BANGKOK</div>
-                    <div class="pct">LOADING · <span class="num" id="blade-pct">87</span>%</div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">700 × 380 &nbsp;|&nbsp; diagonal slashes · skewed title · action-game intro</div>
-    </section>
-
-    <!-- ====================================================
-         CIRCUIT — PCB trace frame
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag circuit">NEW · 15</span>
-            <span class="design-name">Circuit</span>
-        </div>
-        <div class="design-desc">
-            <strong>TRON / Watch Dogs / Mass Effect circuit-board interface.</strong> Deep cyan-black background with a subtle hex grid; PCB trace lines rendered in glowing cyan run around the perimeter and converge toward the center, with bright nodes at every corner and intersection (some pulse). Center holds your logo with cyan drop-shadow, "INITIALIZING" tag, the title in 64px italic uppercase, and a cyan-accent subtitle. Corner LEDs in all four corners with status text. Pure tech-interface premium — looks like a hacker's terminal in a AAA cyberpunk game.
-        </div>
-        <div class="design-stage">
-            <div class="splash-circuit">
-                <div class="traces">
-                    <svg viewBox="0 0 660 400" preserveAspectRatio="none">
-                        <!-- top-left corner traces -->
-                        <path d="M 0 30 L 80 30 L 100 50 L 200 50"/>
-                        <path d="M 30 0 L 30 70 L 60 100 L 60 160"/>
-                        <!-- top-right corner traces -->
-                        <path d="M 660 30 L 580 30 L 560 50 L 460 50"/>
-                        <path d="M 630 0 L 630 70 L 600 100 L 600 160"/>
-                        <!-- bottom-left corner traces -->
-                        <path d="M 0 370 L 80 370 L 100 350 L 200 350"/>
-                        <path d="M 30 400 L 30 330 L 60 300 L 60 240"/>
-                        <!-- bottom-right corner traces -->
-                        <path d="M 660 370 L 580 370 L 560 350 L 460 350"/>
-                        <path d="M 630 400 L 630 330 L 600 300 L 600 240"/>
-                        <!-- vertical accent lines -->
-                        <path d="M 200 50 L 200 110 L 230 140"/>
-                        <path d="M 460 50 L 460 110 L 430 140"/>
-                        <path d="M 200 350 L 200 290 L 230 260"/>
-                        <path d="M 460 350 L 460 290 L 430 260"/>
-                        <!-- nodes -->
-                        <circle cx="30" cy="30" r="3"/>
-                        <circle cx="630" cy="30" r="3"/>
-                        <circle cx="30" cy="370" r="3"/>
-                        <circle cx="630" cy="370" r="3"/>
-                        <circle cx="200" cy="50" r="2.5" class="pulse"/>
-                        <circle cx="460" cy="50" r="2.5" class="pulse"/>
-                        <circle cx="200" cy="350" r="2.5" class="pulse"/>
-                        <circle cx="460" cy="350" r="2.5" class="pulse"/>
-                        <circle cx="60" cy="160" r="2"/>
-                        <circle cx="600" cy="160" r="2"/>
-                        <circle cx="60" cy="240" r="2"/>
-                        <circle cx="600" cy="240" r="2"/>
-                    </svg>
-                </div>
-                <div class="corner-led tl"><span class="dot"></span>SYS · OK</div>
-                <div class="corner-led tr">UPLINK · <span class="em" style="color:#4dd6ff">42ms</span><span class="dot" style="margin-left:6px"></span></div>
-                <div class="corner-led bl"><span class="dot"></span>v1.0.4</div>
-                <div class="corner-led br">7M3F-XKQR<span class="dot" style="margin-left:6px"></span></div>
-                <div class="center-block">
-                    {% if splash_file %}
-                    <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                    {% endif %}
-                    <div class="pre">INITIALIZING</div>
-                    <div class="title fit-title-circuit">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">DENFI <span class="em">// CORE-7</span> · BANGKOK</div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">660 × 400 &nbsp;|&nbsp; PCB traces · pulsing nodes · cyan circuit interface</div>
+        <div class="design-meta">720 × 420 &nbsp;|&nbsp; dark · chrome-gradient title · refined whitespace</div>
     </section>
 
     <script>
@@ -3251,83 +1976,14 @@
         cardTick();
         setInterval(cardTick, 1100);
 
-        // OPERATOR — auto-fit + animate NET stat bar
-        autoFitTitle(document.querySelector('.fit-title-operator'), 68, 32);
-        var opNetFill = document.getElementById('op-net-fill');
-        var opNetVal  = document.getElementById('op-net-val');
-        if (opNetFill) {
-            setInterval(function() {
-                var v = 80 + Math.floor(Math.random() * 20);
-                opNetFill.style.width = v + '%';
-                if (opNetVal) opNetVal.textContent = v;
-            }, 800);
-        }
+        // DROP — fit big italic title inside red box
+        autoFitTitle(document.querySelector('.fit-title-drop'), 96, 44);
 
-        // HUD — auto-fit + animate progress ticks
-        autoFitTitle(document.querySelector('.fit-title-hud'), 56, 28);
-        var hudProgress = document.getElementById('hud-progress');
-        if (hudProgress) {
-            var hudTicks = hudProgress.querySelectorAll('.tk');
-            var hudIdx = 7;
-            setInterval(function() {
-                hudTicks.forEach(function(t, i) { t.classList.toggle('on', i < hudIdx); });
-                hudIdx = (hudIdx >= hudTicks.length) ? 1 : hudIdx + 1;
-            }, 350);
-        }
+        // ATELIER — fit helvetica caps title between quotes
+        autoFitTitle(document.querySelector('.fit-title-atelier'), 92, 44);
 
-        // CHEVRON — auto-fit + animated tick row in footer
-        autoFitTitle(document.querySelector('.fit-title-chevron'), 88, 40);
-        var chevTicks = document.getElementById('chev-ticks');
-        if (chevTicks) {
-            var bars = '';
-            for (var c = 0; c < 12; c++) bars += '<i></i>';
-            chevTicks.innerHTML = bars;
-            var chBars = chevTicks.querySelectorAll('i');
-            var chIdx = 0;
-            setInterval(function() {
-                chBars.forEach(function(b, i) { b.classList.toggle('on', i <= chIdx); });
-                chIdx = (chIdx + 1) % 13;
-            }, 220);
-        }
-
-        // HEX — auto-fit + sequenced progress fill
-        autoFitTitle(document.querySelector('.fit-title-hex'), 50, 28);
-        var hexProgress = document.getElementById('hex-progress');
-        if (hexProgress) {
-            var pks = hexProgress.querySelectorAll('.pk');
-            var hxIdx = 7;
-            setInterval(function() {
-                pks.forEach(function(p, i) { p.classList.toggle('on', i < hxIdx); });
-                hxIdx = (hxIdx >= pks.length) ? 1 : hxIdx + 1;
-            }, 380);
-        }
-
-        // NEON — auto-fit huge title
-        autoFitTitle(document.querySelector('.fit-title-neon'), 110, 48);
-
-        // ARENA — auto-fit
-        autoFitTitle(document.querySelector('.fit-title-arena'), 70, 36);
-
-        // GRID — auto-fit huge title
-        autoFitTitle(document.querySelector('.fit-title-grid'), 100, 44);
-
-        // BRIEFING — auto-fit operation title
-        autoFitTitle(document.querySelector('.fit-title-briefing'), 52, 26);
-
-        // BLADE — auto-fit + percent counter
-        autoFitTitle(document.querySelector('.fit-title-blade'), 110, 48);
-        var bladePct = document.getElementById('blade-pct');
-        if (bladePct) {
-            var bPct = 12;
-            setInterval(function() {
-                bPct = bPct + Math.floor(Math.random() * 4) + 1;
-                if (bPct > 99) bPct = 12;
-                bladePct.textContent = bPct;
-            }, 320);
-        }
-
-        // CIRCUIT — auto-fit
-        autoFitTitle(document.querySelector('.fit-title-circuit'), 64, 32);
+        // KEYNOTE — fit huge chrome-gradient title
+        autoFitTitle(document.querySelector('.fit-title-keynote'), 132, 56);
     })();
     </script>
 </body>
