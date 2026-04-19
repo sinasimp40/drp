@@ -31,7 +31,7 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db"
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 HEARTBEAT_TIMEOUT = 60
-REQUEST_TIMESTAMP_TOLERANCE = 300
+REQUEST_TIMESTAMP_TOLERANCE = 3600
 _used_nonces = set()
 _nonce_cleanup_time = 0
 
