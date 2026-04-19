@@ -67,13 +67,17 @@ def get_base_path():
 
 def get_paths():
     base = get_base_path()
-    roblox_dir = os.path.join(base, "RobloxFiles")
 
-    if os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe")):
+    if IS_TRIAL:
         roblox_dir = base
+    else:
+        roblox_dir = os.path.join(base, "RobloxFiles")
 
-    if os.path.basename(base).lower() == "robloxfiles":
-        roblox_dir = base
+        if os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe")):
+            roblox_dir = base
+
+        if os.path.basename(base).lower() == "robloxfiles":
+            roblox_dir = base
 
     return {
         "base": base,
