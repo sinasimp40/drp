@@ -2386,6 +2386,59 @@ def roblox_bundles_page():
     return render_template("roblox_bundles.html", bundles=rows)
 
 
+@app.route("/roblox_bundles/scan", methods=["POST"])
+@require_admin
+def roblox_bundles_scan():
+    """Pick up any .zip files dropped directly into BUNDLES_DIR by an admin
+    (e.g. via SFTP / scp) and register them in the DB."""
+    os.makedirs(BUNDLES_DIR, exist_ok=True)
+    conn = get_db()
+    known = {row["filename"] for row in conn.execute("SELECT filename FROM roblox_bundles").fetchall()}
+    next_version = (conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0) + 1
+
+    added, skipped, errors = 0, 0, []
+    for name in sorted(os.listdir(BUNDLES_DIR)):
+        if not name.lower().endswith(".zip"):
+            continue
+        if name in known:
+            skipped += 1
+            continue
+        fp = os.path.join(BUNDLES_DIR, name)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            sha = hashlib.sha256()
+            with open(fp, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    sha.update(chunk)
+            size = os.path.getsize(fp)
+            # Try to read version from filename: roblox_bundle_v<N>_*.zip; fall
+            # back to auto-incrementing the highest existing version.
+            m = re.search(r"_v(\d+)_", name) or re.search(r"_v(\d+)\.zip$", name)
+            ver = int(m.group(1)) if m else next_version
+            if not m:
+                next_version += 1
+            conn.execute(
+                "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) VALUES (?, ?, ?, ?, ?, ?)",
+                (ver, name, size, sha.hexdigest(), time.time(), "imported from disk"),
+            )
+            conn.commit()
+            added += 1
+        except Exception as e:
+            errors.append(f"{name}: {e}")
+
+    conn.close()
+    if added:
+        flash(f"Scanned: imported {added} new bundle(s), skipped {skipped} already known", "success")
+    elif skipped:
+        flash(f"Scan finished — {skipped} file(s) already registered, nothing new", "success")
+    else:
+        flash(f"No .zip files found in {BUNDLES_DIR}", "error")
+    if errors:
+        flash("Errors: " + "; ".join(errors), "error")
+    return redirect(url_for("roblox_bundles_page"))
+
+
 @app.route("/roblox_bundles/<int:bundle_id>/delete", methods=["POST"])
 @require_admin
 def roblox_bundles_delete(bundle_id):

@@ -10,6 +10,15 @@
             ZIP of a complete Roblox installation folder (containing <code>RobloxPlayerBeta.exe</code>).
             Trial-mode launchers download &amp; extract the latest bundle on first run.
         </p>
+        <div style="background:#0c0c14; border:1px solid #2a2a38; border-radius:6px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:var(--text-mute);">
+            <strong style="color:var(--text);">Tip:</strong> for big files you can also drop the .zip directly on the server at
+            <code style="color:#ff8c33;">license_server/roblox_bundles/</code> (via SFTP / scp), then click
+            <strong>Scan folder</strong> below and it will be picked up automatically.
+            Use the filename pattern <code>roblox_bundle_v&lt;N&gt;_anything.zip</code> to set the version explicitly.
+            <form method="POST" action="{{ url_for('roblox_bundles_scan') }}" style="display:inline; margin-left:8px;">
+                <button type="submit" class="btn btn-secondary btn-sm">Scan folder</button>
+            </form>
+        </div>
         <form id="bundle-upload-form" method="POST" enctype="multipart/form-data" autocomplete="off">
             <div class="form-row" style="display:flex; gap:12px;">
                 <div class="form-group" style="flex:1;">
