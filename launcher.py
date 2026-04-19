@@ -1852,6 +1852,22 @@ def _is_fatal_license_error(error_msg):
     return any(phrase in lower for phrase in fatal_phrases)
 
 
+def _is_trial_exhaustion_reason(error_msg):
+    """True only for server responses that explicitly mean the trial is over
+    or unavailable for this user/network: expired/revoked/deleted/not found
+    or per-subnet quota/limit/rate-limit hits. Anything else (generic 500s,
+    parser errors, unknown text) is treated as recoverable and does NOT flip
+    the sticky .trial_exhausted marker."""
+    if not error_msg:
+        return False
+    lower = error_msg.lower()
+    exhaustion_phrases = (
+        "expired", "revoked", "deleted", "not found",
+        "quota", "limit", "rate",
+    )
+    return any(p in lower for p in exhaustion_phrases)
+
+
 def _is_network_error_msg(error_msg):
     """True if error_msg looks like a transient transport/connectivity failure
     (DNS, TCP refused/reset, timeout, server unreachable, no route, etc.).
@@ -2210,7 +2226,10 @@ def check_license_or_prompt(app, splash=None):
         # /deleted/not found). Pure transport failures must NOT brick the
         # trial: a brief outage should let the user retry later.
         if IS_TRIAL:
-            if not _is_network_error_msg(error_msg):
+            # Only flip the sticky marker when the server explicitly tells us
+            # the trial is over or quota'd. Generic/unknown errors and any
+            # transport failure are treated as recoverable.
+            if _is_trial_exhaustion_reason(error_msg):
                 _mark_trial_exhausted()
             if splash:
                 splash.hide()
@@ -2247,8 +2266,9 @@ def check_license_or_prompt(app, splash=None):
         lower = (err or "").lower()
         # If the server tells us the trial is exhausted (expired or per-subnet
         # quota hit), drop the sticky marker so we don't keep re-asking.
-        # Plain network failures do NOT mark the trial exhausted.
-        if not _is_network_error_msg(err):
+        # Plain network failures and unknown/generic errors do NOT mark the
+        # trial exhausted — only explicit exhaustion reasons do.
+        if _is_trial_exhaustion_reason(err):
             _mark_trial_exhausted()
         if "expired" in lower:
             msg = "Your free trial has ended.\nContact the developer to get a full license."
