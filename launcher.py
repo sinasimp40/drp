@@ -68,16 +68,21 @@ def get_base_path():
 def get_paths():
     base = get_base_path()
 
-    if IS_TRIAL:
+    # Default: extract Roblox files straight into the launcher folder so the
+    # install stays flat (no extra RobloxFiles subfolder). This applies to
+    # both trial and premium builds. We only fall back to a RobloxFiles
+    # subfolder for backward-compat: older premium installs may already have
+    # `<base>/RobloxFiles/RobloxPlayerBeta.exe` from a previous version, in
+    # which case we keep using that folder so we don't orphan their files.
+    roblox_dir = base
+    legacy_sub = os.path.join(base, "RobloxFiles")
+    if (not IS_TRIAL
+            and not os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe"))
+            and os.path.isfile(os.path.join(legacy_sub, "RobloxPlayerBeta.exe"))):
+        roblox_dir = legacy_sub
+
+    if os.path.basename(base).lower() == "robloxfiles":
         roblox_dir = base
-    else:
-        roblox_dir = os.path.join(base, "RobloxFiles")
-
-        if os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe")):
-            roblox_dir = base
-
-        if os.path.basename(base).lower() == "robloxfiles":
-            roblox_dir = base
 
     return {
         "base": base,
