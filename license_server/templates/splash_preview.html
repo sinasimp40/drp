@@ -67,10 +67,9 @@
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
         .design-tag.vault    { color: #6fdc8c; border-color: #1d5a30; }
-        .design-tag.card     { color: #d4af7a; border-color: #5a4525; }
-        .design-tag.drop     { color: #ff2a2a; border-color: #5a0808; }
-        .design-tag.atelier  { color: #1a1a1a; border-color: #b0b0a8; background: #f4f1ea; }
-        .design-tag.keynote  { color: #f5f5f7; border-color: #2a2a30; }
+        .design-tag.aurora   { color: #c8a8ff; border-color: #3d2a6a; }
+        .design-tag.cinema   { color: #e8d8b0; border-color: #4a3a18; }
+        .design-tag.atrium   { color: #ffb878; border-color: #5a3a18; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -824,512 +823,458 @@
         }
 
         /* ============================================================
-           CARD — premium black-metal credit card
-           The splash IS a card. Brushed sheen, gold chip top-left,
-           embossed-style title, "MEMBER SINCE" footer. Amex Centurion.
+           AURORA — silky animated gradient mesh (Stripe / Linear / OpenAI)
            ============================================================ */
-        .splash-card {
+        .splash-aurora {
             position: relative;
-            width: 620px;
-            height: 390px;          /* 1.59 ratio — real credit card */
-            background:
-                linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 50%, #050505 100%);
-            border-radius: 18px;
+            width: 720px;
+            height: 420px;
+            background: #07060d;
             overflow: hidden;
-            font-family: 'Inter', system-ui, sans-serif;
-            color: #e8d8b8;
-            box-shadow:
-                inset 0 0 0 1px rgba(212,175,122,0.10),
-                inset 0 1px 0 rgba(255,255,255,0.06),
-                0 30px 80px rgba(0,0,0,0.65);
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
         }
-        /* brushed metal stripes */
-        .splash-card::before {
+        /* three large soft blobs that drift behind the title */
+        .splash-aurora .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.85;
+            mix-blend-mode: screen;
+        }
+        .splash-aurora .blob.b1 {
+            width: 460px; height: 460px;
+            background: radial-gradient(circle, #c8a8ff 0%, transparent 70%);
+            top: -120px; left: -80px;
+            animation: aurora-drift1 16s ease-in-out infinite;
+        }
+        .splash-aurora .blob.b2 {
+            width: 420px; height: 420px;
+            background: radial-gradient(circle, #ff8c5a 0%, transparent 70%);
+            bottom: -120px; right: -60px;
+            animation: aurora-drift2 19s ease-in-out infinite;
+        }
+        .splash-aurora .blob.b3 {
+            width: 360px; height: 360px;
+            background: radial-gradient(circle, #4dd6ff 0%, transparent 70%);
+            top: 30%; left: 40%;
+            animation: aurora-drift3 22s ease-in-out infinite;
+        }
+        @keyframes aurora-drift1 {
+            0%, 100% { transform: translate(0, 0); }
+            50%      { transform: translate(80px, 60px); }
+        }
+        @keyframes aurora-drift2 {
+            0%, 100% { transform: translate(0, 0); }
+            50%      { transform: translate(-90px, -50px); }
+        }
+        @keyframes aurora-drift3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%      { transform: translate(-40px, 30px) scale(1.15); }
+        }
+        /* fine noise grain overlay */
+        .splash-aurora::before {
             content: '';
             position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                90deg,
-                rgba(255,255,255,0.012) 0px,
-                rgba(255,255,255,0.012) 1px,
-                transparent 1px,
-                transparent 3px
-            );
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 160px 160px;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            opacity: 0.6;
+        }
+        /* very subtle vertical gradient to anchor */
+        .splash-aurora::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(7,6,13,0.10) 0%, rgba(7,6,13,0.55) 100%);
             pointer-events: none;
         }
-        /* slow shimmer pass */
-        .splash-card::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: linear-gradient(115deg, transparent 40%, rgba(212,175,122,0.06) 50%, transparent 60%);
-            animation: card-shimmer 7s ease-in-out infinite;
-            pointer-events: none;
+        .splash-aurora .frame {
+            position: relative;
+            z-index: 4;
+            width: 100%; height: 100%;
+            padding: 32px 36px;
+            display: flex; flex-direction: column;
         }
-        @keyframes card-shimmer {
-            0%, 100% { transform: translateX(-30%); }
-            50%      { transform: translateX(30%); }
-        }
-
-        /* gold chip element */
-        .splash-card .chip {
-            position: absolute;
-            top: 52px; left: 36px;
-            width: 54px; height: 42px;
-            background: linear-gradient(135deg, #f4d99b 0%, #d4af7a 50%, #a07c4a 100%);
-            border-radius: 6px;
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.4),
-                inset 0 -1px 0 rgba(0,0,0,0.3),
-                0 2px 6px rgba(0,0,0,0.4);
-            overflow: hidden;
-        }
-        .splash-card .chip::before,
-        .splash-card .chip::after {
-            content: '';
-            position: absolute;
-            background: rgba(0,0,0,0.18);
-        }
-        .splash-card .chip::before {
-            top: 12px; left: 6px; right: 6px; height: 1px;
-            box-shadow: 0 7px 0 rgba(0,0,0,0.18), 0 14px 0 rgba(0,0,0,0.18), 0 21px 0 rgba(0,0,0,0.18);
-        }
-        .splash-card .chip::after {
-            top: 6px; bottom: 6px; left: 50%; width: 1px;
-        }
-
-        .splash-card .brand-mark {
-            position: absolute;
-            top: 28px; right: 32px;
-            font-family: 'Inter', sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 4px;
-            color: rgba(212,175,122,0.85);
-            text-transform: uppercase;
-        }
-        .splash-card .tier {
-            position: absolute;
-            top: 50px; right: 32px;
+        .splash-aurora .top {
+            display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(212,175,122,0.5);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .splash-card .logo-area {
-            position: absolute;
-            top: 116px; right: 36px;
-            text-align: right;
-            opacity: 0.85;
-        }
-        .splash-card .logo-area img {
-            max-width: 110px; max-height: 78px;
-            object-fit: contain;
-            filter: brightness(0) invert(1) opacity(0.7) drop-shadow(0 0 16px rgba(212,175,122,0.2));
-        }
-
-        .splash-card .number {
-            position: absolute;
-            top: 188px; left: 36px; right: 36px;
-            font-family: 'Inter', sans-serif;
-            font-size: 26px;
-            font-weight: 500;
+            font-size: 10px;
+            color: rgba(255,255,255,0.65);
             letter-spacing: 4px;
-            color: rgba(232,216,184,0.9);
-            text-shadow:
-                0 1px 0 rgba(0,0,0,0.5),
-                0 -1px 0 rgba(255,255,255,0.05);
-        }
-        .splash-card .number .grp { margin-right: 18px; }
-        .splash-card .number .grp.dim { color: rgba(232,216,184,0.35); margin-right: 18px; }
-
-        .splash-card .title {
-            position: absolute;
-            top: 240px; left: 36px;
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: -1.2px;
-            color: #f4e6c8;
-            text-shadow:
-                0 1px 0 rgba(0,0,0,0.5),
-                0 -1px 0 rgba(255,255,255,0.05);
-        }
-
-        .splash-card .meta-row {
-            position: absolute;
-            bottom: 28px; left: 36px; right: 36px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            font-size: 10px;
-            color: rgba(212,175,122,0.55);
-            letter-spacing: 2px;
             text-transform: uppercase;
         }
-        .splash-card .meta-row .lbl {
-            display: block;
-            font-size: 8px;
-            color: rgba(212,175,122,0.4);
-            letter-spacing: 2px;
-            margin-bottom: 4px;
+        .splash-aurora .top .em { color: #fff; font-weight: 600; }
+        .splash-aurora .top .pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            font-size: 9px;
+            letter-spacing: 2.5px;
         }
-        .splash-card .meta-row .val {
-            color: rgba(232,216,184,0.85);
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 2px;
-        }
-        .splash-card .meta-row .status {
-            display: flex; align-items: center; gap: 8px;
-            color: #6fdc8c;
-            font-size: 10px;
-            letter-spacing: 1.5px;
-        }
-        .splash-card .meta-row .status .dot {
-            width: 6px; height: 6px; border-radius: 50%;
+        .splash-aurora .top .pill .dot {
+            width: 6px; height: 6px;
             background: #6fdc8c;
+            border-radius: 50%;
             box-shadow: 0 0 8px rgba(111,220,140,0.7);
             animation: marquee-pulse 1.6s ease-in-out infinite;
         }
-
-        /* ============================================================
-           DROP — Supreme box-logo / streetwear drop card
-           Iconic red box, white italic Futura-class title.
-           ============================================================ */
-        .splash-drop {
-            position: relative;
-            width: 680px;
-            height: 420px;
-            background: #0a0a0a;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
+        .splash-aurora .center {
+            flex: 1;
+            display: flex; flex-direction: column;
             justify-content: center;
+            margin-top: -10px;
         }
-        /* faint paper-grain texture */
-        .splash-drop::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.03), transparent 60%),
-                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02), transparent 50%);
-            pointer-events: none;
-        }
-        /* corner crop marks (print marks) */
-        .splash-drop .crop {
-            position: absolute;
-            width: 14px; height: 14px;
-            border: 1px solid rgba(255,255,255,0.18);
-        }
-        .splash-drop .crop.tl { top: 18px; left: 18px; border-right: 0; border-bottom: 0; }
-        .splash-drop .crop.tr { top: 18px; right: 18px; border-left: 0; border-bottom: 0; }
-        .splash-drop .crop.bl { bottom: 18px; left: 18px; border-right: 0; border-top: 0; }
-        .splash-drop .crop.br { bottom: 18px; right: 18px; border-left: 0; border-top: 0; }
-
-        .splash-drop .top-row,
-        .splash-drop .bot-row {
-            position: absolute;
-            left: 44px; right: 44px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.55);
-        }
-        .splash-drop .top-row { top: 38px; }
-        .splash-drop .bot-row { bottom: 38px; }
-        .splash-drop .top-row .em,
-        .splash-drop .bot-row .em { color: #fff; }
-        .splash-drop .bot-row .red { color: #ff2a2a; }
-        .splash-drop .bot-row .dot {
-            display: inline-block;
-            width: 6px; height: 6px;
-            background: #ff2a2a;
-            border-radius: 50%;
-            margin-right: 6px;
-            box-shadow: 0 0 8px rgba(255,42,42,0.7);
-            vertical-align: middle;
-            animation: marquee-pulse 1.6s ease-in-out infinite;
-        }
-
-        /* the iconic red box-logo */
-        .splash-drop .box {
-            position: relative;
-            background: #ff2a2a;
-            padding: 28px 56px 32px;
-            box-shadow:
-                0 0 0 1px rgba(255,42,42,0.3),
-                0 24px 60px rgba(255,42,42,0.18);
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        /* crop tabs over the box for print-mark feel */
-        .splash-drop .box::before,
-        .splash-drop .box::after {
-            content: '';
-            position: absolute;
-            width: 18px; height: 1px;
-            background: #fff;
-            opacity: 0.55;
-        }
-        .splash-drop .box::before { top: 12px; left: 14px; box-shadow: 0 18px 0 -1px transparent; }
-        .splash-drop .box::after  { bottom: 12px; right: 14px; }
-        .splash-drop .box .title {
-            font-weight: 900;
-            font-style: italic;
-            font-size: 96px;
-            line-height: 0.92;
-            letter-spacing: -3.5px;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 0 2px 0 rgba(0,0,0,0.08);
-        }
-        .splash-drop .box .sub {
+        .splash-aurora .pre {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.65);
             letter-spacing: 6px;
             text-transform: uppercase;
-            margin-top: 6px;
+            margin-bottom: 14px;
         }
-        /* small denfi mark below the box */
-        .splash-drop .mark {
-            position: absolute;
-            bottom: 78px; left: 0; right: 0;
-            text-align: center;
+        .splash-aurora .title {
+            font-weight: 600;
+            font-size: 116px;
+            line-height: 0.95;
+            letter-spacing: -4px;
+            color: #fff;
+            background: linear-gradient(180deg, #ffffff 0%, #d8d0ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 60px rgba(200,168,255,0.4);
+        }
+        .splash-aurora .sub {
+            font-size: 16px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.78);
+            letter-spacing: 0.3px;
+            margin-top: 16px;
+            max-width: 480px;
+        }
+        .splash-aurora .sub .em { color: #fff; font-weight: 500; }
+        .splash-aurora .footer {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 14px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 5px;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 2.5px;
             text-transform: uppercase;
+            border-top: 1px solid rgba(255,255,255,0.10);
+            padding-top: 14px;
         }
-        .splash-drop .mark .em { color: #fff; }
+        .splash-aurora .footer .em { color: #c8a8ff; }
 
         /* ============================================================
-           ATELIER — Off-White / industrial-fashion product card
-           Cream paper, helvetica caps, "PRODUCT" labels, taped strip.
+           CINEMA — letterboxed film opening title card
+           (Christopher Nolan / Denis Villeneuve title energy)
            ============================================================ */
-        .splash-atelier {
+        .splash-cinema {
             position: relative;
-            width: 700px;
-            height: 420px;
-            background: #f4f1ea;
+            width: 740px;
+            height: 416px; /* exact 16:9 cinematic */
+            background: #050505;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            color: #0a0a0a;
-            padding: 40px 44px;
-            box-shadow:
-                inset 0 0 0 1px rgba(0,0,0,0.05),
-                0 30px 80px rgba(0,0,0,0.18);
+            color: #e8d8b0;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
         }
-        /* subtle paper noise */
-        .splash-atelier::before {
+        /* black letterbox bars */
+        .splash-cinema::before,
+        .splash-cinema::after {
             content: '';
+            position: absolute;
+            left: 0; right: 0;
+            height: 56px;
+            background: #000;
+            z-index: 5;
+        }
+        .splash-cinema::before { top: 0; }
+        .splash-cinema::after  { bottom: 0; }
+        /* film grain texture */
+        .splash-cinema .grain {
             position: absolute; inset: 0;
-            background-image:
-                radial-gradient(circle at 30% 20%, rgba(0,0,0,0.025), transparent 60%),
-                radial-gradient(circle at 70% 80%, rgba(0,0,0,0.020), transparent 60%);
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.92  0 0 0 0 0.78  0 0 0 0.10 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+            background-size: 200px 200px;
+            opacity: 0.8;
+            mix-blend-mode: overlay;
             pointer-events: none;
+            z-index: 2;
         }
-        /* hairline rule top and bottom */
-        .splash-atelier .rule-top,
-        .splash-atelier .rule-bot {
+        /* warm vignette */
+        .splash-cinema .vignette {
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 45%, rgba(80,50,20,0.20) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+        /* the screen content (between letterbox bars) */
+        .splash-cinema .screen {
             position: absolute;
-            left: 44px; right: 44px;
-            height: 1px;
-            background: #0a0a0a;
+            top: 56px; bottom: 56px; left: 0; right: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 0 56px;
+            z-index: 4;
         }
-        .splash-atelier .rule-top { top: 76px; }
-        .splash-atelier .rule-bot { bottom: 96px; }
-
-        .splash-atelier .head {
-            display: flex; justify-content: space-between; align-items: baseline;
+        .splash-cinema .pre {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 3px;
+            font-size: 11px;
+            color: rgba(232,216,176,0.7);
+            letter-spacing: 8px;
             text-transform: uppercase;
-            color: #0a0a0a;
-            margin-bottom: 38px;
+            margin-bottom: 26px;
         }
-        .splash-atelier .head .em { color: #0a0a0a; font-weight: 700; }
-        .splash-atelier .head .mute { color: rgba(10,10,10,0.45); }
-
-        .splash-atelier .title-row {
-            display: flex; align-items: baseline; gap: 14px;
-            margin-top: 38px;
-        }
-        .splash-atelier .title-row .quote {
+        .splash-cinema .pre .em { color: #e8d8b0; }
+        .splash-cinema .title {
             font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: 100px;
-            line-height: 0.85;
-            color: #0a0a0a;
-        }
-        .splash-atelier .title {
-            font-weight: 900;
-            font-size: 92px;
-            line-height: 0.9;
-            letter-spacing: -3.5px;
-            color: #0a0a0a;
+            font-weight: 200; /* refined thin like a real film title */
+            font-size: 130px;
+            line-height: 1;
+            letter-spacing: 14px; /* generous letter-spacing for cinematic feel */
+            color: #f5e8c8;
             text-transform: uppercase;
+            text-align: center;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.5);
+            text-indent: 14px; /* compensate so optical centering with right-side spacing */
         }
-        .splash-atelier .meta-grid {
-            position: absolute;
-            bottom: 110px; left: 44px; right: 44px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 28px;
+        .splash-cinema .rule {
+            width: 80px;
+            height: 1px;
+            background: rgba(232,216,176,0.5);
+            margin: 26px 0 20px;
+        }
+        .splash-cinema .sub {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 1.5px;
+            font-size: 11px;
+            color: rgba(232,216,176,0.65);
+            letter-spacing: 6px;
             text-transform: uppercase;
+            text-align: center;
         }
-        .splash-atelier .meta-grid .m .k {
-            color: rgba(10,10,10,0.5);
-            margin-bottom: 4px;
-        }
-        .splash-atelier .meta-grid .m .v {
-            color: #0a0a0a;
-            font-weight: 700;
-        }
-        /* yellow industrial taped strip at bottom */
-        .splash-atelier .tape {
+        .splash-cinema .sub .em { color: #e8d8b0; }
+        /* mini bottom strip inside lower letterbox bar */
+        .splash-cinema .credits {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            height: 38px;
-            background: #ffd400;
-            display: flex;
-            align-items: center;
-            overflow: hidden;
+            height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: #0a0a0a;
+            color: rgba(232,216,176,0.45);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            z-index: 6;
+        }
+        .splash-cinema .credits .em { color: #e8d8b0; }
+        .splash-cinema .credits .reel {
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .splash-cinema .credits .reel::before {
+            content: '';
+            display: block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            border: 1px solid rgba(232,216,176,0.5);
+            background: radial-gradient(circle, transparent 35%, rgba(232,216,176,0.5) 36%, transparent 50%);
+        }
+        /* matching strip in upper letterbox bar */
+        .splash-cinema .head-strip {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(232,216,176,0.45);
             letter-spacing: 4px;
             text-transform: uppercase;
-            font-weight: 700;
-            border-top: 1px solid rgba(0,0,0,0.15);
+            z-index: 6;
         }
-        .splash-atelier .tape .scroll {
-            white-space: nowrap;
-            animation: atelier-scroll 22s linear infinite;
-            padding-left: 100%;
-        }
-        @keyframes atelier-scroll {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-        }
-        .splash-atelier .tape .arrow { color: #0a0a0a; margin: 0 14px; }
+        .splash-cinema .head-strip .em { color: #e8d8b0; }
 
         /* ============================================================
-           KEYNOTE — Apple keynote / minimal product reveal
-           Pure dark, generous whitespace, refined typography.
+           ATRIUM — architectural quiet-luxury (Dieter Rams / Apple Park)
+           A single shaft of warm light over a cool concrete plane.
            ============================================================ */
-        .splash-keynote {
+        .splash-atrium {
             position: relative;
             width: 720px;
             height: 420px;
             background:
-                radial-gradient(ellipse at 50% 30%, #1a1a1f 0%, #0a0a0c 60%, #050507 100%);
+                linear-gradient(180deg, #1a1814 0%, #0c0b0a 60%, #060605 100%);
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            color: #f5f5f7;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            color: #f0e8d8;
             box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+            display: flex;
         }
-        /* subtle outer glow ring */
-        .splash-keynote::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at 50% 50%, rgba(255,140,40,0.06) 0%, transparent 55%);
+        /* the "shaft of light" diagonal beam coming from upper-left */
+        .splash-atrium .shaft {
+            position: absolute;
+            top: -100px; left: -50px;
+            width: 220px;
+            height: 700px;
+            background: linear-gradient(180deg,
+                rgba(255,184,120,0.40) 0%,
+                rgba(255,140,80,0.20) 40%,
+                transparent 100%);
+            transform: rotate(15deg);
+            transform-origin: top left;
+            filter: blur(12px);
             pointer-events: none;
         }
-        .splash-keynote .pre {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(245,245,247,0.55);
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            margin-bottom: 28px;
+        /* secondary softer beam */
+        .splash-atrium .shaft.s2 {
+            top: -120px; left: 60px;
+            width: 80px;
+            height: 700px;
+            background: linear-gradient(180deg,
+                rgba(255,210,160,0.22) 0%,
+                transparent 60%);
+            filter: blur(20px);
         }
-        .splash-keynote .pre .em {
-            color: #ff8c28;
-            text-shadow: 0 0 14px rgba(255,140,40,0.35);
-        }
-        .splash-keynote .title {
-            font-weight: 700;
-            font-size: 132px;
-            line-height: 0.95;
-            letter-spacing: -5px;
-            color: #f5f5f7;
-            text-align: center;
-            background: linear-gradient(180deg, #ffffff 0%, #b8b8c0 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 4px 30px rgba(0,0,0,0.5);
-        }
-        .splash-keynote .sub {
-            font-family: 'Inter', sans-serif;
-            font-size: 17px;
-            font-weight: 400;
-            color: rgba(245,245,247,0.7);
-            letter-spacing: 0.2px;
-            margin-top: 22px;
-            text-align: center;
-        }
-        .splash-keynote .sub .em {
-            color: #f5f5f7;
-            font-weight: 500;
-        }
-        /* refined hairline footer with three centered marks */
-        .splash-keynote .footer {
+        /* warm glow puddle on the floor where the beam lands */
+        .splash-atrium .puddle {
             position: absolute;
-            bottom: 30px; left: 0; right: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 22px;
+            bottom: -80px; left: -60px;
+            width: 380px; height: 200px;
+            background: radial-gradient(ellipse at 50% 50%, rgba(255,160,90,0.30) 0%, transparent 60%);
+            filter: blur(20px);
+            pointer-events: none;
+        }
+        /* faint architectural grid lines */
+        .splash-atrium::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(0deg, rgba(240,232,216,0.06) 0, rgba(240,232,216,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,232,216,0.04) 0, rgba(240,232,216,0.04) 1px, transparent 1px);
+            background-size: 100% 60px, 60px 100%;
+            pointer-events: none;
+            opacity: 0.6;
+            mix-blend-mode: overlay;
+        }
+        /* fine grain */
+        .splash-atrium::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.0' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.96  0 0 0 0 0.88  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 180px 180px;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .splash-atrium .frame {
+            position: relative; z-index: 4;
+            width: 100%; height: 100%;
+            padding: 38px 48px 32px;
+            display: flex; flex-direction: column;
+        }
+        .splash-atrium .top {
+            display: flex; justify-content: space-between; align-items: flex-start;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: rgba(245,245,247,0.45);
+            color: rgba(240,232,216,0.55);
             letter-spacing: 3px;
             text-transform: uppercase;
         }
-        .splash-keynote .footer .sep {
-            width: 4px; height: 4px;
-            background: rgba(245,245,247,0.3);
+        .splash-atrium .top .brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .splash-atrium .top .brand .glyph {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px;
+            background: rgba(255,184,120,0.18);
+            border: 1px solid rgba(255,184,120,0.5);
+            color: #ffb878;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+        .splash-atrium .top .brand .em { color: #f0e8d8; font-weight: 600; }
+        .splash-atrium .top .right {
+            text-align: right;
+            line-height: 1.6;
+        }
+        .splash-atrium .top .right .em { color: #ffb878; }
+        .splash-atrium .center {
+            flex: 1;
+            display: flex; flex-direction: column;
+            justify-content: center;
+            margin-left: 12px; /* let title sit slightly to the left, opposite to the right meta */
+        }
+        .splash-atrium .pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ffb878;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: inline-flex; align-items: center; gap: 12px;
+            align-self: flex-start;
+        }
+        .splash-atrium .pre::before {
+            content: '';
+            width: 28px; height: 1px;
+            background: #ffb878;
+        }
+        .splash-atrium .title {
+            font-weight: 300;  /* refined thin */
+            font-size: 124px;
+            line-height: 0.95;
+            letter-spacing: -4px;
+            color: #f5ecd8;
+            text-shadow: 0 2px 30px rgba(255,184,120,0.18);
+        }
+        .splash-atrium .title .accent {
+            color: #ffb878;
+            font-style: italic;
+            font-weight: 400;
+        }
+        .splash-atrium .sub {
+            font-size: 15px;
+            font-weight: 400;
+            color: rgba(240,232,216,0.7);
+            letter-spacing: 0.4px;
+            margin-top: 18px;
+            max-width: 460px;
+            line-height: 1.5;
+        }
+        .splash-atrium .sub .em { color: #f0e8d8; font-weight: 500; }
+        .splash-atrium .footer {
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(240,232,216,0.55);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding-top: 16px;
+            border-top: 1px solid rgba(240,232,216,0.10);
+        }
+        .splash-atrium .footer .lhs {
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .splash-atrium .footer .lhs .dot {
+            width: 6px; height: 6px;
+            background: #ffb878;
             border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,184,120,0.7);
+            animation: marquee-pulse 1.8s ease-in-out infinite;
         }
-        .splash-keynote .footer .em {
-            color: #ff8c28;
-            text-shadow: 0 0 8px rgba(255,140,40,0.4);
-        }
-        /* tiny refined chrome dot under title */
-        .splash-keynote .dot-row {
-            display: flex; justify-content: center; gap: 8px;
-            margin-top: 30px;
-        }
-        .splash-keynote .dot-row .d {
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: rgba(245,245,247,0.20);
-        }
-        .splash-keynote .dot-row .d.on {
-            background: #ff8c28;
-            box-shadow: 0 0 8px rgba(255,140,40,0.6);
-        }
+        .splash-atrium .footer .em { color: #ffb878; }
 
     </style>
 </head>
@@ -1338,7 +1283,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Three new premium directions added at the end — fashion-tier (Drop, Atelier) and Apple-keynote tier.<br>
+            Three new premium directions added at the end — Aurora (animated gradient mesh), Cinema (film title card), Atrium (architectural quiet-luxury).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1583,156 +1528,115 @@
     </section>
 
     <!-- ====================================================
-         CARD — premium black-metal credit card
+         AURORA — silky animated gradient mesh
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag card">NEW · 5</span>
-            <span class="design-name">Card</span>
+            <span class="design-tag aurora">NEW · 5</span>
+            <span class="design-name">Aurora</span>
         </div>
         <div class="design-desc">
-            The splash IS a premium black-metal credit card. True 1.59:1 card aspect ratio, brushed-metal stripe pattern, slow shimmer pass across the surface, embossed-style gold chip element top-left, "DENFI" wordmark and "ATELIER" tier top-right, your logo as a faint mark on the right. Card-number style display in the middle reveals as the launcher progresses. "MEMBER SINCE / VALID" footer with a green active-status indicator. Amex Centurion / black-card energy — tells the user "you have something exclusive."
+            <strong>Stripe / Linear / OpenAI hero-tier.</strong> Three large soft-light blobs (lavender, warm-orange, cool-cyan) drift slowly behind everything, blended in screen mode and heavily blurred so it reads as a silky animated gradient mesh — premium SaaS landing-page energy. Over the top: a faint film grain, a frosted-glass status pill in the upper-right ("UPLINK · ONLINE"), the title in 116px refined semibold with a subtle white-to-lavender gradient, a one-line subtitle, and a hairline footer. Modern, calm, expensive — looks like a 2026 product launch page, not a launcher splash.
         </div>
         <div class="design-stage">
-            <div class="splash-card">
-                <div class="chip"></div>
-                <div class="brand-mark">Denfi</div>
-                <div class="tier">Atelier · Premium</div>
-
-                {% if splash_file %}
-                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                {% endif %}
-
-                <div class="number">
-                    <span class="grp">DENFI</span>
-                    <span class="grp" id="card-grp1">●●●●</span>
-                    <span class="grp dim" id="card-grp2">●●●●</span>
-                    <span class="grp dim" id="card-grp3">2026</span>
-                </div>
-
-                <div class="title fit-title-card">{{ app_name or 'Roblox' }}</div>
-
-                <div class="meta-row">
-                    <div>
-                        <span class="lbl">Member Since</span>
-                        <span class="val">2024</span>
+            <div class="splash-aurora">
+                <div class="blob b1"></div>
+                <div class="blob b2"></div>
+                <div class="blob b3"></div>
+                <div class="frame">
+                    <div class="top">
+                        <span><span class="em">DENFI</span> · ATELIER</span>
+                        <span class="pill"><span class="dot"></span>UPLINK · ONLINE</span>
                     </div>
-                    <div>
-                        <span class="lbl">Valid Through</span>
-                        <span class="val">∞</span>
+                    <div class="center">
+                        <div class="pre">DENFI · 2026 EDITION</div>
+                        <div class="title fit-title-aurora">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">A licensed <span class="em">{{ app_name or 'Roblox' }}</span> experience, distributed and protected by DENFI · Bangkok.</div>
                     </div>
-                    <div class="status">
-                        <span class="dot"></span>
-                        ACTIVE
+                    <div class="footer">
+                        <span><span class="em">v1.0.4</span> · BUILD 2026.04.19</span>
+                        <span>BANGKOK · TH-BKK · <span class="em">42ms</span></span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">620 × 390 &nbsp;|&nbsp; black-metal card · gold chip · brushed sheen</div>
+        <div class="design-meta">720 × 420 &nbsp;|&nbsp; animated mesh · frosted pill · gradient title</div>
     </section>
 
     <!-- ====================================================
-         DROP — Supreme box-logo / streetwear drop card
+         CINEMA — letterboxed film opening title card
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag drop">PREMIUM · 6</span>
-            <span class="design-name">Drop</span>
+            <span class="design-tag cinema">NEW · 6</span>
+            <span class="design-name">Cinema</span>
         </div>
         <div class="design-desc">
-            <strong>Supreme box-logo / streetwear drop card.</strong> Pure black canvas with hairline corner crop-marks, a small mono header (<em>DENFI · ATELIER · FW26</em>) and a small mono footer (<em>DROP №07 · BANGKOK · LIVE</em>). The center is the iconic move: a single saturated red rectangle, padded heavily, with the title set inside in 96px italic black uppercase — the universally-readable streetwear "box logo" silhouette. Tiny "EDITION 01" mono caption sits under the box. Confident, restrained, instantly premium.
+            <strong>Film opening title card</strong> (Christopher Nolan / Denis Villeneuve / Apple TV+ original). Hard 16:9 frame with two solid black letterbox bars top and bottom — instantly cinematic. The "screen" in between carries: a small mono "A DENFI PRODUCTION" pre-title in warm cream, the title in 130px ultra-thin uppercase with generous 14px letter-spacing (the universal cinematic title treatment), a hairline rule, and a sub-line. The bars themselves carry credits-style mono text (reel mark, frame number, year, region). Warm vignette + film grain over the whole thing for analog feel. This is what "good in the eyes" looks like done by film houses.
         </div>
         <div class="design-stage">
-            <div class="splash-drop">
-                <div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div>
-                <div class="top-row">
-                    <span><span class="em">DENFI</span> · ATELIER</span>
-                    <span>FW · <span class="em">26</span></span>
+            <div class="splash-cinema">
+                <div class="grain"></div>
+                <div class="vignette"></div>
+                <div class="head-strip">
+                    <span class="reel"><span class="em">REEL 01</span> · DENFI</span>
+                    <span>FRAME <span class="em">02601</span></span>
                 </div>
-                <div class="box">
-                    <div class="title fit-title-drop">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">EDITION · 01</div>
+                <div class="screen">
+                    <div class="pre">A <span class="em">DENFI</span> PRODUCTION</div>
+                    <div class="title fit-title-cinema">{{ app_name or 'Roblox' }}</div>
+                    <div class="rule"></div>
+                    <div class="sub">Licensed Edition · <span class="em">2026</span> · Bangkok</div>
                 </div>
-                <div class="mark">PRESENTED BY <span class="em">DENFI</span></div>
-                <div class="bot-row">
-                    <span><span class="dot"></span><span class="red">LIVE</span> · DROP №07</span>
-                    <span>BANGKOK · <span class="em">19.04.26</span></span>
+                <div class="credits">
+                    <span class="reel"><span class="em">DENFI</span> ATELIER · BKK</span>
+                    <span>v1.0.4 · <span class="em">7M3F-XKQR</span></span>
                 </div>
             </div>
         </div>
-        <div class="design-meta">680 × 420 &nbsp;|&nbsp; iconic red box · italic black title · streetwear-tier</div>
+        <div class="design-meta">740 × 416 (16:9) &nbsp;|&nbsp; letterbox · film grain · cinematic title</div>
     </section>
 
     <!-- ====================================================
-         ATELIER — Off-White / industrial-fashion product card
+         ATRIUM — architectural quiet-luxury
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag atelier">PREMIUM · 7</span>
-            <span class="design-name">Atelier</span>
+            <span class="design-tag atrium">NEW · 7</span>
+            <span class="design-name">Atrium</span>
         </div>
         <div class="design-desc">
-            <strong>Off-White / Acne / Highsnobiety editorial product card.</strong> Cream paper background with a faint grain — a deliberate inversion of every other splash. The title sits in 92px black helvetica caps, framed by giant inverted commas like a fashion-product tag. Two hairline rules bracket the composition; a four-column mono meta grid (PRODUCT / SEASON / REGION / EDITION) sits at the bottom like a real garment label. A yellow industrial caution-tape strip with a continuously-scrolling "DENFI · ATELIER · LICENSED · FW26" runs along the very bottom edge. Looks like something printed on a $400 hoodie tag.
+            <strong>Architectural / quiet-luxury</strong> (Dieter Rams / Apple Park interior / Aesop store). A warm dark stone-cool gradient backdrop with a single diagonal shaft of warm light cutting across the upper-left, landing as a soft glow puddle on the lower edge — like a real photographed interior. Faint architectural grid in the background. Top-left: a small "D" glyph and brand mark. Right side: refined date + edition meta in two lines. Center-left: the title in 124px ultra-thin uppercase with one accent letter ("a" in atelier-italic warm orange). Quiet sub-line, hairline footer with a single pulsing accent dot. This is the "interior of a luxury brand store" register — calm, confident, premium without shouting.
         </div>
         <div class="design-stage">
-            <div class="splash-atelier">
-                <div class="head">
-                    <span><span class="em">DENFI</span> · ATELIER · BKK</span>
-                    <span class="mute">PRODUCT №&nbsp;A001 / 2026</span>
-                </div>
-                <div class="rule-top"></div>
-                <div class="title-row">
-                    <span class="quote">&ldquo;</span>
-                    <span class="title fit-title-atelier">{{ app_name or 'Roblox' }}</span>
-                    <span class="quote">&rdquo;</span>
-                </div>
-                <div class="rule-bot"></div>
-                <div class="meta-grid">
-                    <div class="m"><div class="k">Product</div><div class="v">A001</div></div>
-                    <div class="m"><div class="k">Season</div><div class="v">FW · 26</div></div>
-                    <div class="m"><div class="k">Region</div><div class="v">TH · BKK</div></div>
-                    <div class="m"><div class="k">Edition</div><div class="v">01 / 01</div></div>
-                </div>
-                <div class="tape">
-                    <div class="scroll" id="atelier-scroll">
-                        <span class="arrow">▶</span>DENFI · ATELIER<span class="arrow">▶</span>LICENSED EDITION<span class="arrow">▶</span>FW · 26<span class="arrow">▶</span>BANGKOK · TH-BKK<span class="arrow">▶</span>PRODUCT №&nbsp;A001<span class="arrow">▶</span>
-                        <span class="arrow">▶</span>DENFI · ATELIER<span class="arrow">▶</span>LICENSED EDITION<span class="arrow">▶</span>FW · 26<span class="arrow">▶</span>BANGKOK · TH-BKK<span class="arrow">▶</span>PRODUCT №&nbsp;A001<span class="arrow">▶</span>
+            <div class="splash-atrium">
+                <div class="shaft"></div>
+                <div class="shaft s2"></div>
+                <div class="puddle"></div>
+                <div class="frame">
+                    <div class="top">
+                        <div class="brand">
+                            <span class="glyph">D</span>
+                            <span><span class="em">DENFI</span> · ATELIER</span>
+                        </div>
+                        <div class="right">
+                            BANGKOK · TH-BKK<br>
+                            <span class="em">EDITION 2026</span>
+                        </div>
+                    </div>
+                    <div class="center">
+                        <div class="pre">A LICENSED EDITION</div>
+                        <div class="title fit-title-atrium">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok. A single edition, prepared for one operator.</div>
+                    </div>
+                    <div class="footer">
+                        <span class="lhs"><span class="dot"></span>VERIFIED · v1.0.4</span>
+                        <span>LIC <span class="em">7M3F-XKQR</span></span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">700 × 420 &nbsp;|&nbsp; cream paper · helvetica caps · scrolling tape strip</div>
-    </section>
-
-    <!-- ====================================================
-         KEYNOTE — Apple keynote / minimal product reveal
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag keynote">PREMIUM · 8</span>
-            <span class="design-name">Keynote</span>
-        </div>
-        <div class="design-desc">
-            <strong>Apple-keynote / Vision Pro reveal.</strong> Pure dark gradient with a soft warm-orange aura behind the title. A small mono "INTRODUCING <em>·</em> 2026" pre-tag, then the title in 132px tight ultra-bold with a silver-to-chrome vertical gradient (the iconic Apple-keynote shimmer), a refined sub-line ("DENFI · Licensed Edition · Bangkok"), and a row of three dots (one accent-orange) like a slide indicator. Hairline footer with version, region, and license number separated by tiny round bullets. No clutter — the typography does all the work. This is the "good in the eyes" register.
-        </div>
-        <div class="design-stage">
-            <div class="splash-keynote">
-                <div class="pre">INTRODUCING <span class="em">·</span> 2026</div>
-                <div class="title fit-title-keynote">{{ app_name or 'Roblox' }}</div>
-                <div class="sub">DENFI · <span class="em">Licensed Edition</span> · Bangkok</div>
-                <div class="dot-row">
-                    <span class="d"></span><span class="d on"></span><span class="d"></span>
-                </div>
-                <div class="footer">
-                    <span>v1.0.4</span>
-                    <span class="sep"></span>
-                    <span>BANGKOK · TH-BKK</span>
-                    <span class="sep"></span>
-                    <span>LIC <span class="em">7M3F-XKQR</span></span>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">720 × 420 &nbsp;|&nbsp; dark · chrome-gradient title · refined whitespace</div>
+        <div class="design-meta">720 × 420 &nbsp;|&nbsp; light shaft · architectural grain · refined thin title</div>
     </section>
 
     <script>
@@ -1951,39 +1855,14 @@
             }, 200);
         }, 1500);
 
-        // CARD — auto-fit title + reveal card-number groups one by one
-        autoFitTitle(document.querySelector('.fit-title-card'), 24, 18);
-        var cardSeqs = [
-            ['●●●●', '●●●●', '2026'],
-            ['●●●●', '●●●●', '2026'],
-            ['●●●●', '●●●●', '2026'],
-            ['7M3F', '●●●●', '2026'],
-            ['7M3F', '●●●●', '2026'],
-            ['7M3F', 'XKQR', '2026'],
-            ['7M3F', 'XKQR', '2026']
-        ];
-        var cardG1 = document.getElementById('card-grp1');
-        var cardG2 = document.getElementById('card-grp2');
-        var cardG3 = document.getElementById('card-grp3');
-        var cardStep = 0;
-        function cardTick() {
-            var s = cardSeqs[cardStep % cardSeqs.length];
-            if (cardG1) { cardG1.textContent = s[0]; cardG1.classList.toggle('dim', s[0].indexOf('●') === 0); }
-            if (cardG2) { cardG2.textContent = s[1]; cardG2.classList.toggle('dim', s[1].indexOf('●') === 0); }
-            if (cardG3) { cardG3.textContent = s[2]; cardG3.classList.toggle('dim', false); }
-            cardStep = (cardStep + 1) % cardSeqs.length;
-        }
-        cardTick();
-        setInterval(cardTick, 1100);
+        // AURORA — fit refined gradient title
+        autoFitTitle(document.querySelector('.fit-title-aurora'), 116, 52);
 
-        // DROP — fit big italic title inside red box
-        autoFitTitle(document.querySelector('.fit-title-drop'), 96, 44);
+        // CINEMA — fit ultra-thin tracked cinematic title
+        autoFitTitle(document.querySelector('.fit-title-cinema'), 130, 56);
 
-        // ATELIER — fit helvetica caps title between quotes
-        autoFitTitle(document.querySelector('.fit-title-atelier'), 92, 44);
-
-        // KEYNOTE — fit huge chrome-gradient title
-        autoFitTitle(document.querySelector('.fit-title-keynote'), 132, 56);
+        // ATRIUM — fit refined thin title
+        autoFitTitle(document.querySelector('.fit-title-atrium'), 124, 56);
     })();
     </script>
 </body>
