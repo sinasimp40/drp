@@ -98,7 +98,16 @@
                             {% for c in configs %}
                             <tr>
                                 <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
-                                <td style="font-weight:600; color: var(--accent);">{{ c.app_name }}{% if c.is_trial %} <span style="background:#ff6a00; color:#fff; font-size:9px; padding:2px 6px; border-radius:3px; vertical-align:middle; margin-left:4px;">TRIAL</span>{% endif %}</td>
+                                <td style="font-weight:600; color: var(--accent);">
+                                    {{ c.app_name }}
+                                    {% if c.is_trial %}
+                                    <span style="background:#ff6a00; color:#fff; font-size:9px; padding:2px 6px; border-radius:3px; vertical-align:middle; margin-left:4px;">TRIAL</span>
+                                    <div style="margin-top:4px; display:flex; gap:6px; align-items:center;">
+                                        <input type="text" readonly value="{{ trial_download_url }}" id="trial-link-{{ c.id }}" style="flex:1; min-width:140px; max-width:280px; font-size:10px; padding:2px 6px; background:#0c0c14; color:#9b9bad; border:1px solid #2a2a38; border-radius:3px;">
+                                        <button type="button" onclick="(function(){var el=document.getElementById('trial-link-{{ c.id }}'); el.select(); document.execCommand('copy');})()" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;">Copy</button>
+                                    </div>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <code class="cc-code">{{ c.license_key }}</code>
                                     {% if c.license_note %}<div class="ip-info">{{ c.license_note }}</div>{% endif %}

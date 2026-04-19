@@ -1967,7 +1967,8 @@ def builds_page():
             "is_trial": bool(c["is_trial"]) if "is_trial" in c.keys() else False,
         })
 
-    return render_template("builds.html", configs=config_list, builds=build_list)
+    trial_download_url = url_for("download_trial_public", _external=True)
+    return render_template("builds.html", configs=config_list, builds=build_list, trial_download_url=trial_download_url)
 
 
 @app.route("/build_config/create", methods=["GET", "POST"])
@@ -1984,8 +1985,8 @@ def create_build_config():
         embedded_key = request.form.get("embedded_key", "").strip()
         is_trial = 1 if request.form.get("is_trial") == "on" else 0
         try:
-            trial_duration_seconds = max(60, int(request.form.get("trial_duration_seconds", "86400")))
-        except ValueError:
+            trial_duration_seconds = max(3600, int(float(request.form.get("trial_duration_hours", "24")) * 3600))
+        except (TypeError, ValueError):
             trial_duration_seconds = 86400
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "5")))
@@ -2053,9 +2054,10 @@ def edit_build_config(config_id):
         embedded_key = request.form.get("embedded_key", "").strip()
         is_trial = 1 if request.form.get("is_trial") == "on" else 0
         try:
-            trial_duration_seconds = max(60, int(request.form.get("trial_duration_seconds", str(config["trial_duration_seconds"] or 86400))))
-        except ValueError:
-            trial_duration_seconds = 86400
+            default_hours = max(1, int((config["trial_duration_seconds"] or 86400) // 3600))
+            trial_duration_seconds = max(3600, int(float(request.form.get("trial_duration_hours", str(default_hours))) * 3600))
+        except (TypeError, ValueError):
+            trial_duration_seconds = config["trial_duration_seconds"] or 86400
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 5))))
         except ValueError:
@@ -2300,10 +2302,11 @@ def api_roblox_bundle_info():
 
 @app.route("/api/roblox_bundle/download/<token>")
 def api_roblox_bundle_download(token):
+    # Single-use: pop the token before serving so the same URL cannot be
+    # replayed by an attacker who sniffs it.
     with _bundle_token_lock:
-        info = _bundle_tokens.get(token)
+        info = _bundle_tokens.pop(token, None)
         if not info or info["expires"] < time.time():
-            _bundle_tokens.pop(token, None)
             return "Invalid or expired token", 403
     path = os.path.join(BUNDLES_DIR, info["filename"])
     if not os.path.isfile(path):

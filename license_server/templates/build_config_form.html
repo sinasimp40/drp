@@ -55,8 +55,8 @@
                 </p>
                 <div class="form-row" style="display:flex; gap:12px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Trial duration (seconds)</label>
-                        <input type="number" name="trial_duration_seconds" min="60" value="{{ (config and config.trial_duration_seconds) or 86400 }}">
+                        <label>Trial duration (hours)</label>
+                        <input type="number" name="trial_duration_hours" min="1" step="1" value="{{ (config and config.trial_duration_seconds and (config.trial_duration_seconds // 3600)) or 24 }}">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Max trials per /24 subnet</label>

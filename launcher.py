@@ -2016,18 +2016,23 @@ class LicenseDialog(QDialog):
 
 
 class TrialExpiredDialog(QDialog):
+    PURCHASE_URL = "https://t.me/denfistore"
+
     def __init__(self, parent=None, message=""):
         super().__init__(parent)
         self.setWindowTitle(f"{APP_NAME} - Trial Expired")
-        self.setFixedSize(440, 220)
+        self.setFixedSize(460, 260)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)
         self.setStyleSheet("""
             QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
             QLabel { color: #e8e8ef; background: transparent; }
-            QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px;
-                         padding: 9px 24px; font-size: 13px; font-weight: bold; }
-            QPushButton:hover { background: #ff8c33; }
+            QPushButton { color: white; border: none; border-radius: 6px;
+                         padding: 9px 18px; font-size: 13px; font-weight: bold; }
+            QPushButton#primary { background: #ff6a00; }
+            QPushButton#primary:hover { background: #ff8c33; }
+            QPushButton#secondary { background: #2a2a38; color: #d0d0d8; }
+            QPushButton#secondary:hover { background: #3a3a48; }
         """)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 24, 32, 24)
@@ -2037,16 +2042,32 @@ class TrialExpiredDialog(QDialog):
         title.setStyleSheet("color: #ff6a00;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
-        msg = QLabel(message or "Your free trial has ended.\nContact the developer to get a full license.")
+        msg = QLabel(message or "Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX.")
         msg.setFont(QFont("Segoe UI", 10))
         msg.setStyleSheet("color: #b0b0c0;")
         msg.setAlignment(Qt.AlignCenter)
         msg.setWordWrap(True)
         layout.addWidget(msg)
         layout.addSpacing(8)
-        ok_btn = QPushButton("Close")
-        ok_btn.clicked.connect(self.accept)
-        layout.addWidget(ok_btn)
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(10)
+        get_btn = QPushButton("Get Full License")
+        get_btn.setObjectName("primary")
+        get_btn.clicked.connect(self._open_purchase)
+        quit_btn = QPushButton("Quit")
+        quit_btn.setObjectName("secondary")
+        quit_btn.clicked.connect(self.accept)
+        btn_row.addWidget(get_btn)
+        btn_row.addWidget(quit_btn)
+        layout.addLayout(btn_row)
+
+    def _open_purchase(self):
+        try:
+            import webbrowser
+            webbrowser.open(self.PURCHASE_URL)
+        except Exception:
+            pass
+        self.accept()
 
 
 class LockScreen(QWidget):
@@ -2121,6 +2142,19 @@ def check_license_or_prompt(app, splash=None):
             error_msg = hb.get("error", "License invalid")
             if _is_suspended_error(error_msg):
                 _show_suspended_and_exit(app, splash)
+
+        # Trial builds: an existing trial key that fails validation is
+        # treated as expired/invalid — NEVER silently mint a fresh trial.
+        if IS_TRIAL:
+            if splash:
+                splash.hide()
+            lower = (error_msg or "").lower()
+            if "expired" in lower:
+                msg = "Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX."
+            else:
+                msg = error_msg or "Your free trial is no longer valid."
+            TrialExpiredDialog(message=msg).exec_()
+            return False
 
         if EMBEDDED_LICENSE_KEY:
             return False
@@ -2235,6 +2269,21 @@ def start_license_watchdog(app):
             if hasattr(app, '_bg_timer'):
                 app._bg_timer.stop()
 
+            if IS_TRIAL and not is_suspended:
+                # Trial expiry/revocation -> show the friendly trial dialog
+                # (with Get Full License + Quit) instead of the LockScreen.
+                delete_license_files()
+                err_text = result.get("error", "License expired")
+                lower_err = err_text.lower()
+                if "expired" in lower_err:
+                    msg = "Your free trial has ended.\nGet a full license to keep using DENFI ROBLOX."
+                else:
+                    msg = err_text
+                dlg = TrialExpiredDialog(message=msg)
+                dlg.show()
+                app._lock_screen = dlg
+                QTimer.singleShot(10000, app.quit)
+                return
             if is_suspended:
                 lock = LockScreen("License suspended.\nContact the developer.")
             elif not EMBEDDED_LICENSE_KEY:
