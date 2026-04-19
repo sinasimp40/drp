@@ -152,7 +152,6 @@ echo.
 set ADDDATA=
 if exist "splash_logo.png" set ADDDATA=--add-data "splash_logo.png;."
 if exist "Roblox2017.ttf" set ADDDATA=%ADDDATA% --add-data "Roblox2017.ttf;."
-if exist "Inter-Black.ttf" set ADDDATA=%ADDDATA% --add-data "Inter-Black.ttf;."
 
 if exist "icon.ico" (
     echo [*] Building with custom icon
