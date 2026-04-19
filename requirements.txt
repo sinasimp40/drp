@@ -7,3 +7,9 @@ flask
 flask-socketio
 Pillow
 PySocks
+flask
+flask-socketio
+Pillow
+PySocks
+python-dotenv
+requests
