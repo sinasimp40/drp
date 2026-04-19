@@ -66,9 +66,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.magazine { color: #1a1a1a; border-color: #1a1a1a; background: #f4ece0; }
-        .design-tag.ticket   { color: #ff5e3a; border-color: #ff5e3a; }
-        .design-tag.poster   { color: #ffd84d; border-color: #ffd84d; }
+        .design-tag.hero     { color: #ffb85a; border-color: #6a3a18; }
+        .design-tag.studio   { color: #ff9a5e; border-color: #5a3115; }
+        .design-tag.boot     { color: #f4f1ea; border-color: #555; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -675,568 +675,480 @@
         }
         .splash-console .statusbar .grow { flex: 1; }
         .splash-console .statusbar .em { color: rgba(234,234,240,0.7); }
-
-           Cream background, huge serif display title, masthead, cover lines.
+        /* ============================================================
+           HERO TILE — Netflix / Steam library card / Apple TV+ tile
+           Big featured artwork zone with warm wash, title bottom-left,
+           small "READY TO PLAY" badge and a meta row. Premium launcher tile.
            ============================================================ */
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap');
-        .splash-magazine {
+        .splash-hero {
             position: relative;
-            width: 600px; height: 800px;
-            background: #f1e9da;
-            color: #15110d;
+            width: 720px;
+            height: 420px;
+            background: #08070a;
+            color: #f4f1ea;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+            display: flex; flex-direction: column;
         }
-        /* warm paper grain */
-        .splash-magazine::before {
+        /* artwork zone (top 65%) — warm cinematic wash */
+        .splash-hero .art {
+            position: relative;
+            flex: 1;
+            background:
+                radial-gradient(ellipse at 78% 30%, rgba(255,184,90,0.35) 0%, transparent 55%),
+                radial-gradient(ellipse at 20% 70%, rgba(140,60,180,0.20) 0%, transparent 55%),
+                linear-gradient(135deg, #1a1208 0%, #0c0a0d 60%, #060509 100%);
+            overflow: hidden;
+        }
+        .splash-hero .art::before {
             content: '';
             position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.10 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 200px 200px;
-            mix-blend-mode: multiply;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.95  0 0 0 0 0.85  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 180px 180px;
+            mix-blend-mode: overlay;
             opacity: 0.7;
             pointer-events: none;
         }
-        /* warm tonal photo-cover wash */
-        .splash-magazine::after {
+        /* faint diagonal light streaks */
+        .splash-hero .art::after {
             content: '';
             position: absolute;
-            top: 26%; left: -10%; right: -10%; height: 50%;
-            background: radial-gradient(ellipse at 50% 50%,
-                rgba(220, 100, 50, 0.18) 0%,
-                rgba(180, 60, 40, 0.10) 40%,
-                transparent 70%);
+            top: -30%; left: 50%; width: 70%; height: 200%;
+            background: linear-gradient(115deg,
+                transparent 40%,
+                rgba(255,184,90,0.10) 48%,
+                rgba(255,184,90,0.02) 52%,
+                transparent 60%);
+            transform: rotate(8deg);
             pointer-events: none;
-            mix-blend-mode: multiply;
         }
-        .splash-magazine .frame {
-            position: relative; z-index: 4;
-            width: 100%; height: 100%;
-            padding: 28px 30px;
-            display: flex; flex-direction: column;
+        /* bottom fade so title is legible */
+        .splash-hero .art-fade {
+            position: absolute;
+            left: 0; right: 0; bottom: 0; height: 60%;
+            background: linear-gradient(180deg, transparent 0%, rgba(8,7,10,0.55) 50%, rgba(8,7,10,0.92) 100%);
+            pointer-events: none;
         }
-        /* masthead */
-        .splash-magazine .masthead {
-            display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 3px solid #15110d;
-            padding-bottom: 12px;
-        }
-        .splash-magazine .mast-name {
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-size: 64px;
-            line-height: 0.85;
-            letter-spacing: -2px;
-            color: #15110d;
-        }
-        .splash-magazine .mast-meta {
-            text-align: right;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            line-height: 1.6;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #15110d;
-        }
-        .splash-magazine .mast-meta .em { font-weight: 700; }
-        .splash-magazine .issue-bar {
+        /* top status bar floating in artwork */
+        .splash-hero .top-bar {
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: 18px 24px;
             display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 2px;
+            font-size: 10px;
+            color: rgba(244,241,234,0.7);
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-            color: #15110d;
-            padding: 8px 0;
-            border-bottom: 1px solid #15110d;
+            z-index: 4;
         }
-        /* cover image area */
-        .splash-magazine .cover-area {
-            position: relative;
-            flex: 1;
-            display: flex;
-            margin: 16px 0 12px;
+        .splash-hero .top-bar .em { color: #f4f1ea; font-weight: 600; }
+        .splash-hero .top-bar .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 11px;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,184,90,0.5);
+            color: #ffb85a;
+            border-radius: 100px;
+            font-size: 9.5px;
+            letter-spacing: 2.5px;
         }
-        /* cover-line column on left */
-        .splash-magazine .cover-lines {
-            width: 130px;
-            display: flex; flex-direction: column;
-            gap: 14px;
-            padding-right: 16px;
-            border-right: 1px solid rgba(21,17,13,0.25);
+        .splash-hero .top-bar .badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #ffb85a;
+            box-shadow: 0 0 8px rgba(255,184,90,0.7);
+            animation: marquee-pulse 1.6s ease-in-out infinite;
         }
-        .splash-magazine .cover-lines .line {
+        /* title block sits over the lower part of the artwork */
+        .splash-hero .title-block {
+            position: absolute;
+            left: 28px; right: 28px; bottom: 90px;
+            z-index: 4;
+        }
+        .splash-hero .kicker {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 8.5px;
-            line-height: 1.4;
-            letter-spacing: 1.5px;
+            font-size: 11px;
+            color: #ffb85a;
+            letter-spacing: 5px;
             text-transform: uppercase;
-            color: #15110d;
-        }
-        .splash-magazine .cover-lines .line .num {
-            display: block;
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            font-weight: 400;
-            font-size: 18px;
-            letter-spacing: 0;
-            text-transform: none;
-            color: #c0432a;
-            margin-bottom: 3px;
-        }
-        /* central display block */
-        .splash-magazine .center {
-            flex: 1;
-            display: flex; flex-direction: column;
-            justify-content: center;
-            padding-left: 22px;
-        }
-        .splash-magazine .kicker {
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            font-weight: 400;
-            font-size: 18px;
-            color: #c0432a;
             margin-bottom: 8px;
         }
-        .splash-magazine .title {
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-size: 132px;
-            line-height: 0.85;
-            letter-spacing: -5px;
-            color: #15110d;
+        .splash-hero .title {
+            font-weight: 800;
+            font-size: 92px;
+            line-height: 0.92;
+            letter-spacing: -3px;
+            color: #fff;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.7);
         }
-        .splash-magazine .pull {
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            font-weight: 400;
-            font-size: 22px;
-            line-height: 1.25;
-            color: #15110d;
-            margin-top: 22px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(21,17,13,0.3);
-            max-width: 320px;
-        }
-        .splash-magazine .pull .em { color: #c0432a; font-style: normal; font-weight: 700; }
-        /* footer with barcode + price */
-        .splash-magazine .foot {
-            display: flex; justify-content: space-between; align-items: flex-end;
-            border-top: 3px solid #15110d;
-            padding-top: 12px;
-        }
-        .splash-magazine .foot .left {
+        .splash-hero .meta-line {
+            display: flex; align-items: center; gap: 14px;
+            margin-top: 12px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 1.8px;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            color: rgba(244,241,234,0.78);
             text-transform: uppercase;
-            line-height: 1.6;
         }
-        .splash-magazine .foot .left .em { font-weight: 700; }
-        .splash-magazine .barcode {
-            display: flex; align-items: flex-end; gap: 1px;
-            height: 38px;
+        .splash-hero .meta-line .pip {
+            width: 4px; height: 4px; border-radius: 50%;
+            background: rgba(244,241,234,0.4);
         }
-        .splash-magazine .barcode span {
-            display: block;
-            width: 2px;
-            background: #15110d;
+        .splash-hero .meta-line .em { color: #ffb85a; font-weight: 700; }
+        /* solid bottom strip with progress + action */
+        .splash-hero .strip {
+            position: relative;
+            height: 64px;
+            background: #0c0b0e;
+            border-top: 1px solid rgba(244,241,234,0.06);
+            padding: 0 24px;
+            display: flex; align-items: center; gap: 20px;
+            z-index: 3;
+        }
+        .splash-hero .strip .play-btn {
+            width: 38px; height: 38px;
+            background: #ffb85a;
+            color: #1a1208;
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 0 24px rgba(255,184,90,0.35);
+            flex-shrink: 0;
+        }
+        .splash-hero .strip .play-btn::before {
+            content: '';
+            border-style: solid;
+            border-width: 7px 0 7px 11px;
+            border-color: transparent transparent transparent #1a1208;
+            margin-left: 3px;
+        }
+        .splash-hero .strip .progress {
+            flex: 1;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .splash-hero .strip .progress .label-row {
+            display: flex; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(244,241,234,0.65);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .splash-hero .strip .progress .label-row .em { color: #ffb85a; font-weight: 700; }
+        .splash-hero .strip .progress .track {
+            height: 3px;
+            background: rgba(244,241,234,0.08);
+            overflow: hidden;
+        }
+        .splash-hero .strip .progress .fill {
             height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffb85a 0%, #ff7a3a 100%);
+            box-shadow: 0 0 8px rgba(255,184,90,0.6);
         }
-        .splash-magazine .barcode span:nth-child(2n)  { width: 1px; height: 80%; }
-        .splash-magazine .barcode span:nth-child(3n)  { width: 3px; }
-        .splash-magazine .barcode span:nth-child(5n)  { width: 1px; }
-        .splash-magazine .barcode span:nth-child(7n)  { width: 2px; height: 70%; }
 
         /* ============================================================
-           TICKET — premium concert / boarding-pass with perforation
+           STUDIO — JetBrains / Ableton Live / Logic Pro boot splash
+           Multi-panel app boot with dark chrome, centered title,
+           and a streaming "loading modules" panel on the right.
            ============================================================ */
-        .splash-ticket {
+        .splash-studio {
             position: relative;
-            width: 760px; height: 280px;
-            display: flex;
+            width: 740px;
+            height: 420px;
+            background: #14141a;
+            color: #e6e4ee;
+            overflow: hidden;
             font-family: 'Inter', sans-serif;
-            color: #1a1410;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.55);
-            filter: drop-shadow(0 2px 0 rgba(0,0,0,0.10));
+            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+            border: 1px solid rgba(255,255,255,0.04);
+            display: flex;
         }
-        /* main body */
-        .splash-ticket .body {
+        /* left main pane (60%) */
+        .splash-studio .main {
             position: relative;
             flex: 1;
             background:
-                radial-gradient(circle at 0% 0%, rgba(255,255,255,0.6) 0%, transparent 40%),
-                linear-gradient(135deg, #fff5e6 0%, #f4e0c0 60%, #e8c98c 100%);
-            border-radius: 14px 0 0 14px;
-            padding: 26px 32px;
+                radial-gradient(circle at 30% 40%, rgba(255,140,80,0.10) 0%, transparent 55%),
+                linear-gradient(160deg, #1c1c25 0%, #131319 100%);
+            padding: 28px 32px;
             display: flex; flex-direction: column;
-            overflow: hidden;
         }
-        /* paper grain */
-        .splash-ticket .body::before {
+        /* faint grid */
+        .splash-studio .main::before {
             content: '';
             position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.25  0 0 0 0 0.05  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 200px 200px;
-            opacity: 0.8;
-            mix-blend-mode: multiply;
+            background-image:
+                linear-gradient(0deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 100% 32px, 32px 100%;
             pointer-events: none;
         }
-        /* holofoil top stripe */
-        .splash-ticket .body::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 6px;
-            background: linear-gradient(90deg,
-                #c97a2b 0%, #ff9e4a 18%, #ffd56a 32%, #b8e2a0 48%,
-                #6cc7e8 64%, #b89af0 80%, #ff8a9e 100%);
-            background-size: 200% 100%;
-            animation: ticket-foil 6s linear infinite;
-        }
-        @keyframes ticket-foil {
-            0%   { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        .splash-ticket .body-inner {
+        .splash-studio .main-head {
             position: relative; z-index: 2;
-            display: flex; flex-direction: column; height: 100%;
-        }
-        .splash-ticket .head {
-            display: flex; justify-content: space-between; align-items: flex-start;
+            display: flex; align-items: center; gap: 12px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            letter-spacing: 2px;
+            color: rgba(230,228,238,0.6);
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-            color: #5a3a18;
         }
-        .splash-ticket .head .em { color: #1a1410; font-weight: 700; }
-        .splash-ticket .head .brand {
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .splash-ticket .head .brand .glyph {
-            width: 22px; height: 22px;
+        .splash-studio .main-head .glyph {
+            width: 26px; height: 26px;
             display: inline-flex; align-items: center; justify-content: center;
-            background: #1a1410;
-            color: #ffd56a;
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
+            background: linear-gradient(135deg, #ff8c50 0%, #ff5e3a 100%);
+            color: #1a0d08;
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
             font-size: 14px;
-            border-radius: 4px;
+            letter-spacing: -0.5px;
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(255,140,80,0.4);
         }
-        .splash-ticket .center {
+        .splash-studio .main-head .em { color: #e6e4ee; font-weight: 600; }
+        .splash-studio .main-center {
+            position: relative; z-index: 2;
             flex: 1;
             display: flex; flex-direction: column;
             justify-content: center;
-            margin-top: 4px;
         }
-        .splash-ticket .pre {
+        .splash-studio .main-center .pre {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 4px;
+            font-size: 11px;
+            color: #ff9a5e;
+            letter-spacing: 5px;
             text-transform: uppercase;
-            color: #c0432a;
-            margin-bottom: 6px;
-        }
-        .splash-ticket .title {
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-size: 78px;
-            line-height: 0.9;
-            letter-spacing: -3px;
-            color: #1a1410;
-        }
-        .splash-ticket .meta-row {
-            display: flex;
-            gap: 26px;
-            margin-top: 16px;
-        }
-        .splash-ticket .meta {
-            display: flex; flex-direction: column;
-        }
-        .splash-ticket .meta .lab {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #5a3a18;
-        }
-        .splash-ticket .meta .val {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 16px;
-            letter-spacing: 1px;
-            color: #1a1410;
-            margin-top: 2px;
-        }
-        .splash-ticket .foot {
-            display: flex; justify-content: space-between; align-items: flex-end;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #5a3a18;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px dashed rgba(26,20,16,0.3);
-        }
-        .splash-ticket .foot .em { color: #1a1410; font-weight: 700; }
-        /* perforated line between body and stub */
-        .splash-ticket .perf {
-            position: relative;
-            width: 0;
-            background: transparent;
-        }
-        .splash-ticket .perf::before,
-        .splash-ticket .perf::after {
-            content: '';
-            position: absolute;
-            left: -14px;
-            width: 28px; height: 28px;
-            border-radius: 50%;
-            background: #0d0c0a;
-            z-index: 5;
-        }
-        .splash-ticket .perf::before { top: -14px; }
-        .splash-ticket .perf::after  { bottom: -14px; }
-        /* dashed line through middle */
-        .splash-ticket .perf-line {
-            position: absolute;
-            left: -1px; top: 14px; bottom: 14px;
-            width: 2px;
-            background: repeating-linear-gradient(180deg,
-                #1a1410 0, #1a1410 4px, transparent 4px, transparent 9px);
-            opacity: 0.5;
-            z-index: 3;
-        }
-        /* stub on right */
-        .splash-ticket .stub {
-            position: relative;
-            width: 200px;
-            background:
-                radial-gradient(circle at 100% 0%, rgba(255,255,255,0.6) 0%, transparent 50%),
-                linear-gradient(135deg, #1a1410 0%, #2a1f15 60%, #3a2d1f 100%);
-            color: #ffd56a;
-            border-radius: 0 14px 14px 0;
-            padding: 26px 24px;
-            display: flex; flex-direction: column;
-            overflow: hidden;
-        }
-        .splash-ticket .stub::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 6px;
-            background: linear-gradient(90deg,
-                #c97a2b 0%, #ff9e4a 18%, #ffd56a 32%, #b8e2a0 48%,
-                #6cc7e8 64%, #b89af0 80%, #ff8a9e 100%);
-            background-size: 200% 100%;
-            animation: ticket-foil 6s linear infinite;
-        }
-        .splash-ticket .stub .lab {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(255,213,106,0.55);
-            margin-bottom: 6px;
-        }
-        .splash-ticket .stub .admit {
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-size: 26px;
-            letter-spacing: -1px;
-            line-height: 1;
             margin-bottom: 14px;
         }
-        .splash-ticket .stub .seat-row {
-            display: flex; gap: 14px; margin-bottom: 18px;
+        .splash-studio .main-center .title {
+            font-weight: 800;
+            font-size: 96px;
+            line-height: 0.9;
+            letter-spacing: -3px;
+            color: #fff;
         }
-        .splash-ticket .stub .seat {
-            display: flex; flex-direction: column;
+        .splash-studio .main-center .sub {
+            font-size: 14px;
+            color: rgba(230,228,238,0.65);
+            margin-top: 14px;
+            max-width: 320px;
+            line-height: 1.45;
         }
-        .splash-ticket .stub .seat .k {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 2px;
-            color: rgba(255,213,106,0.55);
-        }
-        .splash-ticket .stub .seat .v {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 18px;
-            color: #ffd56a;
-            margin-top: 1px;
-        }
-        .splash-ticket .stub .barcode {
-            display: flex; align-items: flex-end; gap: 1px;
-            height: 38px;
-            margin-top: auto;
-        }
-        .splash-ticket .stub .barcode span {
-            display: block;
-            background: #ffd56a;
-            width: 2px; height: 100%;
-        }
-        .splash-ticket .stub .barcode span:nth-child(2n) { width: 1px; height: 80%; }
-        .splash-ticket .stub .barcode span:nth-child(3n) { width: 3px; }
-        .splash-ticket .stub .barcode span:nth-child(5n) { width: 1px; }
-        .splash-ticket .stub .barcode span:nth-child(7n) { width: 2px; height: 70%; }
-        .splash-ticket .stub .lic {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 2px;
-            color: rgba(255,213,106,0.7);
-            margin-top: 6px;
-            text-align: center;
-        }
-
-        /* ============================================================
-           POSTER — Saul Bass / A24 / Swiss bold poster
-           Solid hot color, geometric mark, oversized type that bleeds.
-           ============================================================ */
-        .splash-poster {
-            position: relative;
-            width: 600px; height: 800px;
-            background: #ff5e3a;
-            color: #1a0d08;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-        }
-        /* paper grain */
-        .splash-poster::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.05  0 0 0 0 0.03  0 0 0 0.10 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 220px 220px;
-            mix-blend-mode: multiply;
-            opacity: 0.55;
-            pointer-events: none;
-        }
-        /* big geometric circle mark behind type */
-        .splash-poster .mark {
-            position: absolute;
-            top: 130px; left: -180px;
-            width: 540px; height: 540px;
-            border-radius: 50%;
-            background: #ffd84d;
-            mix-blend-mode: multiply;
-        }
-        /* secondary square */
-        .splash-poster .mark-sq {
-            position: absolute;
-            bottom: -120px; right: -120px;
-            width: 360px; height: 360px;
-            background: #1a0d08;
-            transform: rotate(15deg);
-        }
-        .splash-poster .frame {
-            position: relative; z-index: 4;
-            width: 100%; height: 100%;
-            padding: 30px 32px;
-            display: flex; flex-direction: column;
-        }
-        .splash-poster .head {
+        .splash-studio .main-center .sub .em { color: #ff9a5e; font-weight: 600; }
+        .splash-studio .main-foot {
+            position: relative; z-index: 2;
             display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #1a0d08;
-            border-bottom: 2px solid #1a0d08;
-            padding-bottom: 10px;
-        }
-        .splash-poster .head .em { font-weight: 700; }
-        .splash-poster .head .brand {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-weight: 700;
-        }
-        .splash-poster .head .brand::before {
-            content: '';
-            width: 12px; height: 12px;
-            background: #1a0d08;
-            display: inline-block;
-        }
-        /* ribbon kicker */
-        .splash-poster .kicker {
-            display: inline-block;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #ff5e3a;
-            background: #1a0d08;
-            padding: 6px 14px;
-            margin-top: 32px;
-            align-self: flex-start;
-        }
-        /* the BIG oversized title that bleeds */
-        .splash-poster .title-stack {
-            margin-top: 14px;
-            line-height: 0.78;
-        }
-        .splash-poster .title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: 196px;
-            line-height: 0.78;
-            letter-spacing: -10px;
-            color: #1a0d08;
-            text-transform: uppercase;
-            margin-left: -8px;
-            white-space: nowrap;
-        }
-        .splash-poster .sub-tag {
-            display: inline-block;
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            font-weight: 700;
-            font-size: 30px;
-            color: #1a0d08;
-            margin-top: 8px;
-            padding-bottom: 4px;
-            border-bottom: 3px solid #1a0d08;
-        }
-        .splash-poster .body-copy {
-            margin-top: 32px;
-            max-width: 300px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            line-height: 1.55;
-            letter-spacing: 0.5px;
-            color: #1a0d08;
-        }
-        .splash-poster .body-copy .em { font-weight: 700; }
-        .splash-poster .body-copy strong {
-            background: #1a0d08;
-            color: #ffd84d;
-            padding: 1px 4px;
-        }
-        /* bottom footer column */
-        .splash-poster .foot {
-            margin-top: auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            border-top: 2px solid #1a0d08;
-            padding-top: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
+            color: rgba(230,228,238,0.55);
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: #1a0d08;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.06);
         }
-        .splash-poster .foot .col .lab {
-            opacity: 0.6;
-            margin-bottom: 3px;
+        .splash-studio .main-foot .em { color: #ff9a5e; }
+        /* right side panel — loading modules */
+        .splash-studio .side {
+            width: 240px;
+            background: #0e0e13;
+            border-left: 1px solid rgba(255,255,255,0.06);
+            padding: 22px 20px;
+            display: flex; flex-direction: column;
+            gap: 14px;
         }
-        .splash-poster .foot .col .val {
+        .splash-studio .side .title-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(230,228,238,0.55);
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .splash-studio .side .title-row .em { color: #e6e4ee; font-weight: 600; }
+        .splash-studio .side .modules {
+            flex: 1;
+            display: flex; flex-direction: column;
+            gap: 7px;
+        }
+        .splash-studio .side .mod {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: rgba(230,228,238,0.7);
+            letter-spacing: 0.5px;
+        }
+        .splash-studio .side .mod .check {
+            width: 12px; height: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(230,228,238,0.25);
+            color: transparent;
+            font-size: 9px;
+            line-height: 1;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .splash-studio .side .mod.done .check {
+            background: #6fdc8c;
+            border-color: #6fdc8c;
+            color: #0e0e13;
+        }
+        .splash-studio .side .mod.done .check::before { content: '✓'; }
+        .splash-studio .side .mod.active .check {
+            border-color: #ff9a5e;
+            background: transparent;
+            position: relative;
+        }
+        .splash-studio .side .mod.active .check::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: #ff9a5e;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(255,154,94,0.7);
+            animation: marquee-pulse 1s ease-in-out infinite;
+        }
+        .splash-studio .side .mod.done .name { color: #e6e4ee; }
+        .splash-studio .side .mod.active .name { color: #ff9a5e; }
+        .splash-studio .side .mini-track {
+            height: 3px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+        }
+        .splash-studio .side .mini-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff9a5e 0%, #ff5e3a 100%);
+        }
+        .splash-studio .side .ver {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(230,228,238,0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: right;
+        }
+        .splash-studio .side .ver .em { color: rgba(230,228,238,0.7); }
+
+        /* ============================================================
+           BOOT — ultra-minimal macOS / Linux distro boot screen
+           Mostly empty space. Centered mark. One hairline progress.
+           ============================================================ */
+        .splash-boot {
+            position: relative;
+            width: 600px;
+            height: 420px;
+            background: #050507;
+            color: #f4f1ea;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        /* faint top corner brand */
+        .splash-boot .corner-brand {
+            position: absolute;
+            top: 22px; left: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9.5px;
+            color: rgba(244,241,234,0.4);
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+        }
+        .splash-boot .corner-brand .em { color: rgba(244,241,234,0.7); font-weight: 600; }
+        .splash-boot .corner-meta {
+            position: absolute;
+            top: 22px; right: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9.5px;
+            color: rgba(244,241,234,0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: right;
+        }
+        .splash-boot .corner-meta .em { color: rgba(244,241,234,0.7); }
+        /* centered glyph + mark + title stack */
+        .splash-boot .center {
+            display: flex; flex-direction: column; align-items: center;
+            margin-top: -10px;
+        }
+        .splash-boot .glyph {
+            width: 56px; height: 56px;
+            margin-bottom: 26px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #ffb060 0%, #ff5e3a 100%);
+            color: #14100c;
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 28px;
+            letter-spacing: -1px;
+            border-radius: 12px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.05) inset,
+                0 8px 30px rgba(255,140,80,0.35);
+        }
+        .splash-boot .title {
             font-weight: 700;
-            font-size: 12px;
+            font-size: 56px;
+            line-height: 1;
+            letter-spacing: -1.5px;
+            color: #f4f1ea;
+            margin-bottom: 8px;
         }
-        .splash-poster .foot .col:last-child { text-align: right; }
+        .splash-boot .sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(244,241,234,0.5);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        .splash-boot .sub .em { color: rgba(244,241,234,0.85); }
+        /* hairline progress at bottom-center */
+        .splash-boot .boot-bar-wrap {
+            position: absolute;
+            bottom: 60px; left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px;
+        }
+        .splash-boot .boot-bar {
+            width: 100%;
+            height: 2px;
+            background: rgba(244,241,234,0.10);
+            overflow: hidden;
+            border-radius: 1px;
+        }
+        .splash-boot .boot-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffb060 0%, #ff5e3a 100%);
+            box-shadow: 0 0 6px rgba(255,140,80,0.55);
+            transition: width 0.15s linear;
+        }
+        .splash-boot .boot-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9.5px;
+            color: rgba(244,241,234,0.5);
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+        }
+        .splash-boot .boot-status .em { color: rgba(244,241,234,0.85); }
+        .splash-boot .footer-line {
+            position: absolute;
+            bottom: 22px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(244,241,234,0.3);
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+        }
+        .splash-boot .footer-line .em { color: rgba(244,241,234,0.55); }
 
     </style>
 </head>
@@ -1245,7 +1157,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            First 3 designs (Marquee · Horizon · Console) kept untouched. Three completely new directions added — none of them dark/mono: <strong>Magazine</strong> (cream + serif Vogue-cover), <strong>Ticket</strong> (skeuomorphic perforated event ticket), <strong>Poster</strong> (bold solid-color Saul Bass poster).<br>
+            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new directions in the same launcher/software register — <strong>Hero Tile</strong> (Netflix / Steam library card), <strong>Studio</strong> (JetBrains / Ableton boot splash with loading modules), <strong>Boot</strong> (ultra-minimal macOS-style boot screen).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1438,167 +1350,131 @@
     </section>
 
     <!-- ====================================================
-         MAGAZINE — Vogue / Wallpaper* style cover
+         HERO TILE — Netflix / Steam library card
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag magazine">NEW · 4</span>
-            <span class="design-name">Magazine</span>
+            <span class="design-tag hero">NEW · 4</span>
+            <span class="design-name">Hero Tile</span>
         </div>
         <div class="design-desc">
-            <strong>Editorial magazine cover.</strong> Cream paper background (warm #f1e9da), real paper grain, masthead at top in 64px Playfair Display black ("DENFI"), an issue bar with date + edition, then a tall cover-image area with cover-lines down the left rail (numbered "01 · INSIDE THIS ISSUE", etc.) and the title in 132px Playfair Display black on the right. A burnt-orange italic kicker, a Playfair italic pull-quote with a hairline rule above it, and a footer with a real barcode + price line. Vogue / Wallpaper* / Apartamento register — the absolute opposite of the dark mono panels.
+            <strong>Featured library tile, premium launcher register.</strong> Top 65% is a cinematic artwork zone — warm orange wash from the upper-right, faint purple bloom in the lower-left, diagonal light streak, fine grain. A frosted "READY · TLS 1.3" badge sits in the upper-right corner. The title sits bottom-left in 92px bold white with a small orange "DENFI · ATELIER" kicker above it and a meta-row beneath (LICENSED · v1.0.4 · BANGKOK · 42ms). A solid bottom strip carries an orange round Play button, a labeled progress bar ("INSTALLED · CHECKING FILES" → "READY") and the licensee tag. Reads exactly like a premium game-launcher tile (Steam Big Picture / Apple TV+ / Riot Client).
         </div>
         <div class="design-stage">
-            <div class="splash-magazine">
-                <div class="frame">
-                    <div class="masthead">
-                        <div class="mast-name">DENFI</div>
-                        <div class="mast-meta">
-                            <span class="em">VOL. IV · No. 02</span><br>
-                            APR / MAY · 2026<br>
-                            BANGKOK · TOKYO · PARIS<br>
-                            <span class="em">LICENSED EDITION</span>
+            <div class="splash-hero">
+                <div class="art">
+                    <div class="art-fade"></div>
+                    <div class="top-bar">
+                        <span><span class="em">DENFI</span> · ATELIER</span>
+                        <span class="badge"><span class="dot"></span>READY · TLS 1.3</span>
+                    </div>
+                    <div class="title-block">
+                        <div class="kicker">DENFI · ATELIER · 2026</div>
+                        <div class="title fit-title-hero">{{ app_name or 'Roblox' }}</div>
+                        <div class="meta-line">
+                            <span><span class="em">LICENSED</span></span>
+                            <span class="pip"></span>
+                            <span>v1.0.4</span>
+                            <span class="pip"></span>
+                            <span>BANGKOK · TH-BKK</span>
+                            <span class="pip"></span>
+                            <span><span class="em">42ms</span></span>
                         </div>
                     </div>
-                    <div class="issue-bar">
-                        <span>The Software Issue</span>
-                        <span>฿ 0.00 · COMPLIMENTARY</span>
-                    </div>
-                    <div class="cover-area">
-                        <div class="cover-lines">
-                            <div class="line"><span class="num">01</span>Inside this Issue · The new edition of {{ app_name or 'Roblox' }}, fully licensed.</div>
-                            <div class="line"><span class="num">02</span>License No.<br>7M3F · XKQR · 2026</div>
-                            <div class="line"><span class="num">03</span>A quiet conversation with the Atelier in Bangkok.</div>
-                            <div class="line"><span class="num">04</span>Why we still hand-deliver every license, by post.</div>
+                </div>
+                <div class="strip">
+                    <div class="play-btn"></div>
+                    <div class="progress">
+                        <div class="label-row">
+                            <span>CHECKING FILES · <span class="em" id="hero-pct">0%</span></span>
+                            <span>LIC <span class="em">7M3F-XKQR</span></span>
                         </div>
-                        <div class="center">
-                            <div class="kicker">The Software Issue · 2026</div>
-                            <div class="title fit-title-mag">{{ app_name or 'Roblox' }}</div>
-                            <div class="pull">"A licensed edition, prepared for one operator, in one city — <span class="em">Bangkok</span>."</div>
-                        </div>
-                    </div>
-                    <div class="foot">
-                        <div class="left">
-                            <span class="em">DENFI · ATELIER</span><br>
-                            v1.0.4 · BUILD 2026.04.19<br>
-                            ISSN 2026-0419
-                        </div>
-                        <div class="barcode">
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span><span></span>
-                        </div>
+                        <div class="track"><div class="fill" id="hero-fill"></div></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">600 × 800 &nbsp;|&nbsp; cream paper · Playfair display · cover lines · barcode</div>
+        <div class="design-meta">720 × 420 &nbsp;|&nbsp; artwork wash · frosted badge · play button · labeled progress</div>
     </section>
 
     <!-- ====================================================
-         TICKET — premium concert / event ticket
+         STUDIO — JetBrains / Ableton boot splash
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag ticket">NEW · 5</span>
-            <span class="design-name">Ticket</span>
+            <span class="design-tag studio">NEW · 5</span>
+            <span class="design-name">Studio</span>
         </div>
         <div class="design-desc">
-            <strong>Skeuomorphic premium event ticket / boarding pass.</strong> A real ticket: warm cream main panel with paper grain, an animated holofoil rainbow strip across the top, "DENFI · ATELIER" brand mark with a small monogram, Playfair Display serif title at 78px, and a meta-row of mono labels (DATE / GATE / EDITION / HOLDER). To the right, a true perforated tear-off stub in deep brown/gold with two black notches and a dashed perforation line — the stub carries "ADMIT ONE", a seat block, a gold barcode and the license code. The most tactile direction — you can almost feel the paper weight.
+            <strong>Premium creative-software boot splash</strong> (JetBrains IntelliJ / Ableton Live / Logic Pro). Two-pane window with subtle dot/grid texture: the wide left pane has a small gradient "D" glyph mark, an orange pre-title, the title in 96px bold, and a refined sub-line; the right pane is a "loading modules" panel that lists 7 launcher subsystems (network, license, integrity check, telegram backup, etc.) — each with a checkbox that ticks green as it loads, a subtle progress fill at the bottom, and a version stamp. Real "the launcher is starting up" energy, the way pro creative apps look on first boot.
         </div>
         <div class="design-stage">
-            <div class="splash-ticket">
-                <div class="body">
-                    <div class="body-inner">
-                        <div class="head">
-                            <div class="brand">
-                                <span class="glyph">D</span>
-                                <span><span class="em">DENFI</span> · ATELIER</span>
-                            </div>
-                            <div>SERIAL <span class="em">7M3F-XKQR</span></div>
-                        </div>
-                        <div class="center">
-                            <div class="pre">A LICENSED EDITION · 2026</div>
-                            <div class="title fit-title-tic">{{ app_name or 'Roblox' }}</div>
-                            <div class="meta-row">
-                                <div class="meta"><span class="lab">Date</span><span class="val">19·04·2026</span></div>
-                                <div class="meta"><span class="lab">Gate</span><span class="val">BKK · TH</span></div>
-                                <div class="meta"><span class="lab">Edition</span><span class="val">v1.0.4</span></div>
-                                <div class="meta"><span class="lab">Holder</span><span class="val">OPERATOR</span></div>
-                            </div>
-                        </div>
-                        <div class="foot">
-                            <span><span class="em">VERIFIED</span> · TLS 1.3 · 144.31.48.238</span>
-                            <span>NON-TRANSFERABLE</span>
-                        </div>
+            <div class="splash-studio">
+                <div class="main">
+                    <div class="main-head">
+                        <span class="glyph">D</span>
+                        <span><span class="em">DENFI</span> · ATELIER · STUDIO</span>
+                    </div>
+                    <div class="main-center">
+                        <div class="pre">A LICENSED EDITION · 2026</div>
+                        <div class="title fit-title-studio">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok. Verifying license over TLS 1.3.</div>
+                    </div>
+                    <div class="main-foot">
+                        <span><span class="em">v1.0.4</span> · BUILD 2026.04.19</span>
+                        <span>BANGKOK · TH-BKK</span>
                     </div>
                 </div>
-                <div class="perf"><div class="perf-line"></div></div>
-                <div class="stub">
-                    <div class="lab">Admit</div>
-                    <div class="admit">ONE</div>
-                    <div class="seat-row">
-                        <div class="seat"><span class="k">Sec</span><span class="v">A</span></div>
-                        <div class="seat"><span class="k">Row</span><span class="v">04</span></div>
-                        <div class="seat"><span class="k">Seat</span><span class="v">19</span></div>
+                <div class="side">
+                    <div class="title-row">
+                        <span><span class="em">LOADING</span></span>
+                        <span id="studio-count">3 / 7</span>
                     </div>
-                    <div class="barcode">
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
+                    <div class="modules" id="studio-modules">
+                        <div class="mod done"><span class="check"></span><span class="name">core.runtime</span></div>
+                        <div class="mod done"><span class="check"></span><span class="name">net.tls13</span></div>
+                        <div class="mod done"><span class="check"></span><span class="name">cache.warmup</span></div>
+                        <div class="mod active"><span class="check"></span><span class="name">license.verify</span></div>
+                        <div class="mod"><span class="check"></span><span class="name">integrity.check</span></div>
+                        <div class="mod"><span class="check"></span><span class="name">telegram.bridge</span></div>
+                        <div class="mod"><span class="check"></span><span class="name">launcher.ready</span></div>
                     </div>
-                    <div class="lic">7M3F · XKQR</div>
+                    <div class="mini-track"><div class="mini-fill" id="studio-fill"></div></div>
+                    <div class="ver">LIC <span class="em">7M3F·XKQR</span></div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">760 × 280 &nbsp;|&nbsp; perforated stub · holofoil strip · barcode · paper grain</div>
+        <div class="design-meta">740 × 420 &nbsp;|&nbsp; two-pane window · loading modules · live checkmarks</div>
     </section>
 
     <!-- ====================================================
-         POSTER — Saul Bass / A24 / Swiss bold poster
+         BOOT — ultra-minimal macOS / Linux distro boot screen
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag poster">NEW · 6</span>
-            <span class="design-name">Poster</span>
+            <span class="design-tag boot">NEW · 6</span>
+            <span class="design-name">Boot</span>
         </div>
         <div class="design-desc">
-            <strong>Bold solid-color poster.</strong> Hot-orange (#ff5e3a) full-bleed background, multiplied paper grain, a giant yellow circle behind the type and a deep-brown rotated square in the bottom-right corner — Saul Bass / A24 / Swiss-poster geometry. Top: hairline-bordered brand bar. Then a hard black "ribbon" kicker tag, a single oversized 196px black-weight title that intentionally bleeds past the right edge (the way Saul Bass would set "VERTIGO"), an italic Playfair sub-tag with hard underline, a mono body paragraph with a black-on-yellow highlight, and a 3-column footer. The design that screams confidence — exact opposite of every dark mono panel.
+            <strong>Ultra-minimal first-boot screen</strong> (macOS startup / Asahi Linux / Steam Deck OS boot). Near-black background, 99% empty space, perfect optical centering. A single 56px gradient "D" glyph, the title below in 56px refined bold (no decoration, no caps), then a small mono "VERIFIED · v1.0.4" tag. A 200px hairline orange progress bar at bottom-center with one mono status line above it ("STARTING DENFI ROBLOX · 42%"). Tiny corner stamps for brand and edition. This is the design that says "premium" by saying almost nothing.
         </div>
         <div class="design-stage">
-            <div class="splash-poster">
-                <div class="mark"></div>
-                <div class="mark-sq"></div>
-                <div class="frame">
-                    <div class="head">
-                        <div class="brand">DENFI · ATELIER</div>
-                        <div><span class="em">EDITION 2026</span> · BANGKOK</div>
-                    </div>
-                    <div class="kicker">A LICENSED EDITION</div>
-                    <div class="title-stack">
-                        <div class="title fit-title-pos">{{ app_name or 'ROBLOX' }}</div>
-                    </div>
-                    <div class="sub-tag">prepared for one operator.</div>
-                    <div class="body-copy">
-                        Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok. <strong>One operator · one edition · one city.</strong> Verified over TLS 1.3 from 144.31.48.238 — non-transferable, by design.
-                    </div>
-                    <div class="foot">
-                        <div class="col"><div class="lab">Date</div><div class="val">19·04·26</div></div>
-                        <div class="col"><div class="lab">Edition</div><div class="val">v1.0.4</div></div>
-                        <div class="col"><div class="lab">Serial</div><div class="val">7M3F·XKQR</div></div>
-                    </div>
+            <div class="splash-boot">
+                <div class="corner-brand"><span class="em">DENFI</span> · ATELIER</div>
+                <div class="corner-meta">EDITION 2026<br><span class="em">BANGKOK</span></div>
+                <div class="center">
+                    <div class="glyph">D</div>
+                    <div class="title fit-title-boot">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub"><span class="em">VERIFIED</span> · v1.0.4</div>
                 </div>
+                <div class="boot-bar-wrap">
+                    <div class="boot-status">STARTING · <span class="em" id="boot-pct">42%</span></div>
+                    <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+                </div>
+                <div class="footer-line">© <span class="em">DENFI · ATELIER</span> · BANGKOK · TH</div>
             </div>
         </div>
-        <div class="design-meta">600 × 800 &nbsp;|&nbsp; hot-orange · 196px display title · geometric mark · poster grid</div>
+        <div class="design-meta">600 × 420 &nbsp;|&nbsp; ultra-minimal · centered glyph · hairline progress</div>
     </section>
 
     <script>
@@ -1702,14 +1578,67 @@
         autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
         autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
 
-        // MAGAZINE — fit huge serif display title
-        autoFitTitle(document.querySelector('.fit-title-mag'), 132, 56);
+        // HERO TILE — fit big bold title
+        autoFitTitle(document.querySelector('.fit-title-hero'), 92, 42);
+        // STUDIO — fit big bold title in main pane
+        autoFitTitle(document.querySelector('.fit-title-studio'), 96, 44);
+        // BOOT — fit minimal centered title
+        autoFitTitle(document.querySelector('.fit-title-boot'), 56, 28);
 
-        // TICKET — fit serif title in main body
-        autoFitTitle(document.querySelector('.fit-title-tic'), 78, 38);
+        // HERO TILE — animated checking-files progress
+        (function() {
+            var fill = document.getElementById('hero-fill');
+            var pct  = document.getElementById('hero-pct');
+            if (!fill || !pct) return;
+            var p = 0;
+            setInterval(function() {
+                p = (p + 3) % 101;
+                fill.style.width = p + '%';
+                pct.textContent  = p + '%';
+            }, 180);
+        })();
 
-        // POSTER — fit oversized 196px sans-serif display title
-        autoFitTitle(document.querySelector('.fit-title-pos'), 196, 84);
+        // STUDIO — cycle the active module forward over time
+        (function() {
+            var mods = document.querySelectorAll('#studio-modules .mod');
+            var fill = document.getElementById('studio-fill');
+            var cnt  = document.getElementById('studio-count');
+            if (!mods.length) return;
+            var idx = 3; // start with .active at index 3
+            setInterval(function() {
+                // mark current active as done
+                mods[idx].classList.remove('active');
+                mods[idx].classList.add('done');
+                idx = (idx + 1) % mods.length;
+                if (idx === 0) {
+                    // reset all
+                    mods.forEach(function(m, i) {
+                        m.classList.remove('done', 'active');
+                        if (i < 3) m.classList.add('done');
+                    });
+                    idx = 3;
+                }
+                mods[idx].classList.add('active');
+                var done = 0;
+                mods.forEach(function(m){ if (m.classList.contains('done')) done++; });
+                if (cnt)  cnt.textContent = done + ' / ' + mods.length;
+                if (fill) fill.style.width = ((done / mods.length) * 100) + '%';
+            }, 900);
+        })();
+
+        // BOOT — slow climbing progress bar
+        (function() {
+            var fill = document.getElementById('boot-fill');
+            var pct  = document.getElementById('boot-pct');
+            if (!fill || !pct) return;
+            var p = 8;
+            setInterval(function() {
+                p = (p + 2);
+                if (p > 100) p = 8;
+                fill.style.width = p + '%';
+                pct.textContent  = p + '%';
+            }, 240);
+        })();
 
         // HORIZON — status + counter + title accent on first letter
         (function() {
