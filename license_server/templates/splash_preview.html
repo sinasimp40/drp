@@ -62,8 +62,10 @@
             border: 1px solid #333;
             color: #888;
         }
-        .design-tag.current { color: #888; border-color: #333; }
-        .design-tag.new     { color: #ff9d4d; border-color: #5a3115; }
+        .design-tag.current  { color: #888;    border-color: #333; }
+        .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
+        .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
+        .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -357,6 +359,319 @@
             width: 0%;
             transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        /* ============================================================
+           HORIZON — split layout
+           50/50 vertical split. Left = solid orange color block with
+           the logo. Right = dark, content stacked. Bauhaus / Stripe.
+           ============================================================ */
+        .splash-horizon {
+            position: relative;
+            width: 680px;
+            height: 380px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            font-family: 'Inter', system-ui, sans-serif;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.04),
+                0 30px 80px rgba(0,0,0,0.5);
+        }
+        .splash-horizon .left {
+            flex: 0 0 240px;
+            position: relative;
+            background: linear-gradient(155deg, #ff8533 0%, #ff6a00 50%, #e85a00 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        /* subtle diagonal sheen */
+        .splash-horizon .left::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.10) 50%, transparent 65%);
+            animation: horizon-sheen 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes horizon-sheen {
+            0%, 100% { transform: translateX(-30%); }
+            50%      { transform: translateX(30%); }
+        }
+        /* corner notation */
+        .splash-horizon .left .notch {
+            position: absolute;
+            top: 18px; left: 22px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(0,0,0,0.55);
+            letter-spacing: 2px;
+        }
+        .splash-horizon .left .notch-b {
+            top: auto; bottom: 18px; left: 22px;
+        }
+        .splash-horizon .logo-block {
+            position: relative;
+            text-align: center;
+            z-index: 2;
+        }
+        .splash-horizon .logo-block img {
+            max-width: 180px;
+            max-height: 130px;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 24px rgba(0,0,0,0.35));
+        }
+        .splash-horizon .logo-block.no-logo-block {
+            color: rgba(0,0,0,0.5);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .splash-horizon .right {
+            flex: 1;
+            position: relative;
+            background: #0a0a0e;
+            color: #f4f4f6;
+            padding: 32px 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .splash-horizon .right::before {
+            content: '';
+            position: absolute;
+            top: -100px; right: -100px;
+            width: 360px; height: 360px;
+            background: radial-gradient(ellipse, rgba(255,123,31,0.07), transparent 60%);
+            pointer-events: none;
+        }
+        .splash-horizon .top {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .splash-horizon .brand {
+            font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(244,244,246,0.85);
+        }
+        .splash-horizon .version {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; color: rgba(244,244,246,0.45);
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
+        }
+        .splash-horizon .center {
+            position: relative;
+        }
+        .splash-horizon .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; color: #ff9d4d; letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .splash-horizon .title {
+            font-size: 64px;
+            font-weight: 700;
+            letter-spacing: -3px;
+            line-height: 0.95;
+            color: #fff;
+        }
+        .splash-horizon .sub {
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(244,244,246,0.55);
+            letter-spacing: 0.2px;
+        }
+        .splash-horizon .bottom {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .splash-horizon .status {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .splash-horizon .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ff7b1f;
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
+        .splash-horizon .status-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            transition: opacity 0.3s;
+        }
+        .splash-horizon .ratio {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.4);
+        }
+        .splash-horizon .ratio .num { color: rgba(244,244,246,0.85); font-weight: 500; }
+
+        /* ============================================================
+           CONSOLE — IDE / terminal aesthetic, premium edition
+           Faux titlebar + traffic lights + mono command output.
+           White-on-near-black, NOT hacker green. Looks like Raycast/iTerm.
+           ============================================================ */
+        .splash-console {
+            position: relative;
+            width: 660px;
+            height: 380px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0d0d12;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            color: #eaeaf0;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 80px rgba(0,0,0,0.55);
+            display: flex; flex-direction: column;
+        }
+        .splash-console .titlebar {
+            height: 36px;
+            background: linear-gradient(180deg, #181820 0%, #131319 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center;
+            padding: 0 14px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .splash-console .lights {
+            display: flex; gap: 7px;
+        }
+        .splash-console .lights span {
+            width: 11px; height: 11px; border-radius: 50%;
+            box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.3);
+        }
+        .splash-console .lights .r { background: #ff5f57; }
+        .splash-console .lights .y { background: #febc2e; }
+        .splash-console .lights .g { background: #28c840; }
+        .splash-console .tab-title {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(234,234,240,0.6);
+            letter-spacing: 0.5px;
+        }
+        .splash-console .tab-title .em {
+            color: #ff9d4d;
+        }
+
+        .splash-console .body {
+            flex: 1;
+            position: relative;
+            padding: 22px 28px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        /* faint gutter line numbers strip */
+        .splash-console .body::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 0;
+            width: 38px;
+            background: rgba(255,255,255,0.015);
+            border-right: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .splash-console .ascii-wrap {
+            display: flex; align-items: center; gap: 22px;
+            margin-bottom: 18px;
+            margin-left: 22px;
+        }
+        .splash-console .ascii-logo {
+            width: 64px; height: 64px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,157,77,0.3);
+            border-radius: 6px;
+            background: rgba(255,157,77,0.04);
+            flex-shrink: 0;
+        }
+        .splash-console .ascii-logo img {
+            max-width: 50px; max-height: 50px; object-fit: contain;
+        }
+        .splash-console .heading-block {
+            flex: 1;
+            min-width: 0;
+        }
+        .splash-console .heading-block .title {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: #fff;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .splash-console .heading-block .meta {
+            font-size: 11px;
+            color: rgba(234,234,240,0.45);
+            letter-spacing: 0.5px;
+        }
+        .splash-console .heading-block .meta .key {
+            color: #ff9d4d;
+        }
+
+        .splash-console .lines {
+            margin-left: 22px;
+            font-size: 12px;
+            line-height: 1.85;
+            flex: 1;
+        }
+        .splash-console .line {
+            display: flex; gap: 12px;
+            opacity: 0;
+            animation: console-line-in 0.35s ease forwards;
+        }
+        .splash-console .line .ln {
+            color: rgba(255,255,255,0.22);
+            min-width: 18px;
+            text-align: right;
+            user-select: none;
+        }
+        .splash-console .line .prompt { color: #ff9d4d; }
+        .splash-console .line .text   { color: rgba(234,234,240,0.85); }
+        .splash-console .line .ok     { color: #6fdc8c; margin-left: 8px; }
+        @keyframes console-line-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .splash-console .footbar {
+            margin-left: 22px;
+            margin-top: 10px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .splash-console .ascii-bar {
+            font-size: 12px;
+            color: #ff9d4d;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .splash-console .ascii-bar .dim { color: rgba(255,157,77,0.25); }
+        .splash-console .pct {
+            font-size: 11px;
+            color: rgba(234,234,240,0.55);
+        }
+
+        .splash-console .statusbar {
+            height: 24px;
+            background: #07070a;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center;
+            padding: 0 14px;
+            font-size: 10px;
+            color: rgba(234,234,240,0.4);
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+            gap: 16px;
+        }
+        .splash-console .statusbar .seg { display: flex; align-items: center; gap: 6px; }
+        .splash-console .statusbar .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #6fdc8c;
+            box-shadow: 0 0 6px rgba(111,220,140,0.6);
+        }
+        .splash-console .statusbar .grow { flex: 1; }
+        .splash-console .statusbar .em { color: rgba(234,234,240,0.7); }
     </style>
 </head>
 <body>
@@ -364,8 +679,8 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            One brand-new direction below your current splash. Completely different layout — left-aligned, editorial, no centered card.<br>
-            Nothing has been changed in the launcher yet.<br>
+            Three new directions below your current splash. Each uses a completely different layout — no more centered cards.<br>
+            Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
     </div>
@@ -454,6 +769,108 @@
         <div class="design-meta">640 × 380 &nbsp;|&nbsp; asymmetric editorial · left accent · full-bleed progress</div>
     </section>
 
+    <!-- ====================================================
+         HORIZON — split layout
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag horizon">NEW · 2</span>
+            <span class="design-name">Horizon</span>
+        </div>
+        <div class="design-desc">
+            Bauhaus / Stripe-homepage hero. Vertical 50/50 split — the left half is a solid orange color block carrying the logo as a graphic element with a slow diagonal sheen, the right half is dark and holds all the type. Eyebrow tag in orange mono, big tight-tracked title, status row at the bottom. High contrast, graphic, confident. The kind of layout you see on actual product marketing sites — instantly reads as "this is a real thing."
+        </div>
+        <div class="design-stage">
+            <div class="splash-horizon">
+                <div class="left">
+                    <div class="notch">DENFI</div>
+                    <div class="notch notch-b">// LAUNCHER</div>
+                    {% if splash_file %}
+                    <div class="logo-block"><img src="/splash_logo_file" alt="Logo"></div>
+                    {% else %}
+                    <div class="logo-block no-logo-block">No splash_logo found</div>
+                    {% endif %}
+                </div>
+                <div class="right">
+                    <div class="top">
+                        <div class="brand">Premium Edition</div>
+                        <div class="version">v1.0.0</div>
+                    </div>
+                    <div class="center">
+                        <div class="eyebrow">// Now Loading</div>
+                        <div class="title fit-title-h">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">Built for performance. Designed to disappear.</div>
+                    </div>
+                    <div class="bottom">
+                        <div class="status">
+                            <span class="status-dot"></span>
+                            <span class="status-text" id="horizon-status">checking roblox files</span>
+                        </div>
+                        <div class="ratio"><span class="num" id="horizon-num">00</span> / 100</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">680 × 380 &nbsp;|&nbsp; 50/50 split · solid color block · graphic poster</div>
+    </section>
+
+    <!-- ====================================================
+         CONSOLE — IDE / terminal
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag console">NEW · 3</span>
+            <span class="design-name">Console</span>
+        </div>
+        <div class="design-desc">
+            IDE / terminal aesthetic, but premium — white-on-near-black like Raycast or iTerm, not hacker green-on-black. Faux titlebar with traffic-light dots and the launcher name as the tab title. A small framed logo sits next to the title. Status appears as numbered command-output lines that stream in one by one with a timestamp, ending in <code>OK</code>. ASCII-style progress bar at the bottom, slim status bar at the very bottom shows session info. Says "this is a real tool, written by people who care."
+        </div>
+        <div class="design-stage">
+            <div class="splash-console">
+                <div class="titlebar">
+                    <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                    <div class="tab-title"><span class="em">●</span>&nbsp;&nbsp;denfi-launcher &mdash; ~/{{ (app_name or 'roblox')|lower }}</div>
+                </div>
+
+                <div class="body">
+                    <div class="ascii-wrap">
+                        <div class="ascii-logo">
+                            {% if splash_file %}
+                            <img src="/splash_logo_file" alt="Logo">
+                            {% else %}
+                            ◆
+                            {% endif %}
+                        </div>
+                        <div class="heading-block">
+                            <div class="title fit-title-c">{{ app_name or 'ROBLOX' }}</div>
+                            <div class="meta"><span class="key">denfi</span> · premium launcher · v1.0.0</div>
+                        </div>
+                    </div>
+
+                    <div class="lines" id="console-lines">
+                        <!-- streamed by JS -->
+                    </div>
+
+                    <div class="footbar">
+                        <div class="ascii-bar" id="console-bar">
+                            <span id="console-bar-on"></span><span class="dim" id="console-bar-off"></span>
+                        </div>
+                        <div class="pct" id="console-pct">0%</div>
+                    </div>
+                </div>
+
+                <div class="statusbar">
+                    <div class="seg"><span class="dot"></span><span class="em">connected</span></div>
+                    <div class="seg">144.31.48.238:3842</div>
+                    <div class="grow"></div>
+                    <div class="seg">UTF-8</div>
+                    <div class="seg">main</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; titlebar + traffic lights + streaming command output</div>
+    </section>
+
     <script>
     (function() {
         // CURRENT — bouncing progress bar
@@ -536,6 +953,124 @@
                 mStat.style.opacity = '1';
             }, 200);
         }, 2200);
+
+        // Generic auto-fit helper for big titles
+        function autoFitTitle(el, padding, minSize) {
+            if (!el) return;
+            var parent = el.parentElement;
+            var maxW = parent.offsetWidth - (padding || 40);
+            var size = parseFloat(getComputedStyle(el).fontSize);
+            var spacing = parseFloat(getComputedStyle(el).letterSpacing) || 0;
+            var guard = 0;
+            while (size >= (minSize || 20) && el.scrollWidth > maxW && guard++ < 60) {
+                size -= 2;
+                spacing = Math.max(-2, spacing + 0.1);
+                el.style.fontSize = size + 'px';
+                el.style.letterSpacing = spacing + 'px';
+            }
+        }
+        autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
+        autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
+
+        // HORIZON — status + counter + title accent on first letter
+        (function() {
+            var t = document.querySelector('.splash-horizon .title');
+            if (t) {
+                var txt = t.textContent.trim();
+                if (txt.length > 0) {
+                    t.innerHTML = '<span style="color:#ff9d4d">' + txt[0] + '</span>' + txt.slice(1);
+                }
+            }
+        })();
+        var hStat = document.getElementById('horizon-status');
+        var hNum  = document.getElementById('horizon-num');
+        var hIdx = 0, hPct = 0;
+        var horizonStatuses = [
+            'checking roblox files',
+            'verifying license',
+            'fetching latest update',
+            'preparing instance',
+            'almost ready'
+        ];
+        function horizonTick() {
+            hPct += 2 + Math.random() * 3;
+            if (hPct >= 100) {
+                hPct = 100;
+                if (hNum) hNum.textContent = '100';
+                setTimeout(function() { hPct = 0; }, 1200);
+                return;
+            }
+            if (hNum) hNum.textContent = String(Math.floor(hPct)).padStart(2, '0');
+        }
+        setInterval(horizonTick, 240);
+        setInterval(function() {
+            if (!hStat) return;
+            hIdx = (hIdx + 1) % horizonStatuses.length;
+            hStat.style.opacity = '0';
+            setTimeout(function() {
+                hStat.textContent = horizonStatuses[hIdx];
+                hStat.style.opacity = '1';
+            }, 200);
+        }, 2200);
+
+        // CONSOLE — streaming command-output lines + ascii bar
+        var consoleScript = [
+            { cmd: 'denfi-launcher init',                  out: 'OK' },
+            { cmd: 'connect license-server :3842',         out: 'OK' },
+            { cmd: 'verify signature --strict',            out: 'OK' },
+            { cmd: 'fetch update --channel stable',        out: 'OK' },
+            { cmd: 'patch roblox client',                  out: 'OK' },
+            { cmd: 'spawn instance',                       out: 'READY' }
+        ];
+        var consoleLinesEl = document.getElementById('console-lines');
+        var consolePctEl   = document.getElementById('console-pct');
+        var consoleBarOn   = document.getElementById('console-bar-on');
+        var consoleBarOff  = document.getElementById('console-bar-off');
+        var BAR_WIDTH = 22;
+
+        function renderBar(pct) {
+            var filled = Math.round((pct / 100) * BAR_WIDTH);
+            var empty  = BAR_WIDTH - filled;
+            if (consoleBarOn)  consoleBarOn.textContent  = '▰'.repeat(filled);
+            if (consoleBarOff) consoleBarOff.textContent = '▱'.repeat(empty);
+            if (consolePctEl)  consolePctEl.textContent  = pct + '%';
+        }
+
+        function runConsole() {
+            if (!consoleLinesEl) return;
+            consoleLinesEl.innerHTML = '';
+            renderBar(0);
+            var i = 0;
+            function step() {
+                if (i >= consoleScript.length) {
+                    setTimeout(runConsole, 1800);
+                    return;
+                }
+                var item = consoleScript[i];
+                var ln = document.createElement('div');
+                ln.className = 'line';
+                ln.style.animationDelay = '0s';
+                var num = String(i + 1).padStart(2, '0');
+                var okClass = item.out === 'READY' ? 'ok' : 'ok';
+                ln.innerHTML =
+                    '<span class="ln">' + num + '</span>' +
+                    '<span class="prompt">$</span>' +
+                    '<span class="text">' + item.cmd + '</span>' +
+                    '<span class="' + okClass + '">' + item.out + '</span>';
+                consoleLinesEl.appendChild(ln);
+
+                // keep at most 6 lines visible
+                while (consoleLinesEl.childNodes.length > 6) {
+                    consoleLinesEl.removeChild(consoleLinesEl.firstChild);
+                }
+
+                renderBar(Math.round(((i + 1) / consoleScript.length) * 100));
+                i++;
+                setTimeout(step, 700);
+            }
+            step();
+        }
+        runConsole();
     })();
     </script>
 </body>
