@@ -31,7 +31,7 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db"
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 HEARTBEAT_TIMEOUT = 60
-REQUEST_TIMESTAMP_TOLERANCE = 3600
+REQUEST_TIMESTAMP_TOLERANCE = 300
 _used_nonces = set()
 _nonce_cleanup_time = 0
 
@@ -1541,9 +1541,17 @@ def _run_single_build(build_id, config, version):
             cmd.extend(["--add-data", f"{font_work}{os.pathsep}."])
         cmd.append(patched_path)
 
-        process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=work_dir
+        # Run PyInstaller at lower OS priority so simultaneous builds
+        # cannot CPU-starve the Flask request thread that handles
+        # /api/validate and /api/update_check from live launchers.
+        popen_kwargs = dict(
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=work_dir
         )
+        if os.name == "posix":
+            popen_kwargs["preexec_fn"] = lambda: os.nice(15)
+        elif os.name == "nt":
+            popen_kwargs["creationflags"] = getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0x00004000)
+        process = subprocess.Popen(cmd, **popen_kwargs)
         progress_steps = 0
         last_emitted = 0
         for line in process.stdout:
@@ -1685,7 +1693,7 @@ def _run_build_all(build_id, version, configs):
                 _build_progress[build_id]["completed"] = total_done
         return success
 
-    max_workers = min(3, len(configs))
+    max_workers = min(2, len(configs))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(build_one, cfg): cfg for cfg in configs}
         for future in as_completed(futures):
