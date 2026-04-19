@@ -1464,110 +1464,75 @@ def _is_fatal_license_error(error_msg):
 
 
 class UpdateProgressDialog(QDialog):
+    """Horizon-style update dialog. Same 680x380 50/50 split as the splash:
+    orange color block on the left (with "// UPDATING" notch) and a dark
+    column on the right that holds the version pill, two-line title, the
+    orange progress bar, the byte counter and a small status line."""
+
     def __init__(self, version="", total_bytes=0, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"{APP_NAME} - Updating")
-        self.setFixedSize(460, 280)
+        self.setFixedSize(SPLASH_W, SPLASH_H)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)
 
         self._total_bytes = total_bytes or 0
         self._version = version or "?"
+        self._downloaded = 0
+        self._pct = 0
+        self._status = "Preparing download..."
+        self._phase = "downloading"
 
-        self.setStyleSheet("""
-            QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
-            QLabel { color: #e8e8ef; background: transparent; }
-            QProgressBar {
-                background: #16161e;
-                border: 1px solid #2a2a38;
-                border-radius: 6px;
-                height: 18px;
-                text-align: center;
-                color: #ffffff;
-                font-weight: bold;
-            }
-            QProgressBar::chunk {
-                background-color: #ff6a00;
-                border-radius: 5px;
-            }
-        """)
+        right_x = ORANGE_W
+        right_w = SPLASH_W - ORANGE_W
+        pad = 28
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 22)
-        layout.setSpacing(8)
+        bar_w = right_w - pad * 2
+        bar_h = 14
+        bar_x = right_x + pad
+        bar_y = 250
 
-        title = QLabel(f"Updating {APP_NAME}")
-        title.setFont(QFont("Segoe UI", 15, QFont.Bold))
-        title.setStyleSheet("color: #ff6a00;")
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-
-        size_mb = self._total_bytes / 1024 / 1024 if self._total_bytes else 0
-        sub = QLabel(f"Downloading version {self._version}  ({size_mb:.1f} MB)")
-        sub.setFont(QFont("Segoe UI", 10))
-        sub.setStyleSheet("color: #b0b0c0;")
-        sub.setAlignment(Qt.AlignCenter)
-        layout.addWidget(sub)
-        self._sub_label = sub
-
-        layout.addSpacing(6)
-
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p%")
-        layout.addWidget(self.progress_bar)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setGeometry(bar_x, bar_y, bar_w, bar_h)
+        self.progress_bar.setStyleSheet(
+            "QProgressBar { background: rgba(255,255,255,18); "
+            "border: 1px solid rgba(255,255,255,30); border-radius: 7px; }"
+            "QProgressBar::chunk { background-color: #ff6a00; border-radius: 6px; }"
+        )
 
-        self.detail_label = QLabel(f"0.0 / {size_mb:.1f} MB")
-        self.detail_label.setFont(QFont("Segoe UI", 10))
-        self.detail_label.setStyleSheet("color: #d0d0d8;")
-        self.detail_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.detail_label)
-
-        self.status_label = QLabel("Preparing download...")
-        self.status_label.setFont(QFont("Segoe UI", 10))
-        self.status_label.setStyleSheet("color: #b0b0c0;")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label)
-
-        layout.addSpacing(6)
-
-        warning = QLabel("Update in progress\nPlease don't close this window")
-        warning.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        warning.setStyleSheet("color: #ffbb33;")
-        warning.setAlignment(Qt.AlignCenter)
-        warning.setWordWrap(True)
-        layout.addWidget(warning)
+    # ---- public API (same shape as before) -----------------------------
 
     def set_download_progress(self, downloaded_bytes, total_bytes):
         if total_bytes and total_bytes > 0:
             self._total_bytes = total_bytes
+        self._downloaded = downloaded_bytes or 0
         total = self._total_bytes if self._total_bytes else (total_bytes or 0)
-        dl_mb = downloaded_bytes / 1024 / 1024
-        total_mb = total / 1024 / 1024 if total else 0
         if total > 0:
-            pct = max(0, min(100, int(downloaded_bytes * 100 / total)))
+            self._pct = max(0, min(100, int(self._downloaded * 100 / total)))
         else:
-            pct = 0
-        self.progress_bar.setValue(pct)
-        if total_mb > 0:
-            self.detail_label.setText(f"{dl_mb:.1f} / {total_mb:.1f} MB")
-        else:
-            self.detail_label.setText(f"{dl_mb:.1f} MB")
-        self.status_label.setText(f"Downloading update... ({pct}%)")
+            self._pct = 0
+        self.progress_bar.setValue(self._pct)
+        self._status = f"// downloading update  {self._pct:>3}%"
+        self.update()
 
     def set_phase(self, phase, version=None):
         if version:
             self._version = version
+        self._phase = phase
         if phase == "installing":
+            self._pct = 100
             self.progress_bar.setValue(100)
-            self.status_label.setText(f"Installing version {self._version}...")
+            self._status = f"// installing version {self._version}"
         elif phase == "restarting":
+            self._pct = 100
             self.progress_bar.setValue(100)
-            self.status_label.setText(f"Restarting into version {self._version}...")
+            self._status = f"// restarting into version {self._version}"
         elif phase == "failed":
-            self.status_label.setText("Update failed. Continuing...")
+            self._status = "// update failed — continuing"
+        self.update()
 
     def closeEvent(self, event):
         event.ignore()
@@ -1577,6 +1542,189 @@ class UpdateProgressDialog(QDialog):
             event.ignore()
             return
         super().keyPressEvent(event)
+
+    # ---- painting ------------------------------------------------------
+
+    def paintEvent(self, event):
+        w, h = SPLASH_W, SPLASH_H
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setRenderHint(QPainter.TextAntialiasing)
+        p.setRenderHint(QPainter.SmoothPixmapTransform)
+
+        # ---------- LEFT ORANGE BLOCK ----------
+        orange_grad = QLinearGradient(0, 0, ORANGE_W, h)
+        orange_grad.setColorAt(0.0, QColor("#ff8a3a"))
+        orange_grad.setColorAt(1.0, QColor("#ee5a00"))
+        p.fillRect(0, 0, ORANGE_W, h, orange_grad)
+
+        sheen = QLinearGradient(0, 0, ORANGE_W, h)
+        sheen.setColorAt(0.0, QColor(255, 255, 255, 25))
+        sheen.setColorAt(0.55, QColor(255, 255, 255, 0))
+        sheen.setColorAt(1.0, QColor(0, 0, 0, 30))
+        p.fillRect(0, 0, ORANGE_W, h, sheen)
+
+        edge = QLinearGradient(ORANGE_W - 12, 0, ORANGE_W, 0)
+        edge.setColorAt(0, QColor(0, 0, 0, 0))
+        edge.setColorAt(1, QColor(0, 0, 0, 70))
+        p.fillRect(ORANGE_W - 12, 0, 12, h, edge)
+
+        # large "OTA" wordmark on the orange block (decorative)
+        ota_font = QFont("Bahnschrift", 96, QFont.Black)
+        if not ota_font.exactMatch():
+            ota_font = QFont("Segoe UI Black", 96, QFont.Black)
+        ota_font.setLetterSpacing(QFont.AbsoluteSpacing, 4)
+        p.setFont(ota_font)
+        p.setPen(QColor(255, 255, 255, 55))
+        p.drawText(0, 0, ORANGE_W, h, Qt.AlignCenter, "OTA")
+
+        # notches: top "DENFI" / bottom "// UPDATER"
+        notch_font = QFont("JetBrains Mono", 8, QFont.Bold)
+        if not notch_font.exactMatch():
+            notch_font = QFont("Consolas", 8, QFont.Bold)
+        notch_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+        p.setFont(notch_font)
+        p.setPen(QColor(255, 255, 255, 200))
+        p.drawText(20, 20, ORANGE_W - 40, 16, Qt.AlignLeft | Qt.AlignVCenter, "DENFI")
+        p.setPen(QColor(255, 255, 255, 170))
+        p.drawText(20, h - 28, ORANGE_W - 40, 16, Qt.AlignLeft | Qt.AlignVCenter, "// UPDATER")
+
+        # ---------- RIGHT DARK BLOCK ----------
+        right_x = ORANGE_W
+        right_w = SPLASH_W - ORANGE_W
+        pad = 28
+
+        bg_grad = QLinearGradient(right_x, 0, right_x, h)
+        bg_grad.setColorAt(0.0, QColor("#0e0e10"))
+        bg_grad.setColorAt(1.0, QColor("#0a0a0a"))
+        p.fillRect(right_x, 0, right_w, h, bg_grad)
+
+        glow = QRadialGradient(right_x + right_w - 60, 60, 220)
+        glow.setColorAt(0, QColor(255, 106, 0, 28))
+        glow.setColorAt(1, QColor(0, 0, 0, 0))
+        p.fillRect(right_x, 0, right_w, h, glow)
+
+        # outer 1px frame
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(QColor("#1c1c1c"), 1))
+        p.drawRect(0, 0, w - 1, h - 1)
+
+        # ---------- TOP ROW: "PREMIUM EDITION" + version pill ----------
+        top_y = 28
+        pe_font = QFont("Segoe UI", 9, QFont.Bold)
+        pe_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+        p.setFont(pe_font)
+        p.setPen(QColor("#f4f4f6"))
+        p.drawText(right_x + pad, top_y, right_w - pad * 2, 16,
+                   Qt.AlignLeft | Qt.AlignVCenter, "PREMIUM EDITION")
+
+        ver_text = f"v{self._version}"
+        pill_font = QFont("JetBrains Mono", 8)
+        if not pill_font.exactMatch():
+            pill_font = QFont("Consolas", 8)
+        p.setFont(pill_font)
+        fm = QFontMetrics(pill_font)
+        pill_pad_x = 10
+        pill_h = 18
+        pill_w = fm.horizontalAdvance(ver_text) + pill_pad_x * 2
+        pill_x = right_x + right_w - pad - pill_w
+        pill_y = top_y - 1
+        p.setPen(QPen(QColor("#ff6a00"), 1))
+        p.setBrush(Qt.NoBrush)
+        p.drawRoundedRect(pill_x, pill_y, pill_w, pill_h, pill_h // 2, pill_h // 2)
+        p.setPen(QColor("#ff6a00"))
+        p.drawText(pill_x, pill_y, pill_w, pill_h, Qt.AlignCenter, ver_text)
+
+        # ---------- EYEBROW: // UPDATING ----------
+        eyebrow_font = QFont("JetBrains Mono", 9, QFont.Bold)
+        if not eyebrow_font.exactMatch():
+            eyebrow_font = QFont("Consolas", 9, QFont.Bold)
+        eyebrow_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+        p.setFont(eyebrow_font)
+        p.setPen(QColor("#ff6a00"))
+        eyebrow_y = 92
+        p.drawText(right_x + pad, eyebrow_y, right_w - pad * 2, 16,
+                   Qt.AlignLeft | Qt.AlignVCenter, "// UPDATING")
+
+        # ---------- TITLE (two lines, last word in Roblox font + orange) ----
+        roblox_family = _load_roblox_font()
+        line1, line2 = _split_title(APP_NAME)
+        max_title_w = right_w - pad * 2
+
+        title1_family = "Bahnschrift"
+        if not QFont(title1_family).exactMatch():
+            title1_family = "Segoe UI Semibold"
+            if not QFont(title1_family).exactMatch():
+                title1_family = "Segoe UI"
+
+        if line1:
+            f1, fm1 = _fit_font(title1_family, line1, max_title_w,
+                                start_size=28, min_size=14, weight=QFont.DemiBold,
+                                spacing=1)
+            p.setFont(f1)
+            p.setPen(QColor("#f4f4f6"))
+            line1_y = eyebrow_y + 26
+            p.drawText(right_x + pad, line1_y, max_title_w, fm1.height() + 4,
+                       Qt.AlignLeft | Qt.AlignTop, line1)
+            line2_top = line1_y + fm1.height() + 2
+        else:
+            line2_top = eyebrow_y + 26
+
+        if line2:
+            family = roblox_family if roblox_family else "Segoe UI"
+            f2, fm2 = _fit_font(family, line2, max_title_w,
+                                start_size=28, min_size=16, weight=QFont.Bold)
+            p.setFont(f2)
+            p.setPen(QColor("#ff6a00"))
+            p.drawText(right_x + pad, line2_top, max_title_w, fm2.height() + 8,
+                       Qt.AlignLeft | Qt.AlignTop, line2)
+
+        # ---------- BYTE COUNTER (right-aligned, above the bar) ----------
+        total_mb = self._total_bytes / 1024 / 1024 if self._total_bytes else 0
+        dl_mb = self._downloaded / 1024 / 1024
+        if total_mb > 0:
+            counter_text = f"{dl_mb:>5.1f} / {total_mb:.1f} MB"
+        else:
+            counter_text = f"{dl_mb:.1f} MB"
+
+        counter_font = QFont("JetBrains Mono", 9)
+        if not counter_font.exactMatch():
+            counter_font = QFont("Consolas", 9)
+        p.setFont(counter_font)
+        p.setPen(QColor(255, 255, 255, 200))
+        p.drawText(right_x + pad, 228, right_w - pad * 2, 16,
+                   Qt.AlignRight | Qt.AlignVCenter, counter_text)
+
+        pct_font = QFont("JetBrains Mono", 9, QFont.Bold)
+        if not pct_font.exactMatch():
+            pct_font = QFont("Consolas", 9, QFont.Bold)
+        p.setFont(pct_font)
+        p.setPen(QColor("#ff6a00"))
+        p.drawText(right_x + pad, 228, right_w - pad * 2, 16,
+                   Qt.AlignLeft | Qt.AlignVCenter, f"{self._pct:>3}%")
+
+        # ---------- STATUS LINE (below the bar) ----------
+        status_font = QFont("JetBrains Mono", 9)
+        if not status_font.exactMatch():
+            status_font = QFont("Consolas", 9)
+        p.setFont(status_font)
+        if self._phase == "failed":
+            p.setPen(QColor("#ff6a6a"))
+        else:
+            p.setPen(QColor(255, 255, 255, 150))
+        p.drawText(right_x + pad, 286, right_w - pad * 2, 16,
+                   Qt.AlignLeft | Qt.AlignVCenter, self._status)
+
+        # ---------- SUBTITLE / DON'T CLOSE WARNING ----------
+        sub_font = QFont("Segoe UI", 9)
+        p.setFont(sub_font)
+        p.setPen(QColor(255, 187, 51, 220))
+        sub_y = h - 50
+        p.drawText(right_x + pad, sub_y, max_title_w, 18,
+                   Qt.AlignLeft | Qt.AlignVCenter,
+                   "Update in progress — please don't close this window.")
+
+        p.end()
 
 
 class UpdateInstalledDialog(QDialog):
