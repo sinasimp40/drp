@@ -6,7 +6,7 @@
     <title>Splash Preview — New Direction</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -68,6 +68,16 @@
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
         .design-tag.vault    { color: #6fdc8c; border-color: #1d5a30; }
         .design-tag.card     { color: #d4af7a; border-color: #5a4525; }
+        .design-tag.monolith { color: #ff6a00; border-color: #5a2a00; }
+        .design-tag.dial     { color: #d4af7a; border-color: #5a4525; }
+        .design-tag.passport { color: #c8b890; border-color: #4a4030; }
+        .design-tag.vinyl    { color: #ff9d4d; border-color: #5a3115; }
+        .design-tag.ticker   { color: #ffb060; border-color: #5a3a18; }
+        .design-tag.mosaic   { color: #d4d4d4; border-color: #444; }
+        .design-tag.emblem   { color: #d4af7a; border-color: #5a4525; }
+        .design-tag.ticket   { color: #ff9d4d; border-color: #5a3115; }
+        .design-tag.ribbon   { color: #ff7b1f; border-color: #5a2a00; }
+        .design-tag.press    { color: #c8b890; border-color: #4a4030; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -990,6 +1000,1184 @@
             box-shadow: 0 0 8px rgba(111,220,140,0.7);
             animation: marquee-pulse 1.6s ease-in-out infinite;
         }
+
+        /* ============================================================
+           MONOLITH — brutalist Swiss
+           Single massive title, one orange bar. Negative space is the design.
+           ============================================================ */
+        .splash-monolith {
+            position: relative;
+            width: 660px;
+            height: 380px;
+            background: #0a0a0a;
+            overflow: hidden;
+            font-family: 'Inter', 'Helvetica Neue', sans-serif;
+            color: #fff;
+        }
+        .splash-monolith .bar {
+            position: absolute;
+            top: 56px; left: 36px;
+            width: 80px; height: 6px;
+            background: #ff6a00;
+        }
+        .splash-monolith .num {
+            position: absolute;
+            top: 50px; left: 134px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+        }
+        .splash-monolith .corner {
+            position: absolute;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+        }
+        .splash-monolith .corner.tr { top: 50px; right: 36px; }
+        .splash-monolith .corner.br { bottom: 36px; right: 36px; }
+        .splash-monolith .title {
+            position: absolute;
+            top: 110px;
+            left: 36px;
+            right: 36px;
+            font-size: 200px;
+            font-weight: 900;
+            letter-spacing: -10px;
+            line-height: 0.85;
+            color: #ffffff;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .splash-monolith .footer {
+            position: absolute;
+            bottom: 36px; left: 36px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.55);
+            text-transform: uppercase;
+        }
+        .splash-monolith .footer .em { color: #ff6a00; }
+
+        /* ============================================================
+           DIAL — analog watch face
+           Circular composition, tick marks, rotating gold hand.
+           ============================================================ */
+        .splash-dial {
+            position: relative;
+            width: 460px;
+            height: 460px;
+            background: radial-gradient(circle at 50% 40%, #1a1714 0%, #0a0807 70%, #050403 100%);
+            border-radius: 50%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #e8d8b8;
+            box-shadow:
+                inset 0 0 0 2px rgba(212,175,122,0.15),
+                inset 0 8px 40px rgba(0,0,0,0.6),
+                0 30px 80px rgba(0,0,0,0.7);
+        }
+        .splash-dial .bezel {
+            position: absolute; inset: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(212,175,122,0.20);
+        }
+        .splash-dial .tick {
+            position: absolute;
+            top: 22px; left: 50%;
+            width: 1px; height: 8px;
+            background: rgba(212,175,122,0.5);
+            transform-origin: 50% 208px;
+        }
+        .splash-dial .tick.major {
+            width: 2px; height: 14px; top: 18px;
+            background: rgba(212,175,122,0.85);
+        }
+        .splash-dial .arc-text {
+            position: absolute;
+            top: 38px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 11px;
+            letter-spacing: 5px;
+            color: rgba(212,175,122,0.7);
+            text-transform: uppercase;
+        }
+        .splash-dial .arc-text.bottom {
+            top: auto; bottom: 38px;
+        }
+        .splash-dial .logo-area {
+            position: absolute;
+            top: 110px; left: 0; right: 0;
+            text-align: center;
+            opacity: 0.85;
+        }
+        .splash-dial .logo-area img {
+            max-width: 90px; max-height: 56px; object-fit: contain;
+            filter: brightness(0) invert(1) opacity(0.75);
+        }
+        .splash-dial .title {
+            position: absolute;
+            top: 200px; left: 0; right: 0; text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 44px;
+            color: #f4e6c8;
+            letter-spacing: -1px;
+        }
+        .splash-dial .sub {
+            position: absolute;
+            top: 256px; left: 0; right: 0; text-align: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 13px;
+            color: rgba(212,175,122,0.65);
+            letter-spacing: 2px;
+        }
+        .splash-dial .center-pin {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 10px; height: 10px;
+            background: #d4af7a;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 12px rgba(212,175,122,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+            z-index: 5;
+        }
+        .splash-dial .hand {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 2px; height: 190px;
+            background: linear-gradient(180deg, transparent 0%, transparent 30%, #d4af7a 100%);
+            transform-origin: 50% 0;
+            transform: translate(-50%, 0) rotate(0deg);
+            transition: transform 0.5s linear;
+            z-index: 4;
+            box-shadow: 0 0 8px rgba(212,175,122,0.6);
+        }
+
+        /* ============================================================
+           PASSPORT — issued document page
+           Cream/ink, visa stamps, photo box, MRZ line at bottom.
+           ============================================================ */
+        .splash-passport {
+            position: relative;
+            width: 660px;
+            height: 420px;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 30%, #f4ecd8 0%, #e8dcc0 100%);
+            border-radius: 6px;
+            overflow: hidden;
+            font-family: 'Libre Caslon Text', 'Playfair Display', serif;
+            color: #2a1f10;
+            box-shadow:
+                inset 0 0 0 1px rgba(0,0,0,0.08),
+                0 30px 80px rgba(0,0,0,0.5);
+        }
+        /* paper texture */
+        .splash-passport::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.5;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+        /* perforated edges */
+        .splash-passport::after {
+            content: '';
+            position: absolute;
+            top: 12px; bottom: 12px; left: 18px;
+            width: 1px;
+            background-image: linear-gradient(180deg, rgba(0,0,0,0.3) 0 4px, transparent 4px 10px);
+            background-size: 1px 10px;
+        }
+
+        .splash-passport .header {
+            position: absolute;
+            top: 24px; left: 36px; right: 200px;
+            border-bottom: 3px double rgba(0,0,0,0.4);
+            padding-bottom: 6px;
+        }
+        .splash-passport .header .top {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: rgba(0,0,0,0.55);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .splash-passport .header .name {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 1px;
+            color: #1a0f00;
+        }
+
+        .splash-passport .photo-box {
+            position: absolute;
+            top: 24px; right: 36px;
+            width: 130px; height: 156px;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.35);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 0 4px #f4ecd8;
+        }
+        .splash-passport .photo-box img {
+            max-width: 110px; max-height: 130px; object-fit: contain;
+            filter: sepia(0.3) contrast(0.95);
+        }
+        .splash-passport .photo-box .ph {
+            font-size: 10px;
+            color: rgba(0,0,0,0.4);
+            font-style: italic;
+        }
+
+        .splash-passport .fields {
+            position: absolute;
+            top: 92px; left: 36px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 28px;
+            font-family: 'Libre Caslon Text', serif;
+        }
+        .splash-passport .field .lbl {
+            display: block;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .splash-passport .field .val {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a0f00;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .splash-passport .stamp {
+            position: absolute;
+            border: 2px solid currentColor;
+            padding: 8px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transform: rotate(-12deg);
+            opacity: 0.75;
+        }
+        .splash-passport .stamp.s1 {
+            top: 220px; left: 200px;
+            color: #c0392b;
+            transform: rotate(-9deg);
+        }
+        .splash-passport .stamp.s2 {
+            top: 244px; left: 380px;
+            color: #1a5f3a;
+            transform: rotate(7deg);
+        }
+
+        .splash-passport .mrz {
+            position: absolute;
+            bottom: 22px; left: 36px; right: 36px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: #1a0f00;
+            line-height: 1.4;
+            border-top: 1px solid rgba(0,0,0,0.3);
+            padding-top: 8px;
+        }
+
+        /* ============================================================
+           VINYL — record sleeve + spinning disc
+           Blue Note album cover energy.
+           ============================================================ */
+        .splash-vinyl {
+            position: relative;
+            width: 640px;
+            height: 380px;
+            background: #0a0807;
+            border-radius: 4px;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #f4e6c8;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.04),
+                0 30px 80px rgba(0,0,0,0.6);
+            display: flex;
+        }
+        .splash-vinyl .disc-area {
+            position: relative;
+            flex: 0 0 290px;
+            background: #050403;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .splash-vinyl .disc {
+            position: relative;
+            width: 320px; height: 320px;
+            margin-left: 80px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle, #1a1612 0%, #0a0807 100%);
+            box-shadow:
+                inset 0 0 0 1px rgba(212,175,122,0.15),
+                0 0 40px rgba(0,0,0,0.6);
+            animation: vinyl-spin 8s linear infinite;
+        }
+        @keyframes vinyl-spin { to { transform: rotate(360deg); } }
+        /* concentric grooves */
+        .splash-vinyl .disc::before {
+            content: '';
+            position: absolute; inset: 14px;
+            border-radius: 50%;
+            background:
+                repeating-radial-gradient(circle at center,
+                    rgba(255,255,255,0.04) 0px,
+                    rgba(255,255,255,0.04) 1px,
+                    transparent 1px,
+                    transparent 4px);
+        }
+        /* center label */
+        .splash-vinyl .disc::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100px; height: 100px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, #ff6a00 0%, #c84d00 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.4);
+        }
+        .splash-vinyl .spindle {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 8px; height: 8px;
+            transform: translate(calc(-50% + 40px), -50%);
+            background: #1a1612;
+            border-radius: 50%;
+            z-index: 3;
+        }
+
+        .splash-vinyl .sleeve {
+            flex: 1;
+            position: relative;
+            padding: 36px 32px;
+            background:
+                linear-gradient(135deg, #1a3050 0%, #0a1a30 100%);
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+        }
+        .splash-vinyl .sleeve .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            color: #ff9d4d;
+            text-transform: uppercase;
+        }
+        .splash-vinyl .sleeve .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            font-size: 52px;
+            line-height: 0.95;
+            letter-spacing: -2px;
+            color: #ffffff;
+        }
+        .splash-vinyl .sleeve .artist {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.65);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+        .splash-vinyl .tracklist {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.7;
+            letter-spacing: 0.5px;
+        }
+        .splash-vinyl .tracklist .t {
+            display: flex; gap: 10px;
+        }
+        .splash-vinyl .tracklist .t .num { color: #ff9d4d; min-width: 20px; }
+        .splash-vinyl .tracklist .t.live .text { color: #fff; }
+        .splash-vinyl .tracklist .t.live .num::after {
+            content: ' ▶';
+            color: #ff9d4d;
+        }
+        .splash-vinyl .footer-row {
+            display: flex; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+        }
+
+        /* ============================================================
+           TICKER — Bloomberg / financial terminal
+           Scrolling ticker tape, multi-column data grid, FT serif headline.
+           ============================================================ */
+        .splash-ticker {
+            position: relative;
+            width: 700px;
+            height: 380px;
+            background: #08080c;
+            border-radius: 8px;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,176,96,0.08),
+                0 30px 80px rgba(0,0,0,0.55);
+            display: flex; flex-direction: column;
+        }
+        .splash-ticker .tape {
+            height: 28px;
+            background: #0d0a06;
+            border-bottom: 1px solid rgba(255,176,96,0.18);
+            overflow: hidden;
+            display: flex; align-items: center;
+            position: relative;
+        }
+        .splash-ticker .tape-track {
+            display: flex; gap: 28px;
+            white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            letter-spacing: 0.5px;
+            animation: ticker-scroll 32s linear infinite;
+            padding-left: 100%;
+        }
+        @keyframes ticker-scroll {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+        .splash-ticker .tape-track .up   { color: #6fdc8c; }
+        .splash-ticker .tape-track .down { color: #ff6f6f; }
+        .splash-ticker .tape-track .sym  { color: #ffb060; font-weight: 500; }
+
+        .splash-ticker .body {
+            flex: 1;
+            padding: 28px 32px;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        .splash-ticker .meta {
+            display: flex; justify-content: space-between; align-items: baseline;
+            margin-bottom: 14px;
+        }
+        .splash-ticker .meta .left  {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.45);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .splash-ticker .meta .left .em { color: #ffb060; }
+        .splash-ticker .meta .right {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.45);
+            letter-spacing: 1px;
+        }
+        .splash-ticker .head-row {
+            display: flex; align-items: flex-end; gap: 22px;
+            margin-bottom: 22px;
+        }
+        .splash-ticker .head-row .logo-thumb {
+            width: 56px; height: 56px;
+            background: rgba(255,176,96,0.08);
+            border: 1px solid rgba(255,176,96,0.25);
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .splash-ticker .head-row .logo-thumb img {
+            max-width: 44px; max-height: 44px; object-fit: contain;
+        }
+        .splash-ticker .head-row .title-block {
+            flex: 1; min-width: 0;
+        }
+        .splash-ticker .head-row .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 38px;
+            letter-spacing: -1px;
+            color: #fff;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .splash-ticker .head-row .sub {
+            font-size: 11px;
+            color: rgba(244,244,246,0.55);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .splash-ticker .head-row .sub .em { color: #6fdc8c; }
+
+        .splash-ticker .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 16px;
+        }
+        .splash-ticker .grid .cell {
+            padding-right: 16px;
+            border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .splash-ticker .grid .cell:last-child { border-right: 0; padding-right: 0; }
+        .splash-ticker .grid .cell .lbl {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(244,244,246,0.4);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .splash-ticker .grid .cell .val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 500;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .splash-ticker .grid .cell .val.up { color: #6fdc8c; }
+        .splash-ticker .grid .cell .delta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(244,244,246,0.5);
+            margin-top: 2px;
+        }
+
+        /* ============================================================
+           MOSAIC — museum catalog grid
+           Asymmetric 4-panel grid divided by hairline rules.
+           ============================================================ */
+        .splash-mosaic {
+            position: relative;
+            width: 660px;
+            height: 400px;
+            background: #0c0c0f;
+            border-radius: 8px;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #e8e8ef;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 80px rgba(0,0,0,0.55);
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1px;
+            background-color: rgba(255,255,255,0.06);
+        }
+        .splash-mosaic .panel {
+            position: relative;
+            background: #0c0c0f;
+            padding: 24px 26px;
+            display: flex;
+            overflow: hidden;
+        }
+        .splash-mosaic .panel.title-panel {
+            grid-row: span 2;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .splash-mosaic .panel .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: rgba(232,232,239,0.4);
+            text-transform: uppercase;
+        }
+        .splash-mosaic .panel.title-panel .num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ff9d4d;
+            letter-spacing: 2px;
+            margin-bottom: auto;
+            margin-top: 4px;
+        }
+        .splash-mosaic .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 56px;
+            letter-spacing: -2px;
+            line-height: 0.95;
+            color: #fff;
+            margin: auto 0;
+        }
+        .splash-mosaic .panel.title-panel .caption {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 13px;
+            color: rgba(232,232,239,0.55);
+            margin-top: 14px;
+            line-height: 1.5;
+        }
+
+        .splash-mosaic .panel.logo-panel {
+            justify-content: center; align-items: center;
+            background: #07070a;
+        }
+        .splash-mosaic .panel.logo-panel img {
+            max-width: 120px; max-height: 110px; object-fit: contain;
+            opacity: 0.9;
+        }
+        .splash-mosaic .panel.logo-panel .ph {
+            font-style: italic; font-size: 11px;
+            color: rgba(232,232,239,0.3);
+        }
+
+        .splash-mosaic .panel.status-panel {
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .splash-mosaic .status-line {
+            margin-top: auto;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .splash-mosaic .status-line .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #ff7b1f;
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
+        .splash-mosaic .status-line .text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(232,232,239,0.75);
+            transition: opacity 0.3s;
+        }
+        .splash-mosaic .status-panel .ratio {
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(232,232,239,0.4);
+        }
+        .splash-mosaic .status-panel .ratio .num { color: #fff; font-weight: 500; }
+
+        /* ============================================================
+           EMBLEM — heraldic crest
+           Arched text + monogram + motto banner, centered.
+           ============================================================ */
+        .splash-emblem {
+            position: relative;
+            width: 500px;
+            height: 440px;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 40%, #1a1714 0%, #0a0807 60%, #050403 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            font-family: 'Cormorant Garamond', serif;
+            color: #e8d8b8;
+            box-shadow:
+                inset 0 0 0 1px rgba(212,175,122,0.10),
+                0 30px 80px rgba(0,0,0,0.6);
+        }
+        .splash-emblem .frame {
+            position: absolute; inset: 16px;
+            border: 1px solid rgba(212,175,122,0.18);
+            border-radius: 6px;
+        }
+        .splash-emblem .frame::before,
+        .splash-emblem .frame::after {
+            content: '';
+            position: absolute;
+            width: 24px; height: 24px;
+            border: 1px solid rgba(212,175,122,0.5);
+        }
+        .splash-emblem .frame::before {
+            top: -1px; left: -1px;
+            border-right: 0; border-bottom: 0;
+        }
+        .splash-emblem .frame::after {
+            bottom: -1px; right: -1px;
+            border-left: 0; border-top: 0;
+        }
+        .splash-emblem .crest-wrap {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px; height: 320px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-emblem .crest-wrap svg.arc {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+        }
+        .splash-emblem .crest-wrap svg.arc text {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 13px;
+            letter-spacing: 6px;
+            fill: rgba(212,175,122,0.75);
+            text-transform: uppercase;
+        }
+        .splash-emblem .center {
+            position: relative;
+            text-align: center;
+            z-index: 2;
+        }
+        .splash-emblem .center .logo {
+            margin-bottom: 6px;
+            opacity: 0.9;
+        }
+        .splash-emblem .center .logo img {
+            max-width: 70px; max-height: 50px; object-fit: contain;
+            filter: brightness(0) invert(1) opacity(0.75);
+        }
+        .splash-emblem .center .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 42px;
+            letter-spacing: -1px;
+            color: #f4e6c8;
+            line-height: 1;
+        }
+        .splash-emblem .center .est {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: rgba(212,175,122,0.6);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+        .splash-emblem .motto {
+            position: absolute;
+            bottom: 38px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 13px;
+            letter-spacing: 5px;
+            color: rgba(212,175,122,0.7);
+            text-transform: uppercase;
+        }
+        .splash-emblem .motto::before,
+        .splash-emblem .motto::after {
+            content: '◆';
+            font-size: 9px;
+            color: #d4af7a;
+            margin: 0 14px;
+            font-style: normal;
+        }
+
+        /* ============================================================
+           TICKET — perforated event ticket
+           Stub on the left, main on the right, vertical tear line.
+           ============================================================ */
+        .splash-ticket {
+            position: relative;
+            width: 720px;
+            height: 320px;
+            background: #f0e8d2;
+            border-radius: 10px;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #1a0f00;
+            box-shadow:
+                inset 0 0 0 1px rgba(0,0,0,0.10),
+                0 30px 80px rgba(0,0,0,0.5);
+            display: flex;
+        }
+        /* paper texture */
+        .splash-ticket::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.55;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+        .splash-ticket .stub {
+            flex: 0 0 180px;
+            background: #ff6a00;
+            color: #fff;
+            padding: 24px 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .splash-ticket .stub .top { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 3px; }
+        .splash-ticket .stub .logo {
+            margin: 16px 0;
+            display: flex; align-items: center; justify-content: center;
+            flex: 1;
+        }
+        .splash-ticket .stub .logo img {
+            max-width: 100px; max-height: 80px; object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+        .splash-ticket .stub .admit {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 18px;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+        .splash-ticket .stub .seat {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+        /* perforated tear line */
+        .splash-ticket .tear {
+            flex: 0 0 2px;
+            background-image: linear-gradient(
+                180deg,
+                rgba(0,0,0,0.5) 0 6px,
+                transparent 6px 12px
+            );
+            background-size: 2px 12px;
+            position: relative;
+        }
+        .splash-ticket .tear::before,
+        .splash-ticket .tear::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            width: 16px; height: 16px;
+            background: #08080c;
+            border-radius: 50%;
+        }
+        .splash-ticket .tear::before { top: -8px; }
+        .splash-ticket .tear::after  { bottom: -8px; }
+
+        .splash-ticket .main {
+            flex: 1;
+            padding: 24px 30px;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .splash-ticket .main .head {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: rgba(26,15,0,0.55);
+            text-transform: uppercase;
+        }
+        .splash-ticket .main .head .em { color: #ff6a00; }
+        .splash-ticket .main .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            font-size: 56px;
+            line-height: 0.95;
+            letter-spacing: -2px;
+            color: #1a0f00;
+        }
+        .splash-ticket .main .sub {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 16px;
+            color: rgba(26,15,0,0.7);
+            margin-top: 4px;
+        }
+        .splash-ticket .main .meta {
+            display: flex; gap: 32px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(26,15,0,0.7);
+        }
+        .splash-ticket .main .meta .lbl {
+            display: block;
+            font-size: 8px;
+            color: rgba(26,15,0,0.45);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .splash-ticket .main .meta .val {
+            font-weight: 500;
+            color: #1a0f00;
+            letter-spacing: 1px;
+        }
+        .splash-ticket .barcode {
+            position: absolute;
+            bottom: 22px; right: 30px;
+            display: flex; gap: 1px;
+            height: 28px;
+            opacity: 0.85;
+        }
+        .splash-ticket .barcode i {
+            display: block;
+            width: 2px; height: 100%;
+            background: #1a0f00;
+        }
+
+        /* ============================================================
+           RIBBON — bold diagonal banner
+           One huge orange parallelogram across, title sits on it.
+           ============================================================ */
+        .splash-ribbon {
+            position: relative;
+            width: 660px;
+            height: 380px;
+            background: #08080c;
+            border-radius: 10px;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.04),
+                0 30px 80px rgba(0,0,0,0.55);
+        }
+        .splash-ribbon::before {
+            /* faint top-right radial */
+            content: '';
+            position: absolute;
+            top: -100px; right: -100px;
+            width: 360px; height: 360px;
+            background: radial-gradient(ellipse, rgba(255,123,31,0.10), transparent 60%);
+            pointer-events: none;
+        }
+        .splash-ribbon .ribbon-band {
+            position: absolute;
+            top: 50%; left: -10%;
+            width: 120%;
+            height: 120px;
+            background: linear-gradient(90deg, #ff8533 0%, #ff6a00 50%, #e85a00 100%);
+            transform: translateY(-50%) rotate(-7deg);
+            box-shadow:
+                0 -1px 0 rgba(255,255,255,0.2) inset,
+                0 1px 0 rgba(0,0,0,0.25) inset,
+                0 20px 40px rgba(255,106,0,0.25);
+        }
+        /* ribbon edge sheen */
+        .splash-ribbon .ribbon-band::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+            animation: horizon-sheen 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+        .splash-ribbon .ribbon-text {
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            transform: translateY(-50%) rotate(-7deg);
+            text-align: center;
+            font-size: 72px;
+            font-weight: 900;
+            letter-spacing: -3px;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+            white-space: nowrap;
+            overflow: hidden;
+            padding: 0 20px;
+            z-index: 2;
+        }
+        .splash-ribbon .top-bar {
+            position: absolute;
+            top: 28px; left: 36px; right: 36px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .splash-ribbon .top-bar .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.85);
+        }
+        .splash-ribbon .top-bar .brand .dot {
+            width: 7px; height: 7px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,123,31,0.7);
+        }
+        .splash-ribbon .top-bar .ver {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 999px;
+        }
+        .splash-ribbon .bot-bar {
+            position: absolute;
+            bottom: 28px; left: 36px; right: 36px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .splash-ribbon .bot-bar .status {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+        }
+        .splash-ribbon .bot-bar .status .dot {
+            width: 7px; height: 7px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
+        .splash-ribbon .bot-bar .pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.45);
+            letter-spacing: 1px;
+        }
+        .splash-ribbon .bot-bar .pct .num { color: #fff; font-weight: 500; }
+
+        /* ============================================================
+           PRESS — newspaper front page
+           Old masthead, dateline, single huge headline, columned body.
+           ============================================================ */
+        .splash-press {
+            position: relative;
+            width: 660px;
+            height: 440px;
+            background: #f4ecd8;
+            border-radius: 4px;
+            overflow: hidden;
+            font-family: 'Libre Caslon Text', 'Playfair Display', serif;
+            color: #1a0f00;
+            box-shadow:
+                inset 0 0 0 1px rgba(0,0,0,0.08),
+                0 30px 80px rgba(0,0,0,0.5);
+            padding: 24px 36px;
+        }
+        .splash-press::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+
+        .splash-press .masthead {
+            text-align: center;
+            border-bottom: 3px double rgba(0,0,0,0.5);
+            padding-bottom: 8px;
+        }
+        .splash-press .masthead .pre {
+            font-family: 'Libre Caslon Text', serif;
+            font-style: italic;
+            font-size: 10px;
+            letter-spacing: 6px;
+            color: rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .splash-press .masthead .name {
+            font-family: 'UnifrakturCook', 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 50px;
+            line-height: 1;
+            color: #0a0500;
+        }
+        .splash-press .dateline {
+            display: flex; justify-content: space-between;
+            font-family: 'Libre Caslon Text', serif;
+            font-style: italic;
+            font-size: 10px;
+            color: rgba(0,0,0,0.6);
+            border-bottom: 1px solid rgba(0,0,0,0.3);
+            padding: 6px 0;
+            letter-spacing: 1px;
+        }
+        .splash-press .dateline .em { color: #c0392b; font-style: normal; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+
+        .splash-press .headline-block {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 22px;
+        }
+        .splash-press .headline {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            font-size: 52px;
+            line-height: 0.95;
+            letter-spacing: -1.5px;
+            color: #0a0500;
+        }
+        .splash-press .lead {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 12px;
+            line-height: 1.55;
+            color: rgba(0,0,0,0.78);
+            column-count: 1;
+        }
+        .splash-press .lead::first-letter {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            float: left;
+            font-size: 38px;
+            line-height: 0.85;
+            margin-right: 6px;
+            color: #c0392b;
+        }
+        .splash-press .lead .em { color: #0a0500; font-weight: 700; }
+
+        .splash-press .columns {
+            margin-top: 14px;
+            border-top: 1px solid rgba(0,0,0,0.3);
+            padding-top: 12px;
+            display: grid;
+            grid-template-columns: 60px 1fr 1fr;
+            gap: 18px;
+        }
+        .splash-press .columns .cap {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: rgba(0,0,0,0.55);
+            text-transform: uppercase;
+            border-right: 1px solid rgba(0,0,0,0.25);
+            padding-right: 14px;
+        }
+        .splash-press .columns .body {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 11px;
+            line-height: 1.55;
+            color: rgba(0,0,0,0.75);
+        }
+        .splash-press .footer-rule {
+            position: absolute;
+            bottom: 18px; left: 36px; right: 36px;
+            display: flex; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(0,0,0,0.5);
+            letter-spacing: 1.5px;
+            border-top: 1px solid rgba(0,0,0,0.2);
+            padding-top: 6px;
+        }
+        .splash-press .footer-rule .dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: #c0392b;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -997,7 +2185,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Five new directions below your current splash. Each uses a completely different layout — no more centered cards.<br>
+            Fifteen new directions below your current splash. Each uses a completely different layout — no more centered cards.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1290,6 +2478,418 @@
         <div class="design-meta">620 × 390 &nbsp;|&nbsp; black-metal card · gold chip · brushed sheen</div>
     </section>
 
+    <!-- ====================================================
+         MONOLITH — brutalist Swiss
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag monolith">NEW · 6</span>
+            <span class="design-name">Monolith</span>
+        </div>
+        <div class="design-desc">
+            Maximum restraint. One huge word, one orange bar, one tiny ID code, one tiny corner timestamp. That's the entire composition. Inspired by Swiss design and brutalist poster art (Massimo Vignelli, Wim Crouwel) — built on the conviction that confidence shows up as <em>removing things</em>, not adding them. The title fills the canvas at 200px and dominates everything; the orange bar is the only color in the entire frame. Auto-fits down to fit longer names. Looks expensive precisely because nothing else does.
+        </div>
+        <div class="design-stage">
+            <div class="splash-monolith">
+                <div class="bar"></div>
+                <div class="num">N° 01 / 2026</div>
+                <div class="corner tr">DENFI · ROBLOX</div>
+                <div class="corner br">v1.0.4 — verified</div>
+                <div class="title fit-title-monolith">{{ app_name or 'Roblox' }}</div>
+                <div class="footer">Issued by <span class="em">Denfi</span> · Bangkok</div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; brutalist · single accent · maximum negative space</div>
+    </section>
+
+    <!-- ====================================================
+         DIAL — analog watch face
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag dial">NEW · 7</span>
+            <span class="design-name">Dial</span>
+        </div>
+        <div class="design-desc">
+            A circular splash that reads as an analog watch face. 60 tick marks around the bezel (12 majors), arched italic text along the top ("DENFI · MMXXVI · ATELIER") and bottom ("SWISS PRECISION"), the title sits in the dead center in serif, your logo as a faint mark above it, and a thin gold second-hand sweeps continuously around the dial. Premium-watch energy — Patek Philippe / IWC / Lange. Completely escapes the rectangular-card paradigm. Square footprint (460×460), so the launcher window would be square or near-square.
+        </div>
+        <div class="design-stage">
+            <div class="splash-dial" id="splash-dial">
+                <div class="bezel"></div>
+                <div class="arc-text">DENFI · MMXXVI · ATELIER</div>
+                <div class="arc-text bottom">SWISS PRECISION · LICENSED EDITION</div>
+                {% if splash_file %}
+                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
+                {% endif %}
+                <div class="title fit-title-dial">{{ app_name or 'Roblox' }}</div>
+                <div class="sub">automatic · self-winding</div>
+                <div class="hand" id="dial-hand"></div>
+                <div class="center-pin"></div>
+            </div>
+        </div>
+        <div class="design-meta">460 × 460 (square) &nbsp;|&nbsp; analog watch face · sweeping hand · arched type</div>
+    </section>
+
+    <!-- ====================================================
+         PASSPORT — issued document page
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag passport">NEW · 8</span>
+            <span class="design-name">Passport</span>
+        </div>
+        <div class="design-desc">
+            The splash is rendered as a page from an issued passport — cream paper with subtle texture, ink-black serif typography, double-rule header, a photo box on the right containing your logo (sepia-tinted), document fields ("ISSUED TO / LICENSE N° / VALID THROUGH / NATIONALITY"), two angled visa-style stamps (red and green) overlapping the body, perforated edge on the left, and a real machine-readable MRZ line at the bottom in monospace. Plays directly into the fact that this is a <em>licensed</em> product — your splash literally looks like an official document being issued to the user.
+        </div>
+        <div class="design-stage">
+            <div class="splash-passport">
+                <div class="header">
+                    <div class="top">Republic of Denfi · Type P · Code DNF</div>
+                    <div class="name">Launcher Authorization</div>
+                </div>
+                <div class="photo-box">
+                    {% if splash_file %}
+                    <img src="/splash_logo_file" alt="Logo">
+                    {% else %}
+                    <div class="ph">photograph</div>
+                    {% endif %}
+                </div>
+                <div class="fields">
+                    <div class="field">
+                        <span class="lbl">Issued To</span>
+                        <span class="val">{{ app_name or 'Roblox' }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="lbl">License N°</span>
+                        <span class="val">DNF-7M3F-XKQR</span>
+                    </div>
+                    <div class="field">
+                        <span class="lbl">Valid Through</span>
+                        <span class="val">∞ Lifetime</span>
+                    </div>
+                    <div class="field">
+                        <span class="lbl">Nationality</span>
+                        <span class="val">Denfi</span>
+                    </div>
+                </div>
+                <div class="stamp s1">Verified</div>
+                <div class="stamp s2">Active 2026</div>
+                <div class="mrz">P&lt;DNFLAUNCHER&lt;&lt;{{ (app_name or 'ROBLOX')|upper }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br>7M3FXKQR2DNF2601019M3001019&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;04</div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 420 &nbsp;|&nbsp; passport page · cream paper · visa stamps · MRZ line</div>
+    </section>
+
+    <!-- ====================================================
+         VINYL — record sleeve + spinning disc
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag vinyl">NEW · 9</span>
+            <span class="design-name">Vinyl</span>
+        </div>
+        <div class="design-desc">
+            Album-cover splash. A real vinyl record (with concentric grooves and an orange center label) sits on the left half, peeking out from behind a Blue-Note-blue sleeve on the right. The vinyl spins continuously at album speed. The sleeve carries the album-cover hierarchy: small mono label ("DENFI RECORDS · LP-001"), a big serif title for the app name, the artist credit ("DENFI ATELIER"), then a track listing of the launch sequence ("A1. Initialize / A2. Verify license / A3. Launch ▶") with the active step highlighted. Reads as a designed object, not a loading screen.
+        </div>
+        <div class="design-stage">
+            <div class="splash-vinyl">
+                <div class="disc-area">
+                    <div class="disc"></div>
+                    <div class="spindle"></div>
+                </div>
+                <div class="sleeve">
+                    <div>
+                        <div class="label">Denfi Records · LP-001</div>
+                        <div class="title fit-title-vinyl" style="margin-top: 14px;">{{ app_name or 'Roblox' }}</div>
+                        <div class="artist">Denfi Atelier · 2026</div>
+                    </div>
+                    <div class="tracklist">
+                        <div class="t"><span class="num">A1.</span><span class="text">Initialize</span></div>
+                        <div class="t live"><span class="num">A2.</span><span class="text">Verify license</span></div>
+                        <div class="t"><span class="num">A3.</span><span class="text">Launch</span></div>
+                    </div>
+                    <div class="footer-row">
+                        <span>33⅓ RPM</span>
+                        <span>SIDE A</span>
+                        <span>v1.0.4</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">640 × 380 &nbsp;|&nbsp; album sleeve · spinning vinyl · Blue Note typography</div>
+    </section>
+
+    <!-- ====================================================
+         TICKER — Bloomberg / financial terminal
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag ticker">NEW · 10</span>
+            <span class="design-name">Ticker</span>
+        </div>
+        <div class="design-desc">
+            The splash is a financial terminal. Top: a real scrolling ticker tape with running symbols and green/red price moves. Below that: dateline ("MONDAY · 19 APR 2026 · BANGKOK EDITION") and version code in mono. Big <em>Financial Times</em> serif headline = your app name with a small logo thumbnail beside it. Bottom: a 4-column data grid (UPTIME / VERSION / REGION / LATENCY) with monospace values, dividers between columns, like a Bloomberg dashboard. Communicates: "this is infrastructure-grade software, not a toy."
+        </div>
+        <div class="design-stage">
+            <div class="splash-ticker">
+                <div class="tape">
+                    <div class="tape-track" id="ticker-track">
+                        <span class="sym">DNF</span> <span class="up">+1.4%</span>
+                        <span class="sym">RBLX</span> <span class="up">+0.8%</span>
+                        <span class="sym">USD/THB</span> <span class="down">−0.2%</span>
+                        <span class="sym">UPTIME</span> <span class="up">99.98%</span>
+                        <span class="sym">SESSIONS</span> <span class="up">4,201</span>
+                        <span class="sym">DNF</span> <span class="up">+1.4%</span>
+                        <span class="sym">RBLX</span> <span class="up">+0.8%</span>
+                        <span class="sym">USD/THB</span> <span class="down">−0.2%</span>
+                        <span class="sym">UPTIME</span> <span class="up">99.98%</span>
+                        <span class="sym">SESSIONS</span> <span class="up">4,201</span>
+                    </div>
+                </div>
+                <div class="body">
+                    <div class="meta">
+                        <div class="left">Mon · 19 Apr 2026 · <span class="em">Bangkok Edition</span></div>
+                        <div class="right">v1.0.4 / build 2026.04.19</div>
+                    </div>
+                    <div class="head-row">
+                        {% if splash_file %}
+                        <div class="logo-thumb"><img src="/splash_logo_file" alt="Logo"></div>
+                        {% endif %}
+                        <div class="title-block">
+                            <div class="title fit-title-ticker">{{ app_name or 'Roblox' }}</div>
+                            <div class="sub"><span class="em">▲ live</span> · licensed terminal · since 2024</div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="cell">
+                            <div class="lbl">Uptime</div>
+                            <div class="val up">99.98%</div>
+                            <div class="delta">+0.04% / 24h</div>
+                        </div>
+                        <div class="cell">
+                            <div class="lbl">Version</div>
+                            <div class="val">1.0.4</div>
+                            <div class="delta">2026.04.19</div>
+                        </div>
+                        <div class="cell">
+                            <div class="lbl">Region</div>
+                            <div class="val">TH-BKK</div>
+                            <div class="delta">144.31.48.238</div>
+                        </div>
+                        <div class="cell">
+                            <div class="lbl">Latency</div>
+                            <div class="val up">42ms</div>
+                            <div class="delta">P95 · stable</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">700 × 380 &nbsp;|&nbsp; financial terminal · scrolling ticker · FT serif headline</div>
+    </section>
+
+    <!-- ====================================================
+         MOSAIC — museum catalog grid
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag mosaic">NEW · 11</span>
+            <span class="design-name">Mosaic</span>
+        </div>
+        <div class="design-desc">
+            Asymmetric 4-panel grid divided by hairline rules — feels like a museum exhibition catalog or a curated index. Left panel (full height) holds a big serif title with a tiny number ("№ 01"), an italic caption, and the catalog feel. Right column splits into two: top panel houses your logo in a quiet dedicated frame; bottom panel has the live status with an italic caption and a "verified / 04" ratio. Restrained, confident, editorial. Doesn't compete for attention — earns it.
+        </div>
+        <div class="design-stage">
+            <div class="splash-mosaic">
+                <div class="panel title-panel">
+                    <div>
+                        <div class="label">Catalog</div>
+                        <div class="num">№ 01 / IV</div>
+                    </div>
+                    <div class="title fit-title-mosaic">{{ app_name or 'Roblox' }}</div>
+                    <div class="caption">An issued, licensed launcher.<br>Bangkok · 2026 · single edition.</div>
+                </div>
+                <div class="panel logo-panel">
+                    {% if splash_file %}
+                    <img src="/splash_logo_file" alt="Logo">
+                    {% else %}
+                    <span class="ph">— mark —</span>
+                    {% endif %}
+                </div>
+                <div class="panel status-panel">
+                    <div class="label">Plate IV · State</div>
+                    <div class="status-line">
+                        <span class="dot"></span>
+                        <span class="text" id="mosaic-status">verifying license…</span>
+                    </div>
+                    <div class="ratio"><span class="num">03</span> of <span class="num">04</span> steps complete</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 400 &nbsp;|&nbsp; 4-panel grid · hairline rules · museum-catalog feel</div>
+    </section>
+
+    <!-- ====================================================
+         EMBLEM — heraldic crest
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag emblem">NEW · 12</span>
+            <span class="design-name">Emblem</span>
+        </div>
+        <div class="design-desc">
+            A heraldic crest. Arched italic text curves along the top of an inner ring ("DENFI · MMXXVI · LAUNCHER"), and a matching arc along the bottom ("RES · PER · ARTEM"). Your logo sits in the center as a faint monogram with the title below it in serif, and "ATELIER · BANGKOK" italicized underneath. A diamond-flanked motto banner anchors the bottom of the frame, and corner brackets define the outer edge. University-crest / Hermès-shield / Aesop-stamp energy — heritage and craft signals without going gilded.
+        </div>
+        <div class="design-stage">
+            <div class="splash-emblem">
+                <div class="frame"></div>
+                <div class="crest-wrap">
+                    <svg class="arc" viewBox="0 0 320 320">
+                        <defs>
+                            <path id="arc-top" d="M 30 160 A 130 130 0 0 1 290 160" fill="none"/>
+                            <path id="arc-bot" d="M 30 160 A 130 130 0 0 0 290 160" fill="none"/>
+                        </defs>
+                        <text><textPath href="#arc-top" startOffset="50%" text-anchor="middle">DENFI · MMXXVI · LAUNCHER</textPath></text>
+                        <text><textPath href="#arc-bot" startOffset="50%" text-anchor="middle">RES · PER · ARTEM</textPath></text>
+                    </svg>
+                    <div class="center">
+                        {% if splash_file %}
+                        <div class="logo"><img src="/splash_logo_file" alt="Logo"></div>
+                        {% endif %}
+                        <div class="title fit-title-emblem">{{ app_name or 'Roblox' }}</div>
+                        <div class="est">Atelier · Bangkok</div>
+                    </div>
+                </div>
+                <div class="motto">Excellentia in Singulis</div>
+            </div>
+        </div>
+        <div class="design-meta">500 × 440 &nbsp;|&nbsp; heraldic crest · arched type · centered monogram</div>
+    </section>
+
+    <!-- ====================================================
+         TICKET — perforated event ticket
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag ticket">NEW · 13</span>
+            <span class="design-name">Ticket</span>
+        </div>
+        <div class="design-desc">
+            A real concert/event ticket. Orange stub on the left with your logo (knocked out white) and "ADMIT ONE" stamped below, separated from the main body by a vertical perforated tear line with rounded notches at top and bottom (the way real tickets actually look). Main body: cream paper with subtle texture, mono header ("EVENT · LAUNCH · 2026"), huge serif headline with the app name, italic subtitle, and a meta row of seat/row/section data. A barcode anchors the bottom right. Playful, premium, and instantly recognizable — feels like the user is being <em>admitted</em> rather than logged in.
+        </div>
+        <div class="design-stage">
+            <div class="splash-ticket">
+                <div class="stub">
+                    <div class="top">N° 01 · 2026</div>
+                    <div class="logo">
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="admit">ADMIT</div>
+                        <div class="seat">SEAT 04 / ROW A</div>
+                    </div>
+                </div>
+                <div class="tear"></div>
+                <div class="main">
+                    <div class="head">
+                        <div>EVENT · <span class="em">LAUNCH</span> · 2026</div>
+                        <div>N° 7M3F-XKQR</div>
+                    </div>
+                    <div>
+                        <div class="title fit-title-ticket">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">a Denfi Atelier production · Bangkok</div>
+                    </div>
+                    <div class="meta">
+                        <div>
+                            <span class="lbl">Date</span>
+                            <span class="val">19 Apr 2026</span>
+                        </div>
+                        <div>
+                            <span class="lbl">Section</span>
+                            <span class="val">PREMIUM</span>
+                        </div>
+                        <div>
+                            <span class="lbl">Status</span>
+                            <span class="val">VALID</span>
+                        </div>
+                    </div>
+                    <div class="barcode" id="ticket-barcode"></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">720 × 320 (wide) &nbsp;|&nbsp; perforated ticket · stub + main · admit one</div>
+    </section>
+
+    <!-- ====================================================
+         RIBBON — bold diagonal banner
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag ribbon">NEW · 14</span>
+            <span class="design-name">Ribbon</span>
+        </div>
+        <div class="design-desc">
+            A single huge orange parallelogram cuts across the entire splash at a confident -7° angle, with the title sitting right on top of it in 72px black uppercase. Above and below the ribbon: minimal meta (brand wordmark with status dot, version pill, status line, percent counter). A slow sheen passes across the band. Pure graphic-poster energy — big, loud, but disciplined. Reads instantly from across the room. The opposite of subtle on purpose.
+        </div>
+        <div class="design-stage">
+            <div class="splash-ribbon">
+                <div class="top-bar">
+                    <div class="brand"><span class="dot"></span> DENFI · LAUNCHER</div>
+                    <div class="ver">v1.0.4</div>
+                </div>
+                <div class="ribbon-band"></div>
+                <div class="ribbon-text fit-title-ribbon">{{ app_name or 'Roblox' }}</div>
+                <div class="bot-bar">
+                    <div class="status"><span class="dot"></span> license verified</div>
+                    <div class="pct">launching · <span class="num" id="ribbon-pct">87</span>%</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; diagonal ribbon · poster art · single bold gesture</div>
+    </section>
+
+    <!-- ====================================================
+         PRESS — newspaper front page
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag press">NEW · 15</span>
+            <span class="design-name">Press</span>
+        </div>
+        <div class="design-desc">
+            The splash is a newspaper front page. Old-style masthead in blackletter ("The Denfi Herald") above a double-rule, italic dateline with edition number, then a 2-column block: huge Playfair headline (the app name) on the left, lead paragraph with a red drop-cap on the right. Below that, a 3-column structure: a rotated "VOL. IV" label as the first column, two columns of body text. Cream newsprint paper, subtle texture, ink-black serifs throughout. Communicates seriousness, history, and craft — the exact opposite of a generic loading screen.
+        </div>
+        <div class="design-stage">
+            <div class="splash-press">
+                <div class="masthead">
+                    <div class="pre">Established 2024 · Bangkok · Daily</div>
+                    <div class="name">The Denfi Herald</div>
+                </div>
+                <div class="dateline">
+                    <span><span class="em">Vol. IV · No. 01</span></span>
+                    <span>Monday · 19 April 2026</span>
+                    <span>Price: One Coin</span>
+                </div>
+                <div class="headline-block">
+                    <div class="headline fit-title-press">{{ app_name or 'Roblox' }}</div>
+                    <div class="lead">In a development that has astonished readers across the region, <span class="em">Denfi Atelier</span> today releases the licensed edition of its launcher — verified, signed, and admitted to active service in Bangkok and beyond.</div>
+                </div>
+                <div class="columns">
+                    <div class="cap">VOL.<br>IV</div>
+                    <div class="body">Authority for this edition is granted by license № 7M3F-XKQR, valid in perpetuity. The system has been observed running at 99.98% uptime over the trailing twelve months.</div>
+                    <div class="body">Subscribers of the Atelier programme are entitled to immediate launch privileges. Reports from the field indicate latency at a steady 42 ms across the Thailand region.</div>
+                </div>
+                <div class="footer-rule">
+                    <span><span class="dot"></span>LICENSED · ACTIVE</span>
+                    <span>v1.0.4 — page 01</span>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 440 &nbsp;|&nbsp; newspaper front page · masthead · drop-cap lead</div>
+    </section>
+
     <script>
     (function() {
         // CURRENT — bouncing progress bar
@@ -1530,6 +3130,88 @@
         }
         cardTick();
         setInterval(cardTick, 1100);
+
+        // MONOLITH — auto-fit huge title
+        autoFitTitle(document.querySelector('.fit-title-monolith'), 200, 80);
+
+        // DIAL — generate tick marks + rotate the hand
+        var dial = document.getElementById('splash-dial');
+        if (dial) {
+            for (var i = 0; i < 60; i++) {
+                var tick = document.createElement('div');
+                tick.className = 'tick' + (i % 5 === 0 ? ' major' : '');
+                tick.style.transform = 'translateX(-50%) rotate(' + (i * 6) + 'deg)';
+                dial.appendChild(tick);
+            }
+        }
+        autoFitTitle(document.querySelector('.fit-title-dial'), 44, 24);
+        var dialHand = document.getElementById('dial-hand');
+        var dialDeg = 0;
+        if (dialHand) {
+            // initial position
+            dialHand.style.transform = 'translate(-50%, 0) rotate(0deg)';
+            setInterval(function() {
+                dialDeg = (dialDeg + 6) % 360;
+                dialHand.style.transform = 'translate(-50%, 0) rotate(' + dialDeg + 'deg)';
+            }, 1000);
+        }
+
+        // VINYL — auto-fit
+        autoFitTitle(document.querySelector('.fit-title-vinyl'), 52, 28);
+
+        // TICKER — auto-fit
+        autoFitTitle(document.querySelector('.fit-title-ticker'), 38, 22);
+
+        // MOSAIC — auto-fit + cycle status messages
+        autoFitTitle(document.querySelector('.fit-title-mosaic'), 56, 30);
+        var mosaicStatus = document.getElementById('mosaic-status');
+        var mosaicMsgs = [
+            'verifying license…',
+            'fetching manifest…',
+            'preparing window…',
+            'launching application…'
+        ];
+        var mosaicIdx = 0;
+        if (mosaicStatus) {
+            setInterval(function() {
+                mosaicIdx = (mosaicIdx + 1) % mosaicMsgs.length;
+                mosaicStatus.style.opacity = '0.3';
+                setTimeout(function() {
+                    mosaicStatus.textContent = mosaicMsgs[mosaicIdx];
+                    mosaicStatus.style.opacity = '1';
+                }, 200);
+            }, 1800);
+        }
+
+        // EMBLEM — auto-fit
+        autoFitTitle(document.querySelector('.fit-title-emblem'), 42, 24);
+
+        // TICKET — auto-fit + generate barcode
+        autoFitTitle(document.querySelector('.fit-title-ticket'), 56, 30);
+        var barcode = document.getElementById('ticket-barcode');
+        if (barcode) {
+            var bars = '';
+            for (var b = 0; b < 60; b++) {
+                var w = (Math.random() > 0.5 ? 2 : 1);
+                bars += '<i style="width:' + w + 'px"></i>';
+            }
+            barcode.innerHTML = bars;
+        }
+
+        // RIBBON — auto-fit + percent counter
+        autoFitTitle(document.querySelector('.fit-title-ribbon'), 72, 36);
+        var ribbonPct = document.getElementById('ribbon-pct');
+        var rPct = 12;
+        if (ribbonPct) {
+            setInterval(function() {
+                rPct = (rPct + Math.floor(Math.random() * 4) + 1);
+                if (rPct > 99) rPct = 12;
+                ribbonPct.textContent = rPct;
+            }, 320);
+        }
+
+        // PRESS — auto-fit headline
+        autoFitTitle(document.querySelector('.fit-title-press'), 52, 28);
     })();
     </script>
 </body>
