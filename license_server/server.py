@@ -7,6 +7,7 @@ import time
 import hmac
 import hashlib
 import json
+import base64
 import sqlite3
 import secrets
 import threading
@@ -16,7 +17,7 @@ import subprocess
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file, get_flashed_messages
 from flask_socketio import SocketIO, emit
 
 import telegram_backup
@@ -31,6 +32,8 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db"
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
 TRIAL_REGISTER_SECRET = os.environ.get("TRIAL_REGISTER_SECRET", "DENFI_TRIAL_REGISTER_SECRET_2026")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
+ADMIN_UNLOCK_SECRET = os.environ.get("ADMIN_UNLOCK_SECRET", "zxc1")
+_UNLOCK_PBKDF2_ITERATIONS = 60000
 HEARTBEAT_TIMEOUT = 60
 REQUEST_TIMESTAMP_TOLERANCE = 300
 TRIAL_RATE_LIMIT_WINDOW = 3600
@@ -723,6 +726,47 @@ def require_admin(f):
     return decorated
 
 
+def _build_login_form_payload(flash_messages):
+    """Encrypt the real login form HTML so it can't be recovered from page
+    source without first knowing ADMIN_UNLOCK_SECRET. The disguise page
+    sends only base64 ciphertext to the browser; client-side JS derives the
+    same key via PBKDF2 from the typed unlock sequence and XOR-decrypts."""
+    flash_html = ""
+    for category, msg in flash_messages:
+        # crude escape; flash text is server-controlled so this is enough
+        safe = (msg.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;"))
+        flash_html += f'<div class="flash">{safe}</div>'
+
+    form_html = (
+        f'{flash_html}'
+        '<form method="POST" autocomplete="off">'
+        '<div class="fg">'
+        '<label>Password</label>'
+        '<input type="password" name="password" autofocus required>'
+        '</div>'
+        '<button type="submit" class="btn">Sign in</button>'
+        '</form>'
+    )
+
+    plaintext = b"OK::" + form_html.encode("utf-8")
+    salt = secrets.token_bytes(16)
+    keystream = hashlib.pbkdf2_hmac(
+        "sha256",
+        ADMIN_UNLOCK_SECRET.encode("utf-8"),
+        salt,
+        _UNLOCK_PBKDF2_ITERATIONS,
+        dklen=len(plaintext),
+    )
+    ciphertext = bytes(p ^ k for p, k in zip(plaintext, keystream))
+    return {
+        "salt_b64": base64.b64encode(salt).decode("ascii"),
+        "ct_b64": base64.b64encode(ciphertext).decode("ascii"),
+        "iter": _UNLOCK_PBKDF2_ITERATIONS,
+    }
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login_page():
     if request.method == "POST":
@@ -733,7 +777,8 @@ def login_page():
             session["login_time"] = time.time()
             return redirect(url_for("dashboard"))
         flash("Invalid password", "error")
-    return render_template("login.html")
+    payload = _build_login_form_payload(get_flashed_messages(with_categories=True))
+    return render_template("login.html", payload=payload)
 
 
 @app.route("/logout")
