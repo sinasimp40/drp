@@ -605,10 +605,13 @@ def recover_from_interrupted_update():
             pass
 
 
+SPLASH_W = 680
+SPLASH_H = 380
+ORANGE_W = 290
+
 class SplashScreen(QSplashScreen):
-    LOGO_MAX_W = 480
-    LOGO_MAX_H = 100
-    LOGO_Y = 20
+    LOGO_MAX_W = ORANGE_W - 60
+    LOGO_MAX_H = 200
 
     def __init__(self, pixmap):
         super().__init__(pixmap)
@@ -623,16 +626,18 @@ class SplashScreen(QSplashScreen):
         self._logo_movie = None
         self._setup_logo()
 
+    def _logo_center_y(self):
+        return SPLASH_H // 2
+
     def _setup_logo(self):
         from PyQt5.QtGui import QMovie
         logo_path = _find_splash_logo()
         if not logo_path:
             return
-        w = self._base_pixmap.width()
         if logo_path.lower().endswith(".gif"):
             movie = QMovie(logo_path)
             if not movie.isValid():
-                self._draw_static_logo(logo_path, w)
+                self._draw_static_logo(logo_path)
                 return
             movie.jumpToFrame(0)
             orig = movie.currentPixmap().size()
@@ -641,28 +646,30 @@ class SplashScreen(QSplashScreen):
             else:
                 scaled = QSize(self.LOGO_MAX_W, self.LOGO_MAX_H)
             movie.setScaledSize(scaled)
-            logo_y = self.LOGO_Y + (self.LOGO_MAX_H - scaled.height()) // 2
+            logo_x = (ORANGE_W - scaled.width()) // 2
+            logo_y = self._logo_center_y() - scaled.height() // 2
             lbl = QLabel(self)
             lbl.setStyleSheet("background: transparent;")
             lbl.setFixedSize(scaled)
-            lbl.move((w - scaled.width()) // 2, logo_y)
+            lbl.move(logo_x, logo_y)
             lbl.setMovie(movie)
             movie.start()
             self._logo_label = lbl
             self._logo_movie = movie
         else:
-            self._draw_static_logo(logo_path, w)
+            self._draw_static_logo(logo_path)
 
-    def _draw_static_logo(self, path, splash_w):
+    def _draw_static_logo(self, path):
         pix = QPixmap(path)
         if pix.isNull():
             return
         pix = pix.scaled(self.LOGO_MAX_W, self.LOGO_MAX_H, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        logo_y = self.LOGO_Y + (self.LOGO_MAX_H - pix.height()) // 2
+        logo_x = (ORANGE_W - pix.width()) // 2
+        logo_y = self._logo_center_y() - pix.height() // 2
         lbl = QLabel(self)
         lbl.setStyleSheet("background: transparent;")
         lbl.setFixedSize(pix.width(), pix.height())
-        lbl.move((splash_w - pix.width()) // 2, logo_y)
+        lbl.move(logo_x, logo_y)
         lbl.setPixmap(pix)
         self._logo_label = lbl
 
@@ -689,60 +696,76 @@ class SplashScreen(QSplashScreen):
         event.accept()
 
     def drawContents(self, painter):
-        w = self._base_pixmap.width()
-        h = self._base_pixmap.height()
+        w = SPLASH_W
+        h = SPLASH_H
+        right_x = ORANGE_W
+        right_w = w - ORANGE_W
+        pad = 28
 
-        bar_y = h - 70
-        bar_x = 80
-        bar_w = w - 160
-        bar_h = 3
+        # Bottom row in the dark right column: status (left) + counter (right)
+        row_y = h - 50
+        row_h = 22
 
-        status_y = bar_y - 30
-        version_y = h - 35
+        # Mask the bottom row of the right column so we can repaint cleanly.
+        painter.fillRect(right_x, row_y - 4, right_w, row_h + 8, QColor("#0a0a0a"))
 
         if self.is_error:
-            painter.fillRect(0, status_y - 10, w, h - status_y + 10, QColor("#0d0000"))
-
             painter.setPen(QColor(RED))
-            painter.setFont(QFont("Segoe UI", 11, QFont.Bold))
-            painter.drawText(0, status_y - 5, w, 22, Qt.AlignCenter, "ERROR")
+            painter.setFont(QFont("Segoe UI", 10, QFont.Bold))
+            painter.drawText(right_x + pad, row_y, right_w - pad * 2, row_h,
+                             Qt.AlignVCenter | Qt.AlignLeft, "ERROR")
 
             painter.setPen(QColor("#cccccc"))
-            painter.setFont(QFont("Segoe UI", 9))
-            lines = self.error_msg.split("\n")
-            y_off = status_y + 20
-            for line in lines[:3]:
-                painter.drawText(30, y_off, w - 60, 18, Qt.AlignCenter, line)
-                y_off += 18
+            painter.setFont(QFont("Segoe UI", 8))
+            err_first_line = (self.error_msg.split("\n") + [""])[0]
+            painter.drawText(right_x + pad + 60, row_y, right_w - pad * 2 - 60, row_h,
+                             Qt.AlignVCenter | Qt.AlignLeft, err_first_line)
+            return
 
-            painter.fillRect(bar_x, bar_y + 25, bar_w, bar_h, QColor(RED))
-        else:
-            painter.fillRect(0, status_y - 5, w, 25, QColor("#0a0a0a"))
+        # Animated status dot (left)
+        dot_d = 7
+        dot_x = right_x + pad
+        dot_y = row_y + (row_h - dot_d) // 2
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("#ff6a00"))
+        painter.drawEllipse(dot_x, dot_y, dot_d, dot_d)
 
-            painter.setPen(QColor("#888888"))
-            painter.setFont(QFont("Segoe UI", 9))
-            painter.drawText(0, status_y, w, 20, Qt.AlignCenter, self.status_msg)
+        # Status text
+        painter.setPen(QColor("#b3b3b8"))
+        status_font = QFont("JetBrains Mono", 9)
+        if not status_font.exactMatch():
+            status_font = QFont("Consolas", 9)
+        painter.setFont(status_font)
+        painter.drawText(dot_x + dot_d + 10, row_y, right_w - pad * 2 - dot_d - 10, row_h,
+                         Qt.AlignVCenter | Qt.AlignLeft, self.status_msg)
 
-            painter.fillRect(bar_x, bar_y, bar_w, bar_h, QColor("#1e1e1e"))
+        # Counter "47 / 100" right-aligned
+        counter_font = QFont("JetBrains Mono", 9, QFont.Bold)
+        if not counter_font.exactMatch():
+            counter_font = QFont("Consolas", 9, QFont.Bold)
+        painter.setFont(counter_font)
+        pct = max(0, min(100, int(self.progress)))
+        num_text = f"{pct:02d}"
+        # number in white, " / 100" muted
+        fm = QFontMetrics(counter_font)
+        suffix = " / 100"
+        suffix_w = fm.horizontalAdvance(suffix)
+        num_w = fm.horizontalAdvance(num_text)
+        total_w = num_w + suffix_w
+        cx_right = right_x + right_w - pad
+        suffix_x = cx_right - suffix_w
+        num_x = suffix_x - num_w
+        painter.setPen(QColor("#666"))
+        painter.drawText(suffix_x, row_y, suffix_w, row_h, Qt.AlignVCenter | Qt.AlignLeft, suffix)
+        painter.setPen(QColor("#f4f4f6"))
+        painter.drawText(num_x, row_y, num_w, row_h, Qt.AlignVCenter | Qt.AlignLeft, num_text)
 
-            if self.progress > 0:
-                fill_w = int(bar_w * self.progress / 100)
-                bar_grad = QLinearGradient(bar_x, 0, bar_x + bar_w, 0)
-                bar_grad.setColorAt(0, QColor("#ff6a00"))
-                bar_grad.setColorAt(1, QColor("#ff9d4d"))
-                painter.fillRect(bar_x, bar_y, fill_w, bar_h, bar_grad)
-
-                glow = QRadialGradient(bar_x + fill_w, bar_y + bar_h // 2, 12)
-                glow.setColorAt(0, QColor(255, 106, 0, 80))
-                glow.setColorAt(1, QColor(255, 106, 0, 0))
-                painter.setBrush(QBrush(glow))
-                painter.setPen(Qt.NoPen)
-                painter.drawEllipse(bar_x + fill_w - 12, bar_y - 10, 24, 24)
-
-            if self.roblox_version:
-                painter.setPen(QColor("#444444"))
-                painter.setFont(QFont("Segoe UI", 8))
-                painter.drawText(0, version_y, w, 16, Qt.AlignCenter, self.roblox_version)
+        # Optional Roblox version, drawn small under "// LAUNCHER" notch on left block
+        if self.roblox_version:
+            painter.setPen(QColor(255, 255, 255, 160))
+            painter.setFont(QFont("Segoe UI", 7))
+            painter.drawText(16, h - 38, ORANGE_W - 32, 14,
+                             Qt.AlignLeft | Qt.AlignVCenter, self.roblox_version)
 
 
 def _find_splash_logo():
@@ -762,44 +785,9 @@ def _find_splash_logo():
 
 _cached_splash_pixmap = None
 
-def create_splash_pixmap():
-    global _cached_splash_pixmap
-    if _cached_splash_pixmap is not None:
-        return _cached_splash_pixmap
-    w, h = 560, 380
-    splash_pix = QPixmap(w, h)
-    splash_pix.fill(QColor("#0a0a0a"))
-
-    painter = QPainter(splash_pix)
-    painter.setRenderHint(QPainter.Antialiasing)
-    painter.setRenderHint(QPainter.TextAntialiasing)
-    painter.setRenderHint(QPainter.SmoothPixmapTransform)
-
-    bg_grad = QLinearGradient(0, 0, w, h)
-    bg_grad.setColorAt(0.0, QColor("#0c0c0c"))
-    bg_grad.setColorAt(0.3, QColor("#111111"))
-    bg_grad.setColorAt(0.7, QColor("#0e0e0e"))
-    bg_grad.setColorAt(1.0, QColor("#0a0a0a"))
-    painter.fillRect(0, 0, w, h, bg_grad)
-
-    center_glow = QRadialGradient(w / 2, 140, 200)
-    center_glow.setColorAt(0, QColor(255, 106, 0, 18))
-    center_glow.setColorAt(0.5, QColor(255, 106, 0, 6))
-    center_glow.setColorAt(1, QColor(0, 0, 0, 0))
-    painter.fillRect(0, 0, w, h, center_glow)
-
-    border_pen = QPen(QColor("#1c1c1c"))
-    border_pen.setWidth(1)
-    painter.setPen(border_pen)
-    painter.setBrush(Qt.NoBrush)
-    painter.drawRect(0, 0, w - 1, h - 1)
-
-    inner_pen = QPen(QColor(255, 106, 0, 25))
-    inner_pen.setWidth(1)
-    painter.setPen(inner_pen)
-    painter.drawRect(1, 1, w - 3, h - 3)
-
-    roblox_font_family = None
+def _load_roblox_font():
+    """Locate Roblox2017.ttf (bundled or alongside the .exe) and register
+    it with QFontDatabase. Returns the family name, or None if not found."""
     font_search_dirs = [
         APP_DIR,
         os.path.dirname(os.path.abspath(__file__)),
@@ -807,69 +795,187 @@ def create_splash_pixmap():
     if getattr(sys, 'frozen', False):
         font_search_dirs.append(sys._MEIPASS)
         font_search_dirs.append(os.path.dirname(os.path.abspath(sys.executable)))
-    roblox_font_path = None
     for fd in font_search_dirs:
-        candidate = os.path.join(fd, "Roblox2017.ttf")
-        if os.path.isfile(candidate):
-            roblox_font_path = candidate
-            break
-    if roblox_font_path:
-        font_id = QFontDatabase.addApplicationFont(roblox_font_path)
-        if font_id >= 0:
-            families = QFontDatabase.applicationFontFamilies(font_id)
-            if families:
-                roblox_font_family = families[0]
+        for fname in ("Roblox2017.ttf", "Roblox.ttf"):
+            candidate = os.path.join(fd, fname)
+            if os.path.isfile(candidate):
+                font_id = QFontDatabase.addApplicationFont(candidate)
+                if font_id >= 0:
+                    families = QFontDatabase.applicationFontFamilies(font_id)
+                    if families:
+                        return families[0]
+    return None
 
-    title_y = 140
-    painter.setPen(QColor("#ff6a00"))
-    max_title_w = w - 40
-    title_size = 32
-    title_spacing = 6
-    while title_size >= 10:
-        if roblox_font_family:
-            title_font = QFont(roblox_font_family, title_size, QFont.Bold)
-        else:
-            title_font = QFont("Segoe UI", title_size, QFont.Bold)
-        title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
-        fm = QFontMetrics(title_font)
-        if fm.horizontalAdvance(APP_NAME) <= max_title_w:
-            break
-        title_size -= 2
-        title_spacing = max(0, title_spacing - 1)
-    if roblox_font_family:
-        title_font = QFont(roblox_font_family, title_size, QFont.Bold)
+
+def _split_title(name):
+    """Always render the LAST word on its own line (e.g. 'JAMES ROBLOX' →
+    line1='JAMES', line2='ROBLOX'). Single-word names go on line 2 only."""
+    parts = (name or "").split()
+    if len(parts) >= 2:
+        return " ".join(parts[:-1]), parts[-1]
+    return "", (parts[0] if parts else "")
+
+
+def _fit_font(font_family, text, max_w, start_size, min_size, weight=QFont.Bold, spacing=0):
+    """Shrink font size until the text fits in max_w. Returns (QFont, QFontMetrics)."""
+    size = start_size
+    while size >= min_size:
+        f = QFont(font_family, size, weight)
+        if spacing:
+            f.setLetterSpacing(QFont.AbsoluteSpacing, spacing)
+        fm = QFontMetrics(f)
+        if fm.horizontalAdvance(text) <= max_w:
+            return f, fm
+        size -= 1
+    f = QFont(font_family, min_size, weight)
+    if spacing:
+        f.setLetterSpacing(QFont.AbsoluteSpacing, spacing)
+    return f, QFontMetrics(f)
+
+
+def create_splash_pixmap():
+    """Render the Horizon design (50/50 split — orange color block left,
+    dark info column right). The last word of APP_NAME is always rendered
+    on its own line in the Roblox font, in orange."""
+    global _cached_splash_pixmap
+    if _cached_splash_pixmap is not None:
+        return _cached_splash_pixmap
+
+    w, h = SPLASH_W, SPLASH_H
+    pix = QPixmap(w, h)
+    pix.fill(QColor("#0a0a0a"))
+
+    p = QPainter(pix)
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setRenderHint(QPainter.TextAntialiasing)
+    p.setRenderHint(QPainter.SmoothPixmapTransform)
+
+    # ---------- LEFT ORANGE BLOCK ----------
+    orange_grad = QLinearGradient(0, 0, ORANGE_W, h)
+    orange_grad.setColorAt(0.0, QColor("#ff8a3a"))
+    orange_grad.setColorAt(1.0, QColor("#ee5a00"))
+    p.fillRect(0, 0, ORANGE_W, h, orange_grad)
+
+    # diagonal sheen
+    sheen = QLinearGradient(0, 0, ORANGE_W, h)
+    sheen.setColorAt(0.0, QColor(255, 255, 255, 25))
+    sheen.setColorAt(0.55, QColor(255, 255, 255, 0))
+    sheen.setColorAt(1.0, QColor(0, 0, 0, 30))
+    p.fillRect(0, 0, ORANGE_W, h, sheen)
+
+    # subtle inner shadow on right edge of orange block
+    edge = QLinearGradient(ORANGE_W - 12, 0, ORANGE_W, 0)
+    edge.setColorAt(0, QColor(0, 0, 0, 0))
+    edge.setColorAt(1, QColor(0, 0, 0, 70))
+    p.fillRect(ORANGE_W - 12, 0, 12, h, edge)
+
+    # notches: top "DENFI" / bottom "// LAUNCHER"
+    notch_font = QFont("JetBrains Mono", 8, QFont.Bold)
+    if not notch_font.exactMatch():
+        notch_font = QFont("Consolas", 8, QFont.Bold)
+    notch_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+    p.setFont(notch_font)
+    p.setPen(QColor(255, 255, 255, 200))
+    p.drawText(20, 20, ORANGE_W - 40, 16, Qt.AlignLeft | Qt.AlignVCenter, "DENFI")
+    p.setPen(QColor(255, 255, 255, 170))
+    p.drawText(20, h - 28, ORANGE_W - 40, 16, Qt.AlignLeft | Qt.AlignVCenter, "// LAUNCHER")
+
+    # ---------- RIGHT DARK BLOCK ----------
+    right_x = ORANGE_W
+    right_w = w - ORANGE_W
+    pad = 28
+
+    bg_grad = QLinearGradient(right_x, 0, right_x, h)
+    bg_grad.setColorAt(0.0, QColor("#0e0e10"))
+    bg_grad.setColorAt(1.0, QColor("#0a0a0a"))
+    p.fillRect(right_x, 0, right_w, h, bg_grad)
+
+    # very soft top-right glow
+    glow = QRadialGradient(right_x + right_w - 60, 60, 220)
+    glow.setColorAt(0, QColor(255, 106, 0, 28))
+    glow.setColorAt(1, QColor(0, 0, 0, 0))
+    p.fillRect(right_x, 0, right_w, h, glow)
+
+    # outer 1px frame around the whole splash
+    p.setBrush(Qt.NoBrush)
+    p.setPen(QPen(QColor("#1c1c1c"), 1))
+    p.drawRect(0, 0, w - 1, h - 1)
+
+    # ---------- TOP ROW (right): "PREMIUM EDITION" + version pill ----------
+    top_y = 28
+    pe_font = QFont("Segoe UI", 9, QFont.Bold)
+    pe_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+    p.setFont(pe_font)
+    p.setPen(QColor("#f4f4f6"))
+    p.drawText(right_x + pad, top_y, right_w - pad * 2, 16,
+               Qt.AlignLeft | Qt.AlignVCenter, "PREMIUM EDITION")
+
+    # version pill (right)
+    ver_text = f"v{APP_VERSION}"
+    pill_font = QFont("JetBrains Mono", 8)
+    if not pill_font.exactMatch():
+        pill_font = QFont("Consolas", 8)
+    p.setFont(pill_font)
+    fm = QFontMetrics(pill_font)
+    pill_pad_x = 10
+    pill_h = 18
+    pill_w = fm.horizontalAdvance(ver_text) + pill_pad_x * 2
+    pill_x = right_x + right_w - pad - pill_w
+    pill_y = top_y - 1
+    p.setPen(QPen(QColor(255, 255, 255, 35), 1))
+    p.setBrush(Qt.NoBrush)
+    p.drawRoundedRect(pill_x, pill_y, pill_w, pill_h, pill_h // 2, pill_h // 2)
+    p.setPen(QColor(255, 255, 255, 140))
+    p.drawText(pill_x, pill_y, pill_w, pill_h, Qt.AlignCenter, ver_text)
+
+    # ---------- EYEBROW: // NOW LOADING ----------
+    eyebrow_font = QFont("JetBrains Mono", 9, QFont.Bold)
+    if not eyebrow_font.exactMatch():
+        eyebrow_font = QFont("Consolas", 9, QFont.Bold)
+    eyebrow_font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
+    p.setFont(eyebrow_font)
+    p.setPen(QColor("#ff6a00"))
+    eyebrow_y = 130
+    p.drawText(right_x + pad, eyebrow_y, right_w - pad * 2, 16,
+               Qt.AlignLeft | Qt.AlignVCenter, "// NOW LOADING")
+
+    # ---------- TITLE (two lines, last word in Roblox font + orange) ----------
+    roblox_family = _load_roblox_font()
+    line1, line2 = _split_title(APP_NAME)
+    max_title_w = right_w - pad * 2
+
+    # Line 1: regular sans-serif, white
+    if line1:
+        f1, fm1 = _fit_font("Segoe UI", line1, max_title_w, start_size=42, min_size=18, weight=QFont.Bold)
+        p.setFont(f1)
+        p.setPen(QColor("#f4f4f6"))
+        line1_y = eyebrow_y + 28
+        p.drawText(right_x + pad, line1_y, max_title_w, fm1.height() + 4,
+                   Qt.AlignLeft | Qt.AlignTop, line1)
+        line2_top = line1_y + fm1.height() - 4
     else:
-        title_font = QFont("Segoe UI", title_size, QFont.Bold)
-    title_font.setLetterSpacing(QFont.AbsoluteSpacing, title_spacing)
-    painter.setFont(title_font)
-    fm = QFontMetrics(title_font)
-    title_text = APP_NAME
-    if fm.horizontalAdvance(title_text) > max_title_w:
-        title_text = fm.elidedText(APP_NAME, Qt.ElideRight, max_title_w)
-    title_h = fm.height() + 8
-    painter.drawText(0, title_y, w, title_h, Qt.AlignCenter, title_text)
+        line2_top = eyebrow_y + 28
 
-    sub_y = title_y + 52
-    painter.setPen(QColor("#cc5500"))
-    sub_font = QFont("Segoe UI", 13)
-    sub_font.setLetterSpacing(QFont.AbsoluteSpacing, 12)
-    painter.setFont(sub_font)
-    painter.drawText(0, sub_y, w, 25, Qt.AlignCenter, "PORTABLE")
+    # Line 2: Roblox font, orange (always, even if it isn't literally "ROBLOX")
+    if line2:
+        family = roblox_family if roblox_family else "Segoe UI"
+        f2, fm2 = _fit_font(family, line2, max_title_w, start_size=56, min_size=22, weight=QFont.Bold)
+        p.setFont(f2)
+        p.setPen(QColor("#ff6a00"))
+        p.drawText(right_x + pad, line2_top, max_title_w, fm2.height() + 8,
+                   Qt.AlignLeft | Qt.AlignTop, line2)
 
-    line_y = sub_y + 35
-    line_w = 100
-    line_x = (w - line_w) // 2
-    line_grad = QLinearGradient(line_x, 0, line_x + line_w, 0)
-    line_grad.setColorAt(0, QColor(255, 106, 0, 0))
-    line_grad.setColorAt(0.3, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(0.5, QColor(255, 106, 0, 90))
-    line_grad.setColorAt(0.7, QColor(255, 106, 0, 60))
-    line_grad.setColorAt(1, QColor(255, 106, 0, 0))
-    painter.fillRect(line_x, line_y, line_w, 1, line_grad)
+    # ---------- SUBTITLE ----------
+    sub_font = QFont("Segoe UI", 9)
+    p.setFont(sub_font)
+    p.setPen(QColor(255, 255, 255, 120))
+    sub_y = h - 90
+    p.drawText(right_x + pad, sub_y, max_title_w, 18,
+               Qt.AlignLeft | Qt.AlignVCenter, "Built for performance. Designed to disappear.")
 
-    painter.end()
-    _cached_splash_pixmap = splash_pix
-    return splash_pix
+    p.end()
+    _cached_splash_pixmap = pix
+    return pix
 
 
 def get_license_file():
