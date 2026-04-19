@@ -2138,27 +2138,60 @@ _INACTIVE_LICENSE_STATUSES = ('expired', 'revoked', 'deleted', 'suspended')
 
 
 def _auto_purge_inactive_trial_configs(conn):
-    """Find build configs whose linked license is no longer active and:
-      * if the config is a trial → DELETE it (config + icon + artifacts).
-        Trials are tied 1:1 to a license; once that license dies, the
-        config is dead weight and was wasting build time.
-      * if the config is premium → leave it alone (build code already
-        skips it; the UI shows an EXPIRED badge so an admin can renew
-        the license without losing the config's settings).
+    """Auto-clean trial build configs that are no longer useful, and skip
+    premium configs whose linked license has expired.
 
-    Returns a dict: {"deleted_trials": [app_name, ...]}.
-    Caller must commit() afterwards.
+    A trial config is DELETED (config row + icon file + every build_artifact
+    + the corresponding .exe file on disk + any now-empty parent build row)
+    when EITHER:
+
+      (a) the config is linked to a `licenses` row whose status is in
+          {expired, revoked, deleted, suspended} — same rule as before, OR
+
+      (b) the config has issued at least one trial license and *zero* of
+          those issued trial licenses are still active. In other words,
+          every trial it ever minted has expired/been revoked/deleted, so
+          the template itself is dead weight and was wasting build time.
+
+    Premium (non-trial) configs are intentionally left in place even when
+    their linked license is inactive — the build code already skips them
+    and the UI marks them with an EXPIRED badge so the admin can renew
+    the license without losing the config's settings.
+
+    Returns: {"deleted_trials": [app_name, ...]}. Caller must commit().
     """
     placeholders = ",".join("?" * len(_INACTIVE_LICENSE_STATUSES))
-    rows = conn.execute(
+    # Case (a): trial linked to a dead license row.
+    rows_a = conn.execute(
         f"""SELECT bc.id, bc.app_name, bc.icon_filename
             FROM build_configs bc
             JOIN licenses l ON bc.license_id = l.id
             WHERE bc.is_trial = 1 AND l.status IN ({placeholders})""",
         _INACTIVE_LICENSE_STATUSES,
     ).fetchall()
+
+    # Case (b): trial config where every issued per-user trial license is
+    # no longer active. Configs that have never issued anything yet are
+    # left alone (otherwise a freshly-created template would self-delete
+    # before anyone has a chance to download it).
+    rows_b = conn.execute(
+        """SELECT bc.id, bc.app_name, bc.icon_filename,
+                  COUNT(l.id) AS total,
+                  SUM(CASE WHEN l.status = 'active' THEN 1 ELSE 0 END) AS active_n
+             FROM build_configs bc
+             JOIN licenses l ON l.parent_config_id = bc.id AND l.is_trial = 1
+            WHERE bc.is_trial = 1
+            GROUP BY bc.id
+           HAVING total > 0 AND active_n = 0""",
+    ).fetchall()
+
+    seen = set()
     deleted = []
-    for r in rows:
+    for r in list(rows_a) + list(rows_b):
+        cid = r["id"]
+        if cid in seen:
+            continue
+        seen.add(cid)
         if r["icon_filename"]:
             icon_path = os.path.join(ICONS_DIR, r["icon_filename"])
             if os.path.isfile(icon_path):
@@ -2166,8 +2199,14 @@ def _auto_purge_inactive_trial_configs(conn):
                     os.remove(icon_path)
                 except Exception:
                     pass
-        _purge_artifacts_for_config(conn, r["id"])
-        conn.execute("DELETE FROM build_configs WHERE id = ?", (r["id"],))
+        _purge_artifacts_for_config(conn, cid)
+        # Also drop any per-user trial licenses this template issued so the
+        # dashboard doesn't keep listing zombies pointing at a deleted config.
+        conn.execute(
+            "DELETE FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
+            (cid,),
+        )
+        conn.execute("DELETE FROM build_configs WHERE id = ?", (cid,))
         deleted.append(r["app_name"])
     return {"deleted_trials": deleted}
 
