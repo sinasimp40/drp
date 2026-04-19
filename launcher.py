@@ -1175,12 +1175,42 @@ def save_license_key(key):
 
 
 def delete_license_files():
+    """Remove the local .license_key file. Used ONLY for paid-license expiry/
+    revocation so the user is prompted for a fresh key on next launch.
+
+    DO NOT call this for trial expiry — see _mark_trial_exhausted() instead;
+    trials must be sticky so re-running the launcher cannot silently mint a
+    new trial.
+    """
     path = get_license_file()
     try:
         if os.path.isfile(path):
             os.remove(path)
     except Exception:
         pass
+
+
+def _get_trial_exhausted_marker_path():
+    return os.path.join(APP_DIR, ".trial_exhausted")
+
+
+def _mark_trial_exhausted():
+    """Drop a hidden marker next to the .license_key indicating that the
+    trial associated with this install is finished. The encrypted .license_key
+    file is intentionally LEFT IN PLACE so re-running the launcher cannot
+    silently issue a fresh trial — the only way to reset is to delete the
+    whole launcher folder."""
+    path = _get_trial_exhausted_marker_path()
+    try:
+        with open(path, "wb") as f:
+            f.write(b"trial_exhausted_v1")
+        _hide_file_windows(path)
+    except Exception:
+        pass
+
+
+def _is_trial_exhausted():
+    return os.path.isfile(_get_trial_exhausted_marker_path())
 
 
 def verify_signature(data_dict, signature):
