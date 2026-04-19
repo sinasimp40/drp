@@ -51,12 +51,30 @@
                     TRIAL MODE — auto-issue time-limited license + auto-download Roblox bundle
                 </label>
                 <p style="color: var(--text-mute); font-size: 11px; margin: 6px 0 10px;">
-                    Only one trial config can exist at a time. Trial users land on the Horizon splash directly with no key prompt.
+                    Trial users land on the splash directly with no key prompt. You can have multiple trial configs (e.g. a 30-min demo and a 7-day promo).
                 </p>
+                {% set _dur_secs = (config and config.trial_duration_seconds) or 86400 %}
+                {% if _dur_secs % 86400 == 0 and _dur_secs >= 86400 %}
+                    {% set _dur_value = _dur_secs // 86400 %}
+                    {% set _dur_unit = 'days' %}
+                {% elif _dur_secs % 3600 == 0 and _dur_secs >= 3600 %}
+                    {% set _dur_value = _dur_secs // 3600 %}
+                    {% set _dur_unit = 'hours' %}
+                {% else %}
+                    {% set _dur_value = (_dur_secs // 60) if (_dur_secs // 60) > 0 else 1 %}
+                    {% set _dur_unit = 'minutes' %}
+                {% endif %}
                 <div class="form-row" style="display:flex; gap:12px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Trial duration (hours)</label>
-                        <input type="number" name="trial_duration_hours" min="1" step="1" value="{{ (config and config.trial_duration_seconds and (config.trial_duration_seconds // 3600)) or 24 }}">
+                        <label>Trial duration</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" name="trial_duration_value" min="1" step="1" value="{{ _dur_value }}" style="flex:2;">
+                            <select name="trial_duration_unit" style="flex:1;">
+                                <option value="minutes" {% if _dur_unit == 'minutes' %}selected{% endif %}>Minutes</option>
+                                <option value="hours" {% if _dur_unit == 'hours' %}selected{% endif %}>Hours</option>
+                                <option value="days" {% if _dur_unit == 'days' %}selected{% endif %}>Days</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Max trials per /24 subnet</label>

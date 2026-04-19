@@ -214,9 +214,11 @@ def init_db():
         except sqlite3.OperationalError:
             conn.execute(ddl)
             conn.commit()
-    # Enforce one trial config at the DB level (partial unique index).
+    # Multiple trial configs are now allowed. Drop the legacy unique index
+    # if it exists from an older install so admins can create more than one
+    # trial product (e.g. a 30-min demo + a 7-day promo running in parallel).
     try:
-        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_one_trial_config ON build_configs(is_trial) WHERE is_trial = 1")
+        conn.execute("DROP INDEX IF EXISTS idx_one_trial_config")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -233,6 +235,36 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
+
+def _parse_trial_duration_form(form, default_seconds=86400):
+    """Read trial duration from a build-config form. Supports two layouts:
+
+      1. New layout: `trial_duration_value` + `trial_duration_unit`
+         (unit is one of "minutes", "hours", "days").
+      2. Legacy layout: `trial_duration_hours` (a number of hours).
+
+    Falls back to `default_seconds` if neither is present or unparsable.
+    Enforces a 60-second minimum so admins can ship short demo configs
+    (e.g. 5-minute trials) without accidentally creating a 0-second one.
+    """
+    raw_value = form.get("trial_duration_value")
+    unit = (form.get("trial_duration_unit") or "hours").strip().lower()
+    if raw_value is None or raw_value == "":
+        legacy_hours = form.get("trial_duration_hours")
+        if legacy_hours is None or legacy_hours == "":
+            return default_seconds
+        try:
+            return max(60, int(float(legacy_hours) * 3600))
+        except (TypeError, ValueError):
+            return default_seconds
+    try:
+        n = float(raw_value)
+    except (TypeError, ValueError):
+        return default_seconds
+    multipliers = {"minutes": 60, "hours": 3600, "days": 86400}
+    seconds = int(n * multipliers.get(unit, 3600))
+    return max(60, seconds)
 
 
 def sign_response(data):
@@ -1965,10 +1997,13 @@ def builds_page():
             "has_icon": bool(c["icon_filename"]),
             "license_server_url": c["license_server_url"] or "",
             "is_trial": bool(c["is_trial"]) if "is_trial" in c.keys() else False,
+            "trial_download_url": (
+                url_for("download_trial_public", config_id=c["id"], _external=True)
+                if ("is_trial" in c.keys() and c["is_trial"]) else ""
+            ),
         })
 
-    trial_download_url = url_for("download_trial_public", _external=True)
-    return render_template("builds.html", configs=config_list, builds=build_list, trial_download_url=trial_download_url)
+    return render_template("builds.html", configs=config_list, builds=build_list)
 
 
 @app.route("/build_config/create", methods=["GET", "POST"])
@@ -1984,26 +2019,11 @@ def create_build_config():
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
         is_trial = 1 if request.form.get("is_trial") == "on" else 0
-        try:
-            trial_duration_seconds = max(3600, int(float(request.form.get("trial_duration_hours", "24")) * 3600))
-        except (TypeError, ValueError):
-            trial_duration_seconds = 86400
+        trial_duration_seconds = _parse_trial_duration_form(request.form, default_seconds=86400)
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "5")))
         except ValueError:
             trial_max_per_subnet = 5
-
-        if is_trial:
-            existing_trial = conn.execute(
-                "SELECT id, app_name FROM build_configs WHERE is_trial = 1 LIMIT 1"
-            ).fetchone()
-            if existing_trial:
-                conn.close()
-                flash(
-                    f"Only one trial config allowed at a time — '{existing_trial['app_name']}' is already trial",
-                    "error",
-                )
-                return redirect(url_for("create_build_config"))
 
         icon_filename = ""
         icon_file = request.files.get("icon")
@@ -2053,28 +2073,14 @@ def edit_build_config(config_id):
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
         is_trial = 1 if request.form.get("is_trial") == "on" else 0
-        try:
-            default_hours = max(1, int((config["trial_duration_seconds"] or 86400) // 3600))
-            trial_duration_seconds = max(3600, int(float(request.form.get("trial_duration_hours", str(default_hours))) * 3600))
-        except (TypeError, ValueError):
-            trial_duration_seconds = config["trial_duration_seconds"] or 86400
+        trial_duration_seconds = _parse_trial_duration_form(
+            request.form,
+            default_seconds=config["trial_duration_seconds"] or 86400,
+        )
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 5))))
         except ValueError:
             trial_max_per_subnet = 5
-
-        if is_trial:
-            existing_trial = conn.execute(
-                "SELECT id, app_name FROM build_configs WHERE is_trial = 1 AND id != ? LIMIT 1",
-                (config_id,),
-            ).fetchone()
-            if existing_trial:
-                conn.close()
-                flash(
-                    f"Only one trial config allowed at a time — '{existing_trial['app_name']}' is already trial",
-                    "error",
-                )
-                return redirect(url_for("edit_build_config", config_id=config_id))
 
         icon_filename = config["icon_filename"]
         icon_file = request.files.get("icon")
@@ -2316,12 +2322,21 @@ def api_roblox_bundle_download(token):
 
 @app.route("/download_trial")
 def download_trial_public():
-    """Public landing route to download the trial .exe (rate-limited)."""
+    """Public landing route to download the trial .exe (rate-limited).
+
+    Optional `?config_id=N` selects a specific trial product when more than
+    one trial config exists. Without it, falls back to the oldest trial
+    (preserves the original single-trial URL for backward compatibility).
+    """
     client_ip = _get_client_ip()
     if not _trial_rate_limit_check(client_ip):
         return "Rate limit exceeded, try later", 429
+    try:
+        config_id = int(request.args.get("config_id") or 0) or None
+    except (TypeError, ValueError):
+        config_id = None
     conn = get_db()
-    cfg = _get_trial_config(conn)
+    cfg = _get_trial_config(conn, config_id)
     if not cfg:
         conn.close()
         return "No trial available", 404
