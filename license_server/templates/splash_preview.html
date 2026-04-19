@@ -66,6 +66,8 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
+        .design-tag.vault    { color: #6fdc8c; border-color: #1d5a30; }
+        .design-tag.card     { color: #d4af7a; border-color: #5a4525; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -672,6 +674,322 @@
         }
         .splash-console .statusbar .grow { flex: 1; }
         .splash-console .statusbar .em { color: rgba(234,234,240,0.7); }
+
+        /* ============================================================
+           VAULT — security/authenticator tool
+           Trust-blue + green-check, shield mark, license key dot display.
+           1Password / Bitwarden Premium feel.
+           ============================================================ */
+        .splash-vault {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 30%, #131a26 0%, #0a0e16 60%, #060a12 100%);
+            border-radius: 14px;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #e8eef8;
+            box-shadow:
+                inset 0 0 0 1px rgba(120,180,255,0.06),
+                0 30px 80px rgba(0,0,0,0.55);
+        }
+        .splash-vault::before {
+            /* subtle blueprint grid */
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(120,180,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(120,180,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+        .splash-vault .auth-badge {
+            position: absolute;
+            top: 22px; left: 24px;
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            background: rgba(111,220,140,0.08);
+            border: 1px solid rgba(111,220,140,0.25);
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            color: #6fdc8c;
+            text-transform: uppercase;
+        }
+        .splash-vault .auth-badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #6fdc8c;
+            box-shadow: 0 0 8px rgba(111,220,140,0.7);
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
+        .splash-vault .session-id {
+            position: absolute;
+            top: 28px; right: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(232,238,248,0.4);
+            letter-spacing: 1px;
+        }
+
+        .splash-vault .shield-wrap {
+            position: absolute;
+            top: 70px; left: 50%;
+            transform: translateX(-50%);
+            width: 96px; height: 96px;
+        }
+        .splash-vault .shield-wrap svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 24px rgba(120,180,255,0.25));
+        }
+        .splash-vault .shield-wrap .ring {
+            position: absolute; inset: -10px;
+            border-radius: 50%;
+            border: 1px dashed rgba(120,180,255,0.18);
+            animation: vault-ring-rot 12s linear infinite;
+        }
+        @keyframes vault-ring-rot { to { transform: rotate(360deg); } }
+
+        .splash-vault .logo-thumb {
+            position: absolute;
+            top: 90px; left: 50%;
+            transform: translateX(-50%);
+            width: 56px; height: 56px;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2;
+        }
+        .splash-vault .logo-thumb img {
+            max-width: 48px; max-height: 48px; object-fit: contain;
+        }
+
+        .splash-vault .title {
+            position: absolute;
+            top: 200px; left: 0; right: 0; text-align: center;
+            font-size: 38px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            color: #ffffff;
+        }
+        .splash-vault .sub {
+            position: absolute;
+            top: 246px; left: 0; right: 0; text-align: center;
+            font-size: 12px;
+            color: rgba(232,238,248,0.5);
+            letter-spacing: 0.5px;
+        }
+
+        .splash-vault .key-display {
+            position: absolute;
+            top: 282px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            letter-spacing: 4px;
+            color: rgba(232,238,248,0.85);
+        }
+        .splash-vault .key-display .seg {
+            padding: 8px 14px;
+            background: rgba(120,180,255,0.05);
+            border: 1px solid rgba(120,180,255,0.12);
+            border-radius: 6px;
+            min-width: 76px;
+            text-align: center;
+        }
+        .splash-vault .key-display .seg.live {
+            color: #6fdc8c;
+            border-color: rgba(111,220,140,0.35);
+            background: rgba(111,220,140,0.06);
+        }
+
+        .splash-vault .footer {
+            position: absolute;
+            bottom: 22px; left: 0; right: 0;
+            display: flex; justify-content: space-between;
+            padding: 0 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(232,238,248,0.4);
+            letter-spacing: 1px;
+        }
+        .splash-vault .footer .lhs { display: flex; align-items: center; gap: 6px; }
+        .splash-vault .footer .verify-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: #6fdc8c;
+            box-shadow: 0 0 6px rgba(111,220,140,0.7);
+        }
+
+        /* ============================================================
+           CARD — premium black-metal credit card
+           The splash IS a card. Brushed sheen, gold chip top-left,
+           embossed-style title, "MEMBER SINCE" footer. Amex Centurion.
+           ============================================================ */
+        .splash-card {
+            position: relative;
+            width: 620px;
+            height: 390px;          /* 1.59 ratio — real credit card */
+            background:
+                linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 50%, #050505 100%);
+            border-radius: 18px;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #e8d8b8;
+            box-shadow:
+                inset 0 0 0 1px rgba(212,175,122,0.10),
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 30px 80px rgba(0,0,0,0.65);
+        }
+        /* brushed metal stripes */
+        .splash-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(255,255,255,0.012) 0px,
+                rgba(255,255,255,0.012) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+        }
+        /* slow shimmer pass */
+        .splash-card::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(115deg, transparent 40%, rgba(212,175,122,0.06) 50%, transparent 60%);
+            animation: card-shimmer 7s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes card-shimmer {
+            0%, 100% { transform: translateX(-30%); }
+            50%      { transform: translateX(30%); }
+        }
+
+        /* gold chip element */
+        .splash-card .chip {
+            position: absolute;
+            top: 52px; left: 36px;
+            width: 54px; height: 42px;
+            background: linear-gradient(135deg, #f4d99b 0%, #d4af7a 50%, #a07c4a 100%);
+            border-radius: 6px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.4),
+                inset 0 -1px 0 rgba(0,0,0,0.3),
+                0 2px 6px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        .splash-card .chip::before,
+        .splash-card .chip::after {
+            content: '';
+            position: absolute;
+            background: rgba(0,0,0,0.18);
+        }
+        .splash-card .chip::before {
+            top: 12px; left: 6px; right: 6px; height: 1px;
+            box-shadow: 0 7px 0 rgba(0,0,0,0.18), 0 14px 0 rgba(0,0,0,0.18), 0 21px 0 rgba(0,0,0,0.18);
+        }
+        .splash-card .chip::after {
+            top: 6px; bottom: 6px; left: 50%; width: 1px;
+        }
+
+        .splash-card .brand-mark {
+            position: absolute;
+            top: 28px; right: 32px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: rgba(212,175,122,0.85);
+            text-transform: uppercase;
+        }
+        .splash-card .tier {
+            position: absolute;
+            top: 50px; right: 32px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(212,175,122,0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .splash-card .logo-area {
+            position: absolute;
+            top: 116px; right: 36px;
+            text-align: right;
+            opacity: 0.85;
+        }
+        .splash-card .logo-area img {
+            max-width: 110px; max-height: 78px;
+            object-fit: contain;
+            filter: brightness(0) invert(1) opacity(0.7) drop-shadow(0 0 16px rgba(212,175,122,0.2));
+        }
+
+        .splash-card .number {
+            position: absolute;
+            top: 188px; left: 36px; right: 36px;
+            font-family: 'Inter', sans-serif;
+            font-size: 26px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            color: rgba(232,216,184,0.9);
+            text-shadow:
+                0 1px 0 rgba(0,0,0,0.5),
+                0 -1px 0 rgba(255,255,255,0.05);
+        }
+        .splash-card .number .grp { margin-right: 18px; }
+        .splash-card .number .grp.dim { color: rgba(232,216,184,0.35); margin-right: 18px; }
+
+        .splash-card .title {
+            position: absolute;
+            top: 240px; left: 36px;
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -1.2px;
+            color: #f4e6c8;
+            text-shadow:
+                0 1px 0 rgba(0,0,0,0.5),
+                0 -1px 0 rgba(255,255,255,0.05);
+        }
+
+        .splash-card .meta-row {
+            position: absolute;
+            bottom: 28px; left: 36px; right: 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 10px;
+            color: rgba(212,175,122,0.55);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .splash-card .meta-row .lbl {
+            display: block;
+            font-size: 8px;
+            color: rgba(212,175,122,0.4);
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+        .splash-card .meta-row .val {
+            color: rgba(232,216,184,0.85);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+        .splash-card .meta-row .status {
+            display: flex; align-items: center; gap: 8px;
+            color: #6fdc8c;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+        }
+        .splash-card .meta-row .status .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #6fdc8c;
+            box-shadow: 0 0 8px rgba(111,220,140,0.7);
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
@@ -679,7 +997,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Three new directions below your current splash. Each uses a completely different layout — no more centered cards.<br>
+            Five new directions below your current splash. Each uses a completely different layout — no more centered cards.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -869,6 +1187,107 @@
             </div>
         </div>
         <div class="design-meta">660 × 380 &nbsp;|&nbsp; titlebar + traffic lights + streaming command output</div>
+    </section>
+
+    <!-- ====================================================
+         VAULT — security/auth tool
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag vault">NEW · 4</span>
+            <span class="design-name">Vault</span>
+        </div>
+        <div class="design-desc">
+            Security/authenticator tool aesthetic. Faint blueprint grid, "AUTHENTICATED" pill at the top with a pulsing green dot, a soft-glowing shield mark with a slow rotating dashed ring around it, your logo nested inside. License-key segments below the title in mono — like a real auth tool revealing its credentials. Footer has session id + verified badge. Fits naturally because your launcher actually does license verification — looks like 1Password or Bitwarden Premium.
+        </div>
+        <div class="design-stage">
+            <div class="splash-vault">
+                <div class="auth-badge"><span class="dot"></span>Authenticated</div>
+                <div class="session-id">SESSION · A7F3-9K2X</div>
+
+                <div class="shield-wrap">
+                    <div class="ring"></div>
+                    <svg viewBox="0 0 100 100" fill="none">
+                        <defs>
+                            <linearGradient id="shield-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#7ab8ff" stop-opacity="0.18"/>
+                                <stop offset="100%" stop-color="#3a7fcc" stop-opacity="0.05"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M50 8 L88 22 L88 50 C88 72 72 86 50 92 C28 86 12 72 12 50 L12 22 Z"
+                              stroke="rgba(120,180,255,0.6)" stroke-width="1.5" fill="url(#shield-grad)"/>
+                    </svg>
+                </div>
+                {% if splash_file %}
+                <div class="logo-thumb"><img src="/splash_logo_file" alt="Logo"></div>
+                {% endif %}
+
+                <div class="title">{{ app_name or 'Roblox' }}</div>
+                <div class="sub">License verified · Session is secure</div>
+
+                <div class="key-display">
+                    <div class="seg">●●●●</div>
+                    <div class="seg">●●●●</div>
+                    <div class="seg">●●●●</div>
+                    <div class="seg live" id="vault-key">XKQR</div>
+                </div>
+
+                <div class="footer">
+                    <div class="lhs"><span class="verify-dot"></span>VERIFIED BY DENFI</div>
+                    <div>v1.0.0 · TLS 1.3</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">600 × 400 &nbsp;|&nbsp; shield mark · authenticated badge · key segments</div>
+    </section>
+
+    <!-- ====================================================
+         CARD — premium black-metal credit card
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag card">NEW · 5</span>
+            <span class="design-name">Card</span>
+        </div>
+        <div class="design-desc">
+            The splash IS a premium black-metal credit card. True 1.59:1 card aspect ratio, brushed-metal stripe pattern, slow shimmer pass across the surface, embossed-style gold chip element top-left, "DENFI" wordmark and "ATELIER" tier top-right, your logo as a faint mark on the right. Card-number style display in the middle reveals as the launcher progresses. "MEMBER SINCE / VALID" footer with a green active-status indicator. Amex Centurion / black-card energy — tells the user "you have something exclusive."
+        </div>
+        <div class="design-stage">
+            <div class="splash-card">
+                <div class="chip"></div>
+                <div class="brand-mark">Denfi</div>
+                <div class="tier">Atelier · Premium</div>
+
+                {% if splash_file %}
+                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
+                {% endif %}
+
+                <div class="number">
+                    <span class="grp">DENFI</span>
+                    <span class="grp" id="card-grp1">●●●●</span>
+                    <span class="grp dim" id="card-grp2">●●●●</span>
+                    <span class="grp dim" id="card-grp3">2026</span>
+                </div>
+
+                <div class="title fit-title-card">{{ app_name or 'Roblox' }}</div>
+
+                <div class="meta-row">
+                    <div>
+                        <span class="lbl">Member Since</span>
+                        <span class="val">2024</span>
+                    </div>
+                    <div>
+                        <span class="lbl">Valid Through</span>
+                        <span class="val">∞</span>
+                    </div>
+                    <div class="status">
+                        <span class="dot"></span>
+                        ACTIVE
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">620 × 390 &nbsp;|&nbsp; black-metal card · gold chip · brushed sheen</div>
     </section>
 
     <script>
@@ -1071,6 +1490,46 @@
             step();
         }
         runConsole();
+
+        // VAULT — cycle the last key segment through random hex codes
+        var vaultKeyEl = document.getElementById('vault-key');
+        var vaultCodes = ['XKQR', '7M3F', 'B9PA', 'D2TY', '4HVG', 'WQ81', 'ZE6C'];
+        var vaultIdx = 0;
+        setInterval(function() {
+            if (!vaultKeyEl) return;
+            vaultIdx = (vaultIdx + 1) % vaultCodes.length;
+            vaultKeyEl.style.transition = 'opacity 0.2s';
+            vaultKeyEl.style.opacity = '0.4';
+            setTimeout(function() {
+                vaultKeyEl.textContent = vaultCodes[vaultIdx];
+                vaultKeyEl.style.opacity = '1';
+            }, 200);
+        }, 1500);
+
+        // CARD — auto-fit title + reveal card-number groups one by one
+        autoFitTitle(document.querySelector('.fit-title-card'), 24, 18);
+        var cardSeqs = [
+            ['●●●●', '●●●●', '2026'],
+            ['●●●●', '●●●●', '2026'],
+            ['●●●●', '●●●●', '2026'],
+            ['7M3F', '●●●●', '2026'],
+            ['7M3F', '●●●●', '2026'],
+            ['7M3F', 'XKQR', '2026'],
+            ['7M3F', 'XKQR', '2026']
+        ];
+        var cardG1 = document.getElementById('card-grp1');
+        var cardG2 = document.getElementById('card-grp2');
+        var cardG3 = document.getElementById('card-grp3');
+        var cardStep = 0;
+        function cardTick() {
+            var s = cardSeqs[cardStep % cardSeqs.length];
+            if (cardG1) { cardG1.textContent = s[0]; cardG1.classList.toggle('dim', s[0].indexOf('●') === 0); }
+            if (cardG2) { cardG2.textContent = s[1]; cardG2.classList.toggle('dim', s[1].indexOf('●') === 0); }
+            if (cardG3) { cardG3.textContent = s[2]; cardG3.classList.toggle('dim', false); }
+            cardStep = (cardStep + 1) % cardSeqs.length;
+        }
+        cardTick();
+        setInterval(cardTick, 1100);
     })();
     </script>
 </body>
