@@ -66,9 +66,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.quiet    { color: #f4f1ea; border-color: #444; }
-        .design-tag.paper    { color: #15110d; border-color: #15110d; background: #f4ece0; }
-        .design-tag.spot     { color: #ffb060; border-color: #6a3a18; }
+        .design-tag.orbit    { color: #d8e4ff; border-color: #2a3a5a; }
+        .design-tag.beam     { color: #ffcf8a; border-color: #6a3a18; }
+        .design-tag.grid     { color: #9affd4; border-color: #1a4a3a; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -755,77 +755,196 @@
             max-width: 460px;
         }
 
-        /* QUIET — pure dark variant (deep ink, white type) */
-        .splash-quiet { background: #0a0a0c; color: #f4f1ea; }
-        .splash-quiet .top         { color: rgba(244,241,234,0.5); }
-        .splash-quiet .top .em     { color: rgba(244,241,234,0.85); font-weight: 600; }
-        .splash-quiet .pre         { color: rgba(244,241,234,0.55); }
-        .splash-quiet .pre .em     { color: #ffb060; }
-        .splash-quiet .title       { color: #f4f1ea; }
-        .splash-quiet .sub         { color: rgba(244,241,234,0.65); }
-        .splash-quiet .sub .em     { color: rgba(244,241,234,0.9); font-weight: 500; }
-        .splash-quiet .bar         { background: rgba(244,241,234,0.08); }
-        .splash-quiet .bar .fill   { background: #f4f1ea; }
-        .splash-quiet .meta        { color: rgba(244,241,234,0.5); }
-        .splash-quiet .meta .em    { color: rgba(244,241,234,0.9); }
-
-        /* PAPER — light cream variant (warm off-white, deep ink type) */
-        .splash-paper { background: #f5f1e9; color: #15110d; }
-        .splash-paper::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 180px 180px;
-            mix-blend-mode: multiply;
-            opacity: 0.6;
-            pointer-events: none;
+        /* ===========================================================
+           ORBIT — pure dark + thin animated ring around the title.
+           Title is the entire stage. One word, one circle, one dot.
+           =========================================================== */
+        .splash-orbit {
+            position: relative; width: 720px; height: 380px; overflow: hidden;
+            background: radial-gradient(ellipse at 50% 50%, #0f1018 0%, #050608 80%);
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
         }
-        .splash-paper .top         { color: rgba(21,17,13,0.55); }
-        .splash-paper .top .em     { color: #15110d; font-weight: 600; }
-        .splash-paper .pre         { color: rgba(21,17,13,0.6); }
-        .splash-paper .pre .em     { color: #c0432a; }
-        .splash-paper .title       { color: #15110d; }
-        .splash-paper .sub         { color: rgba(21,17,13,0.65); }
-        .splash-paper .sub .em     { color: #15110d; font-weight: 500; }
-        .splash-paper .bar         { background: rgba(21,17,13,0.10); }
-        .splash-paper .bar .fill   { background: #c0432a; }
-        .splash-paper .meta        { color: rgba(21,17,13,0.55); }
-        .splash-paper .meta .em    { color: #15110d; }
-
-        /* SPOTLIGHT — dark + a single warm orange glow behind the title */
-        .splash-spot { background: #07060a; color: #f4f1ea; }
-        .splash-spot::before {
-            content: '';
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 520px; height: 320px;
+        .splash-orbit .ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 460px; height: 460px;
             transform: translate(-50%, -50%);
-            background: radial-gradient(ellipse at 50% 50%,
-                rgba(255,176,96,0.22) 0%,
-                rgba(255,140,80,0.10) 40%,
-                transparent 70%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .splash-orbit .ring.r2 { width: 320px; height: 320px; border-color: rgba(255,255,255,0.05); }
+        .splash-orbit .orbit-spin {
+            position: absolute; top: 50%; left: 50%;
+            width: 460px; height: 460px;
+            transform: translate(-50%, -50%);
+            animation: orbit-rot 6s linear infinite;
+            pointer-events: none;
+        }
+        .splash-orbit .dot {
+            position: absolute; top: -4px; left: 50%;
+            width: 8px; height: 8px;
+            margin-left: -4px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 14px rgba(255,255,255,0.9), 0 0 30px rgba(255,255,255,0.4);
+        }
+        @keyframes orbit-rot { to { transform: translate(-50%, -50%) rotate(360deg); } }
+        .splash-orbit .title {
+            position: relative;
+            z-index: 2;
+            font-weight: 700;
+            font-size: 96px;
+            letter-spacing: -3.5px;
+            line-height: 1;
+            color: #fff;
+            text-align: center;
+        }
+        .splash-orbit .pct {
+            position: absolute;
+            bottom: 28px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+        }
+        .splash-orbit .pct b { color: #fff; font-weight: 500; }
+
+        /* ===========================================================
+           BEAM — dark + one diagonal warm light beam slicing across.
+           Title is left-aligned big; beam passes behind it.
+           =========================================================== */
+        .splash-beam {
+            position: relative; width: 720px; height: 380px; overflow: hidden;
+            background: #07070a;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+        }
+        .splash-beam .beam {
+            position: absolute;
+            top: -120px; left: -40%;
+            width: 180%; height: 200px;
+            background: linear-gradient(90deg,
+                rgba(255,160,80,0) 0%,
+                rgba(255,160,80,0.18) 35%,
+                rgba(255,200,140,0.32) 50%,
+                rgba(255,160,80,0.18) 65%,
+                rgba(255,160,80,0) 100%);
+            transform: rotate(-18deg);
+            filter: blur(14px);
+            pointer-events: none;
+            animation: beam-drift 8s ease-in-out infinite alternate;
+        }
+        .splash-beam .beam.b2 {
+            top: 220px;
+            height: 90px;
+            background: linear-gradient(90deg,
+                rgba(255,140,70,0) 0%,
+                rgba(255,140,70,0.10) 50%,
+                rgba(255,140,70,0) 100%);
             filter: blur(8px);
+            animation-duration: 12s;
+            animation-direction: alternate-reverse;
+        }
+        @keyframes beam-drift { to { transform: rotate(-16deg) translateX(40px); } }
+        .splash-beam .title {
+            position: absolute;
+            top: 50%; left: 56px;
+            transform: translateY(-58%);
+            font-weight: 700;
+            font-size: 110px;
+            letter-spacing: -4.5px;
+            line-height: 0.95;
+            color: #fff;
+            z-index: 3;
+        }
+        .splash-beam .barwrap {
+            position: absolute;
+            left: 56px; right: 56px; bottom: 36px;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            z-index: 3;
+        }
+        .splash-beam .barwrap .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffb060, #ff7a3a);
+            box-shadow: 0 0 10px rgba(255,140,80,0.7);
+            transition: width 0.18s linear;
+        }
+        .splash-beam .pct {
+            position: absolute;
+            left: 56px; bottom: 46px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+            z-index: 3;
+        }
+        .splash-beam .pct b { color: #ffcf8a; font-weight: 500; }
+
+        /* ===========================================================
+           GRID — dark + perspective neon grid floor (Tron, restrained).
+           Title floats above the horizon. One word, one floor, one line.
+           =========================================================== */
+        .splash-grid {
+            position: relative; width: 720px; height: 380px; overflow: hidden;
+            background: linear-gradient(180deg, #04060a 0%, #060a18 60%, #0a1428 100%);
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+        }
+        .splash-grid .floor {
+            position: absolute;
+            left: -10%; right: -10%; bottom: 0;
+            height: 180px;
+            background-image:
+                linear-gradient(to right, rgba(120,255,210,0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(120,255,210,0.22) 1px, transparent 1px);
+            background-size: 60px 40px;
+            transform: perspective(360px) rotateX(60deg);
+            transform-origin: 50% 0%;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            animation: grid-scroll 4s linear infinite;
             pointer-events: none;
         }
-        .splash-spot::after {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            background-size: 160px 160px;
-            mix-blend-mode: overlay;
-            opacity: 0.55;
+        @keyframes grid-scroll { to { background-position: 0 40px, 0 40px; } }
+        .splash-grid .horizon {
+            position: absolute;
+            left: 0; right: 0; bottom: 180px;
+            height: 60px;
+            background: radial-gradient(ellipse at 50% 100%, rgba(120,255,210,0.45) 0%, rgba(120,255,210,0) 70%);
             pointer-events: none;
         }
-        .splash-spot .top         { color: rgba(244,241,234,0.5); }
-        .splash-spot .top .em     { color: rgba(244,241,234,0.9); font-weight: 600; }
-        .splash-spot .pre         { color: #ffb060; }
-        .splash-spot .title       { color: #fff; text-shadow: 0 4px 40px rgba(255,176,96,0.35); }
-        .splash-spot .sub         { color: rgba(244,241,234,0.7); }
-        .splash-spot .sub .em     { color: #ffb060; font-weight: 500; }
-        .splash-spot .bar         { background: rgba(244,241,234,0.08); }
-        .splash-spot .bar .fill   { background: linear-gradient(90deg, #ffb060 0%, #ff7a3a 100%); box-shadow: 0 0 8px rgba(255,140,80,0.5); }
-        .splash-spot .meta        { color: rgba(244,241,234,0.55); }
-        .splash-spot .meta .em    { color: #ffb060; }
+        .splash-grid .title {
+            position: absolute;
+            top: 38%; left: 0; right: 0;
+            transform: translateY(-50%);
+            text-align: center;
+            font-weight: 700;
+            font-size: 100px;
+            letter-spacing: -3.5px;
+            line-height: 1;
+            color: #f4fff8;
+            text-shadow: 0 2px 30px rgba(120,255,210,0.25);
+            z-index: 3;
+        }
+        .splash-grid .pct {
+            position: absolute;
+            top: 24px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 5px;
+            color: rgba(154,255,212,0.55);
+            text-transform: uppercase;
+            z-index: 3;
+        }
+        .splash-grid .pct b { color: #9affd4; font-weight: 500; }
 
     </style>
 </head>
@@ -834,7 +953,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            First 3 designs (Marquee · Horizon · Console) kept untouched. Three clean minimal variants of one composition — same calm restrained layout in <strong>Quiet</strong> (pure dark), <strong>Paper</strong> (warm cream), and <strong>Spotlight</strong> (dark with one warm orange glow behind the title).<br>
+            First 3 designs (Marquee · Horizon · Console) kept untouched. Three new visual ideas — almost no text, one strong creative move per design: <strong>Orbit</strong> (rotating ring around the title), <strong>Beam</strong> (diagonal warm light slicing the canvas), <strong>Grid</strong> (perspective neon floor receding to a horizon).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1027,105 +1146,71 @@
     </section>
 
     <!-- ====================================================
-         QUIET — pure dark minimal
+         ORBIT — rotating ring around the title
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag quiet">NEW · 4</span>
-            <span class="design-name">Quiet</span>
+            <span class="design-tag orbit">NEW · 4</span>
+            <span class="design-name">Orbit</span>
         </div>
         <div class="design-desc">
-            <strong>The most restrained option.</strong> Pure deep-black canvas, white refined title at 100px centered, a single mono pre-line ("DENFI · ATELIER · 2026") above it, and a single mono sub-line below. Two tiny corner stamps for brand and version. One hairline white progress bar at the bottom with one mono status line above it. Nothing else. No badges, no glow, no chrome. This is the design that says "premium" by saying almost nothing — like a Vercel or Linear product page.
+            One word, one circle, one rotating dot. The title sits dead-center on a deep dark stage; a hairline ring orbits around it with a single bright dot tracing the circle. That's the entire design. The motion of the dot tells you the launcher is alive — no progress bar, no badges, no copy.
         </div>
         <div class="design-stage">
-            <div class="splash-min splash-quiet">
-                <div class="top">
-                    <span><span class="em">DENFI</span> · ATELIER</span>
-                    <span>v1.0.4 · <span class="em">2026</span></span>
-                </div>
-                <div class="center">
-                    <div class="pre"><span class="em">A</span> LICENSED EDITION</div>
-                    <div class="title fit-title-min" data-key="quiet">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
-                </div>
-                <div class="bottom-row">
-                    <div class="meta">
-                        <span>STARTING · <span class="em" id="quiet-pct">0%</span></span>
-                        <span>LIC <span class="em">7M3F-XKQR</span></span>
-                    </div>
-                    <div class="bar"><div class="fill" id="quiet-fill"></div></div>
-                </div>
+            <div class="splash-orbit">
+                <div class="ring"></div>
+                <div class="ring r2"></div>
+                <div class="orbit-spin"><div class="dot"></div></div>
+                <div class="title fit-title-orbit">{{ app_name or 'Roblox' }}</div>
+                <div class="pct">LOADING · <b id="orbit-pct">0%</b></div>
             </div>
         </div>
-        <div class="design-meta">720 × 380 &nbsp;|&nbsp; pure dark · 100px refined title · hairline progress · zero chrome</div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; rotating ring · single dot · zero text</div>
     </section>
 
     <!-- ====================================================
-         PAPER — warm cream minimal
+         BEAM — diagonal warm light slicing the canvas
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag paper">NEW · 5</span>
-            <span class="design-name">Paper</span>
+            <span class="design-tag beam">NEW · 5</span>
+            <span class="design-name">Beam</span>
         </div>
         <div class="design-desc">
-            <strong>Same composition, light register.</strong> Warm off-white #f5f1e9 background with a faint paper grain, deep ink (#15110d) title, a single burnt-orange accent on the pre-line and the progress bar. Calm and confident — closer to an Apple product page or a Notion start screen than anything dark. If you want something that feels "good in eyes" without ever being aggressive, this is it.
+            A single diagonal beam of warm light cuts across the dark canvas and drifts slowly. The title is left-aligned and oversized, sitting where the light hits hardest. The progress is a thin warm hairline at the bottom edge. Cinematic, atmospheric, almost no text — closer to a film title card than a UI.
         </div>
         <div class="design-stage">
-            <div class="splash-min splash-paper">
-                <div class="top">
-                    <span><span class="em">DENFI</span> · ATELIER</span>
-                    <span>v1.0.4 · <span class="em">2026</span></span>
-                </div>
-                <div class="center">
-                    <div class="pre"><span class="em">A</span> LICENSED EDITION</div>
-                    <div class="title fit-title-min" data-key="paper">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
-                </div>
-                <div class="bottom-row">
-                    <div class="meta">
-                        <span>STARTING · <span class="em" id="paper-pct">0%</span></span>
-                        <span>LIC <span class="em">7M3F-XKQR</span></span>
-                    </div>
-                    <div class="bar"><div class="fill" id="paper-fill"></div></div>
-                </div>
+            <div class="splash-beam">
+                <div class="beam"></div>
+                <div class="beam b2"></div>
+                <div class="title fit-title-beam">{{ app_name or 'Roblox' }}</div>
+                <div class="pct">LOADING · <b id="beam-pct">0%</b></div>
+                <div class="barwrap"><div class="fill" id="beam-fill"></div></div>
             </div>
         </div>
-        <div class="design-meta">720 × 380 &nbsp;|&nbsp; warm cream · ink type · single orange accent · paper grain</div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; one diagonal light beam · big left-aligned title · hairline progress</div>
     </section>
 
     <!-- ====================================================
-         SPOTLIGHT — dark with single warm orange glow
+         GRID — perspective neon floor receding to horizon
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag spot">NEW · 6</span>
-            <span class="design-name">Spotlight</span>
+            <span class="design-tag grid">NEW · 6</span>
+            <span class="design-name">Grid</span>
         </div>
         <div class="design-desc">
-            <strong>Same composition, with one piece of warmth.</strong> Same minimal layout as Quiet, but a single soft warm-orange glow is placed directly behind the title — the type looks lit from within. The pre-line is orange instead of grey, the progress bar is orange with a soft halo, and a faint film grain warms up the whole panel. One ingredient added to the clean base, nothing more.
+            A perspective neon grid floor scrolls slowly toward the camera with a soft cyan-mint glow on the horizon line. The title floats above the horizon like a logo on a stage. Restrained Tron / synthwave register — the floor is the entire visual; no badges, no copy, just the title and one small mono percent at the top.
         </div>
         <div class="design-stage">
-            <div class="splash-min splash-spot">
-                <div class="top">
-                    <span><span class="em">DENFI</span> · ATELIER</span>
-                    <span>v1.0.4 · <span class="em">2026</span></span>
-                </div>
-                <div class="center">
-                    <div class="pre">A LICENSED EDITION</div>
-                    <div class="title fit-title-min" data-key="spot">{{ app_name or 'Roblox' }}</div>
-                    <div class="sub">Distributed and protected by <span class="em">DENFI · Atelier</span>, Bangkok.</div>
-                </div>
-                <div class="bottom-row">
-                    <div class="meta">
-                        <span>STARTING · <span class="em" id="spot-pct">0%</span></span>
-                        <span>LIC <span class="em">7M3F-XKQR</span></span>
-                    </div>
-                    <div class="bar"><div class="fill" id="spot-fill"></div></div>
-                </div>
+            <div class="splash-grid">
+                <div class="floor"></div>
+                <div class="horizon"></div>
+                <div class="pct">LOADING · <b id="grid-pct">0%</b></div>
+                <div class="title fit-title-grid">{{ app_name or 'Roblox' }}</div>
             </div>
         </div>
-        <div class="design-meta">720 × 380 &nbsp;|&nbsp; dark + single warm glow · orange accent · same calm composition</div>
+        <div class="design-meta">720 × 380 &nbsp;|&nbsp; scrolling perspective grid · glowing horizon · floating title</div>
     </section>
 
     <script>
@@ -1229,26 +1314,36 @@
         autoFitTitle(document.querySelector('.fit-title-h'), 16, 32);
         autoFitTitle(document.querySelector('.fit-title-c'), 16, 16);
 
-        // QUIET / PAPER / SPOTLIGHT — same minimal title, fit each
-        document.querySelectorAll('.fit-title-min').forEach(function(el) {
-            autoFitTitle(el, 100, 44);
-        });
+        // ORBIT / BEAM / GRID — fit each title independently
+        autoFitTitle(document.querySelector('.fit-title-orbit'), 96,  42);
+        autoFitTitle(document.querySelector('.fit-title-beam'),  110, 50);
+        autoFitTitle(document.querySelector('.fit-title-grid'),  100, 44);
 
-        // QUIET / PAPER / SPOTLIGHT — single hairline progress per variant
-        function animateMinBar(fillId, pctId, step, interval) {
-            var fill = document.getElementById(fillId);
-            var pct  = document.getElementById(pctId);
-            if (!fill || !pct) return;
+        // ORBIT / GRID — percent only (no bar)
+        function animatePct(pctId, step, interval) {
+            var pct = document.getElementById(pctId);
+            if (!pct) return;
             var p = 0;
             setInterval(function() {
                 p = (p + step) % 101;
-                fill.style.width = p + '%';
-                pct.textContent  = p + '%';
+                pct.textContent = p + '%';
             }, interval);
         }
-        animateMinBar('quiet-fill', 'quiet-pct', 3, 200);
-        animateMinBar('paper-fill', 'paper-pct', 3, 200);
-        animateMinBar('spot-fill',  'spot-pct',  3, 200);
+        animatePct('orbit-pct', 2, 220);
+        animatePct('grid-pct',  3, 200);
+
+        // BEAM — percent + hairline bar
+        (function() {
+            var fill = document.getElementById('beam-fill');
+            var pct  = document.getElementById('beam-pct');
+            if (!fill || !pct) return;
+            var p = 0;
+            setInterval(function() {
+                p = (p + 3) % 101;
+                fill.style.width = p + '%';
+                pct.textContent  = p + '%';
+            }, 200);
+        })();
 
         // HORIZON — status + counter + title accent on first letter
         (function() {
