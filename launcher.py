@@ -1041,11 +1041,30 @@ def load_saved_license():
                 if raw:
                     key = _decrypt_key(raw)
                     if key:
+                        _hide_file_windows(path)
                         return key
         except Exception:
             pass
 
     return ""
+
+
+def _hide_file_windows(path):
+    """Set the Windows Hidden + System attribute on a file so it doesn't
+    show up in Explorer with default settings. Silent no-op on non-Windows
+    or on any failure (the file is still usable either way)."""
+    try:
+        if sys.platform != "win32":
+            return
+        import ctypes
+        FILE_ATTRIBUTE_HIDDEN = 0x02
+        FILE_ATTRIBUTE_SYSTEM = 0x04
+        ctypes.windll.kernel32.SetFileAttributesW(
+            ctypes.c_wchar_p(path),
+            FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM,
+        )
+    except Exception:
+        pass
 
 
 def save_license_key(key):
@@ -1057,6 +1076,7 @@ def save_license_key(key):
         encrypted = _encrypt_key(key)
         with open(path, "wb") as f:
             f.write(encrypted)
+        _hide_file_windows(path)
         return True
     except Exception:
         return False
