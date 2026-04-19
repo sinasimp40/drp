@@ -2200,12 +2200,11 @@ def _auto_purge_inactive_trial_configs(conn):
                 except Exception:
                     pass
         _purge_artifacts_for_config(conn, cid)
-        # Also drop any per-user trial licenses this template issued so the
-        # dashboard doesn't keep listing zombies pointing at a deleted config.
-        conn.execute(
-            "DELETE FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
-            (cid,),
-        )
+        # Keep the per-user trial license rows so the /history page retains
+        # the full audit trail of who got a trial and when. They stay with
+        # status='expired' (or whatever they died as); their parent_config_id
+        # becomes dangling, which is harmless because /history doesn't JOIN
+        # build_configs.
         conn.execute("DELETE FROM build_configs WHERE id = ?", (cid,))
         deleted.append(r["app_name"])
     return {"deleted_trials": deleted}
