@@ -2251,6 +2251,15 @@ def check_license_or_prompt(app, splash=None):
         if EMBEDDED_LICENSE_KEY:
             return False
 
+        # Premium build: the saved key was rejected with a fatal/known reason
+        # (expired, revoked, deleted, not found). Wipe the hidden .license_key
+        # file right now so the user is prompted for a fresh key on this same
+        # launch — and so a future relaunch can't try to reuse the dead key.
+        # We deliberately do NOT delete on transport failures or unknown
+        # errors (could be a server hiccup), only on confirmed-fatal ones.
+        if _is_fatal_license_error(error_msg):
+            delete_license_files()
+
     if EMBEDDED_LICENSE_KEY:
         return False
 
