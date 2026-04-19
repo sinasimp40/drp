@@ -100,6 +100,9 @@
                                 <td><input type="checkbox" name="config_ids" value="{{ c.id }}" class="config-checkbox" onclick="updateConfigsBulkBtn()"></td>
                                 <td style="font-weight:600; color: var(--accent);">
                                     {{ c.app_name }}
+                                    {% if c.license_inactive %}
+                                    <span title="Linked license is {{ c.license_status }} — this config is skipped from builds" style="background:#7a1f1f; color:#ffb3b3; font-size:9px; padding:2px 6px; border-radius:3px; vertical-align:middle; margin-left:4px; text-transform:uppercase;">{{ c.license_status }}</span>
+                                    {% endif %}
                                     {% if c.is_trial %}
                                     <span style="background:#ff6a00; color:#fff; font-size:9px; padding:2px 6px; border-radius:3px; vertical-align:middle; margin-left:4px;">TRIAL</span>
                                     <div style="margin-top:4px; display:flex; gap:6px; align-items:center;">

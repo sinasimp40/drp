@@ -1943,8 +1943,18 @@ a{{color:#60a5fa;}}</style></head><body>
 @require_admin
 def builds_page():
     conn = get_db()
+    expire_active_licenses(conn)
+    purge_result = _auto_purge_inactive_trial_configs(conn)
+    if purge_result["deleted_trials"]:
+        conn.commit()
+        names = ", ".join(purge_result["deleted_trials"])
+        flash(
+            f"Auto-removed {len(purge_result['deleted_trials'])} trial config(s) "
+            f"with expired licenses: {names}",
+            "warning",
+        )
     configs = conn.execute("""
-        SELECT bc.*, l.license_key, l.note as license_note
+        SELECT bc.*, l.license_key, l.note as license_note, l.status as license_status
         FROM build_configs bc
         LEFT JOIN licenses l ON bc.license_id = l.id
         ORDER BY bc.created_at DESC
@@ -2001,6 +2011,8 @@ def builds_page():
                 url_for("download_trial_public", config_id=c["id"], _external=True)
                 if ("is_trial" in c.keys() and c["is_trial"]) else ""
             ),
+            "license_status": c["license_status"] or "",
+            "license_inactive": bool(c["license_status"] and c["license_status"] != "active"),
         })
 
     return render_template("builds.html", configs=config_list, builds=build_list)
@@ -2119,6 +2131,44 @@ def edit_build_config(config_id):
         "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
+
+
+_INACTIVE_LICENSE_STATUSES = ('expired', 'revoked', 'deleted', 'suspended')
+
+
+def _auto_purge_inactive_trial_configs(conn):
+    """Find build configs whose linked license is no longer active and:
+      * if the config is a trial → DELETE it (config + icon + artifacts).
+        Trials are tied 1:1 to a license; once that license dies, the
+        config is dead weight and was wasting build time.
+      * if the config is premium → leave it alone (build code already
+        skips it; the UI shows an EXPIRED badge so an admin can renew
+        the license without losing the config's settings).
+
+    Returns a dict: {"deleted_trials": [app_name, ...]}.
+    Caller must commit() afterwards.
+    """
+    placeholders = ",".join("?" * len(_INACTIVE_LICENSE_STATUSES))
+    rows = conn.execute(
+        f"""SELECT bc.id, bc.app_name, bc.icon_filename
+            FROM build_configs bc
+            JOIN licenses l ON bc.license_id = l.id
+            WHERE bc.is_trial = 1 AND l.status IN ({placeholders})""",
+        _INACTIVE_LICENSE_STATUSES,
+    ).fetchall()
+    deleted = []
+    for r in rows:
+        if r["icon_filename"]:
+            icon_path = os.path.join(ICONS_DIR, r["icon_filename"])
+            if os.path.isfile(icon_path):
+                try:
+                    os.remove(icon_path)
+                except Exception:
+                    pass
+        _purge_artifacts_for_config(conn, r["id"])
+        conn.execute("DELETE FROM build_configs WHERE id = ?", (r["id"],))
+        deleted.append(r["app_name"])
+    return {"deleted_trials": deleted}
 
 
 def _purge_artifacts_for_config(conn, config_id):
@@ -2533,6 +2583,9 @@ def bulk_edit_build_configs():
         return redirect(url_for("builds_page"))
 
     expire_active_licenses(conn)
+    purge_result = _auto_purge_inactive_trial_configs(conn)
+    if purge_result["deleted_trials"]:
+        conn.commit()
     configs = conn.execute(f"""
         SELECT bc.*, l.license_key, l.status as license_status
         FROM build_configs bc
@@ -2940,6 +2993,9 @@ def api_trigger_build():
         flash("A build is already in progress. Wait for it to finish.", "error")
         return redirect(url_for("builds_page"))
     expire_active_licenses(conn)
+    purge_result = _auto_purge_inactive_trial_configs(conn)
+    if purge_result["deleted_trials"]:
+        conn.commit()
 
     configs = conn.execute("""
         SELECT bc.*, l.license_key, l.status as license_status
