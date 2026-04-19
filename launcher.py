@@ -984,8 +984,8 @@ def create_splash_pixmap():
     # the right column instead of hard-coding a top y.
     if line1:
         f1, fm1 = _fit_font(title1_family, line1, max_title_w,
-                            start_size=42, min_size=20, weight=title1_weight,
-                            spacing=-1)
+                            start_size=32, min_size=18, weight=title1_weight,
+                            spacing=-0.5)
         line1_h = fm1.height()
     else:
         f1, fm1, line1_h = None, None, 0
@@ -993,7 +993,7 @@ def create_splash_pixmap():
     if line2:
         family = roblox_family if roblox_family else "Segoe UI"
         f2, fm2 = _fit_font(family, line2, max_title_w,
-                            start_size=38, min_size=20, weight=QFont.Bold)
+                            start_size=30, min_size=18, weight=QFont.Bold)
         line2_h = fm2.height()
     else:
         f2, fm2, line2_h = None, None, 0
