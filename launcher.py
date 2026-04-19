@@ -1418,6 +1418,23 @@ def download_and_extract_roblox_bundle(splash, app, paths):
             app.processEvents()
         return True
 
+    # Existing local Roblox install but no .bundle_version marker yet (e.g.
+    # an older install that pre-dates the bundle system, or a premium build
+    # that fell back to bundle on this launch for the first time). Trust the
+    # local files and seed the marker so we don't re-download every launch.
+    # If the admin later uploads a newer bundle version, the version compare
+    # above will fire and we'll update normally.
+    if have_exe and not cached_ver:
+        try:
+            with open(version_marker, "w") as fm:
+                fm.write(str(target_version))
+        except Exception:
+            pass
+        if splash:
+            splash.set_progress(70, "Roblox files up to date!")
+            app.processEvents()
+        return True
+
     url = LICENSE_SERVER_URL.rstrip("/") + f"/api/roblox_bundle/download/{bundle_token}"
     state = {"downloaded": 0, "total": total_size, "result": None, "error": None, "done": False}
 
