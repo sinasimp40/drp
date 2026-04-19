@@ -3,21 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splash Preview — Choose a Design</title>
+    <title>Splash Preview — New Direction</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        @font-face {
-            font-family: 'Roblox';
-            src: url('/static/fonts/Roblox2017.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', 'Montserrat', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             background: #08080c;
             color: #e8e8ef;
             min-height: 100vh;
@@ -26,7 +19,7 @@
         }
         .page-head {
             max-width: 720px;
-            margin: 0 auto 40px;
+            margin: 0 auto 48px;
             text-align: center;
         }
         .page-head h1 {
@@ -50,7 +43,7 @@
         }
 
         .design-section {
-            max-width: 760px;
+            max-width: 800px;
             margin: 0 auto 56px;
         }
         .design-head {
@@ -62,20 +55,15 @@
         .design-tag {
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            color: #555;
             letter-spacing: 2px;
             text-transform: uppercase;
             padding: 4px 8px;
-            border: 1px solid #222;
             border-radius: 4px;
+            border: 1px solid #333;
+            color: #888;
         }
         .design-tag.current { color: #888; border-color: #333; }
-        .design-tag.option-a { color: #b48cff; border-color: #4b1d70; }
-        .design-tag.option-b { color: #00ffaa; border-color: #035c3f; }
-        .design-tag.option-c { color: #d4d4d4; border-color: #444; }
-        .design-tag.option-d { color: #d4af7a; border-color: #5a4525; }
-        .design-tag.option-e { color: #b8e6ff; border-color: #2a4a6a; background: linear-gradient(90deg, rgba(0,255,200,0.06), rgba(255,0,200,0.06), rgba(255,200,0,0.06)); }
-        .design-tag.option-f { color: #e8d8b8; border-color: #4a3d28; }
+        .design-tag.new     { color: #ff9d4d; border-color: #5a3115; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -86,7 +74,7 @@
             font-size: 13px;
             line-height: 1.6;
             margin-bottom: 18px;
-            max-width: 600px;
+            max-width: 640px;
         }
         .design-stage {
             background: #050507;
@@ -105,9 +93,6 @@
             text-align: center;
         }
 
-        /* ============================================================
-           SHARED — fallback "logo missing" placeholder
-           ============================================================ */
         .no-logo {
             color: #444;
             font-size: 12px;
@@ -117,940 +102,261 @@
         }
 
         /* ============================================================
-           CURRENT DESIGN (unchanged — for comparison)
+           CURRENT DESIGN — for comparison
            ============================================================ */
         .splash-current {
-            width: 560px;
-            height: 380px;
             position: relative;
-            border: 1px solid #1c1c1c;
+            width: 560px; height: 380px;
+            background: linear-gradient(135deg, #1a0e08 0%, #0a0604 100%);
+            border-radius: 12px;
             overflow: hidden;
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #111 30%, #0e0e0e 70%, #0a0a0a 100%);
+            font-family: 'Roblox', 'Inter', sans-serif;
+            color: #ff7b1f;
         }
         .splash-current .glow {
-            position: absolute; inset: 0;
-            background: radial-gradient(circle at 50% 37%, rgba(255,106,0,0.07) 0%, rgba(255,106,0,0.02) 50%, transparent 100%);
+            position: absolute; top: -50px; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 200px;
+            background: radial-gradient(ellipse, rgba(255,123,31,0.3), transparent 70%);
         }
         .splash-current .border-frame {
-            position: absolute; inset: 0;
-            border: 1px solid rgba(255,106,0,0.1);
-            pointer-events: none;
+            position: absolute; inset: 12px;
+            border: 1px solid rgba(255,123,31,0.18);
+            border-radius: 8px;
         }
         .splash-current .logo-area {
-            position: absolute; top: 20px; left: 40px; right: 40px; height: 100px;
-            display: flex; align-items: center; justify-content: center;
+            position: absolute; top: 60px; left: 0; right: 0;
+            text-align: center;
         }
         .splash-current .logo-area img { max-width: 480px; max-height: 100px; object-fit: contain; }
         .splash-current .title {
-            position: absolute; top: 140px; left: 20px; right: 20px;
-            text-align: center;
-            color: #ff6a00;
-            font-family: 'Roblox', 'Segoe UI', sans-serif;
-            font-weight: 700;
-            letter-spacing: 6px;
-            font-size: 32px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            position: absolute; top: 180px; left: 0; right: 0; text-align: center;
+            font-size: 56px; letter-spacing: 6px;
+            color: #ff7b1f;
+            text-shadow: 0 0 24px rgba(255,123,31,0.5);
         }
         .splash-current .subtitle {
-            position: absolute; top: 192px; left: 0; right: 0;
-            text-align: center; color: #cc5500; font-size: 13px; letter-spacing: 12px;
+            position: absolute; top: 252px; left: 0; right: 0; text-align: center;
+            font-size: 12px; letter-spacing: 8px; color: #ff9d4d; opacity: 0.7;
         }
         .splash-current .divider {
-            position: absolute; top: 227px; left: 50%; transform: translateX(-50%);
-            width: 100px; height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,106,0,0.35) 30%, rgba(255,106,0,0.55) 50%, rgba(255,106,0,0.35) 70%, transparent 100%);
+            position: absolute; top: 280px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 1px;
+            background: linear-gradient(90deg, transparent, #ff7b1f, transparent);
         }
         .splash-current .status {
-            position: absolute; top: 275px; left: 0; right: 0;
-            text-align: center; color: #888; font-size: 9px;
+            position: absolute; top: 300px; left: 0; right: 0; text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px; color: #888;
         }
         .splash-current .progress-track {
-            position: absolute; top: 310px; left: 80px; right: 80px; height: 3px;
-            background: #1e1e1e; border-radius: 2px;
+            position: absolute; bottom: 40px; left: 60px; right: 60px;
+            height: 4px; background: rgba(255,123,31,0.15); border-radius: 2px; overflow: hidden;
         }
         .splash-current .progress-fill {
-            width: 65%; height: 100%; border-radius: 2px;
-            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
-            position: relative; transition: width 1.6s ease;
+            height: 100%; background: linear-gradient(90deg, #ff7b1f, #ff9d4d);
+            border-radius: 2px; position: relative;
+            box-shadow: 0 0 12px rgba(255,123,31,0.6);
         }
         .splash-current .progress-orb {
-            position: absolute; right: -8px; top: -8px;
-            width: 20px; height: 20px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,106,0,0.5) 0%, transparent 70%);
+            position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+            width: 12px; height: 12px; background: #ff9d4d;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(255,123,31,0.9);
         }
 
         /* ============================================================
-           OPTION A — AURORA
-           Premium glassmorphism. Floating frosted card over a
-           slow-drifting aurora of orange + violet blobs.
+           NEW DESIGN — MARQUEE
+           Editorial / developer-tool premium. Left-aligned, big confident
+           type, vertical orange accent bar, asymmetric layout, full-bleed
+           progress. No centered card. Built like a real product UI.
            ============================================================ */
-        .splash-aurora {
-            width: 600px;
-            height: 400px;
+        .splash-marquee {
             position: relative;
+            width: 640px;
+            height: 380px;
+            background: #0a0a0e;
+            border-radius: 10px;
             overflow: hidden;
-            border-radius: 0;
-            background: radial-gradient(ellipse at top, #0c0a14 0%, #06060a 60%, #030305 100%);
-            font-family: 'Inter', sans-serif;
-        }
-        .splash-aurora .aurora-blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(60px);
-            opacity: 0.55;
-            pointer-events: none;
-        }
-        .splash-aurora .blob-1 {
-            width: 320px; height: 320px;
-            background: radial-gradient(circle, #ff6a00 0%, transparent 70%);
-            top: -80px; left: -60px;
-            animation: aurora-drift-1 14s ease-in-out infinite alternate;
-        }
-        .splash-aurora .blob-2 {
-            width: 360px; height: 360px;
-            background: radial-gradient(circle, #6f3ad6 0%, transparent 70%);
-            bottom: -100px; right: -80px;
-            animation: aurora-drift-2 18s ease-in-out infinite alternate;
-        }
-        .splash-aurora .blob-3 {
-            width: 200px; height: 200px;
-            background: radial-gradient(circle, #ff9d4d 0%, transparent 70%);
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            opacity: 0.25;
-            animation: aurora-pulse 6s ease-in-out infinite;
-        }
-        @keyframes aurora-drift-1 {
-            0% { transform: translate(0,0) scale(1); }
-            100% { transform: translate(60px, 40px) scale(1.15); }
-        }
-        @keyframes aurora-drift-2 {
-            0% { transform: translate(0,0) scale(1); }
-            100% { transform: translate(-50px, -30px) scale(1.1); }
-        }
-        @keyframes aurora-pulse {
-            0%, 100% { opacity: 0.18; transform: translate(-50%,-50%) scale(0.95); }
-            50% { opacity: 0.32; transform: translate(-50%,-50%) scale(1.1); }
-        }
-        .splash-aurora .glass-card {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 480px;
-            padding: 32px 40px 28px;
-            background: rgba(14, 14, 22, 0.55);
-            backdrop-filter: blur(24px) saturate(140%);
-            -webkit-backdrop-filter: blur(24px) saturate(140%);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 20px;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #f4f4f6;
             box-shadow:
-                0 20px 60px rgba(0,0,0,0.5),
-                0 0 0 1px rgba(255,255,255,0.03) inset,
-                0 1px 0 rgba(255,255,255,0.06) inset;
-            text-align: center;
+                inset 0 0 0 1px rgba(255,255,255,0.04),
+                0 30px 80px rgba(0,0,0,0.5);
         }
-        .splash-aurora .logo-wrap {
-            height: 80px;
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 18px;
+        /* faint top-right radial light */
+        .splash-marquee::before {
+            content: '';
+            position: absolute;
+            top: -160px; right: -160px;
+            width: 480px; height: 480px;
+            background: radial-gradient(ellipse, rgba(255,123,31,0.10) 0%, transparent 60%);
+            pointer-events: none;
         }
-        .splash-aurora .logo-wrap img {
-            max-width: 360px; max-height: 80px; object-fit: contain;
-            filter: drop-shadow(0 4px 16px rgba(255,106,0,0.25));
-        }
-        .splash-aurora .title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            font-size: 26px;
-            color: #f5f5fa;
-            letter-spacing: -0.4px;
-            margin-bottom: 6px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .splash-aurora .subtitle {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: #ff9d4d;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-bottom: 22px;
-            opacity: 0.85;
-        }
-        .splash-aurora .ring-wrap {
-            position: relative;
-            width: 56px; height: 56px;
-            margin: 0 auto 14px;
-        }
-        .splash-aurora .ring-bg {
+        /* sub-pixel grain for depth */
+        .splash-marquee::after {
+            content: '';
             position: absolute; inset: 0;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.06);
-        }
-        .splash-aurora .ring-spin {
-            position: absolute; inset: 0;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            border-top-color: #ff6a00;
-            border-right-color: rgba(255,106,0,0.6);
-            animation: ring-spin 1s linear infinite;
-        }
-        @keyframes ring-spin {
-            to { transform: rotate(360deg); }
-        }
-        .splash-aurora .status {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #888;
-            letter-spacing: 0.5px;
-        }
-        .splash-aurora .vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.5;
+            mix-blend-mode: overlay;
             pointer-events: none;
         }
 
-        /* ============================================================
-           OPTION B — PULSE
-           Cyberpunk / gaming. Grid backdrop, hex corners, segmented
-           progress that fills in waves, terminal status line.
-           ============================================================ */
-        .splash-pulse {
-            width: 560px;
-            height: 360px;
-            position: relative;
-            overflow: hidden;
-            background: #050505;
-            font-family: 'JetBrains Mono', monospace;
-            border: 1px solid #1a0a00;
-        }
-        .splash-pulse .grid {
-            position: absolute; inset: 0;
-            background-image:
-                linear-gradient(rgba(255,106,0,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,106,0,0.04) 1px, transparent 1px);
-            background-size: 24px 24px;
-            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
-            -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
-        }
-        .splash-pulse .scanline {
-            position: absolute; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255,106,0,0.35), transparent);
-            animation: scan-vert 4s linear infinite;
-        }
-        @keyframes scan-vert {
-            0% { top: -10px; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .splash-pulse .corner {
-            position: absolute;
-            width: 24px; height: 24px;
-            border: 1px solid #ff6a00;
-            opacity: 0.8;
-        }
-        .splash-pulse .corner.tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
-        .splash-pulse .corner.tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; }
-        .splash-pulse .corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; }
-        .splash-pulse .corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
-
-        .splash-pulse .logo-area {
-            position: absolute; top: 32px; left: 50px; right: 50px; height: 70px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .splash-pulse .logo-area img { max-width: 360px; max-height: 70px; object-fit: contain; }
-
-        .splash-pulse .title {
-            position: absolute; top: 122px; left: 20px; right: 20px;
-            text-align: center;
-            font-family: 'Roblox', 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 38px;
-            letter-spacing: 4px;
-            color: #ff6a00;
-            text-shadow:
-                0 0 20px rgba(255,106,0,0.5),
-                0 0 40px rgba(255,106,0,0.2);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .splash-pulse .title-underline {
-            position: absolute; top: 175px;
-            left: 50%; transform: translateX(-50%);
-            width: 80px; height: 1px;
-            background: linear-gradient(90deg, transparent, #ff6a00, transparent);
-        }
-        .splash-pulse .subtitle {
-            position: absolute; top: 192px; left: 0; right: 0;
-            text-align: center;
-            font-size: 10px;
-            color: #00ffaa;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        .splash-pulse .segments {
-            position: absolute;
-            bottom: 60px;
-            left: 50%; transform: translateX(-50%);
-            display: flex;
-            gap: 4px;
-        }
-        .splash-pulse .seg {
-            width: 30px; height: 6px;
-            background: #1a1a1a;
-            border-radius: 1px;
-            transition: all 0.3s ease;
-        }
-        .splash-pulse .seg.on {
-            background: #ff6a00;
-            box-shadow: 0 0 8px rgba(255,106,0,0.6);
-        }
-
-        .splash-pulse .status {
-            position: absolute;
-            bottom: 32px; left: 0; right: 0;
-            text-align: center;
-            font-size: 11px;
-            color: #888;
-            letter-spacing: 1px;
-        }
-        .splash-pulse .status .prompt { color: #ff6a00; margin-right: 4px; }
-        .splash-pulse .status .cursor {
-            display: inline-block;
-            width: 8px; height: 12px;
-            background: #ff6a00;
-            margin-left: 2px;
-            vertical-align: -2px;
-            animation: blink 1s steps(2) infinite;
-        }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        .splash-pulse .meta-tr {
-            position: absolute;
-            top: 16px; right: 24px;
-            font-size: 9px;
-            color: #444;
-            letter-spacing: 1px;
-        }
-        .splash-pulse .meta-bl {
-            position: absolute;
-            bottom: 16px; left: 24px;
-            font-size: 9px;
-            color: #444;
-            letter-spacing: 1px;
-        }
-
-        /* ============================================================
-           OPTION C — ATELIER
-           Ultra-minimal luxury. Maximum breathing room, hairline
-           details, single thin progress line, tiny serif italic.
-           ============================================================ */
-        .splash-atelier {
-            width: 620px;
-            height: 420px;
-            position: relative;
-            overflow: hidden;
-            background: #0a0a0a;
-            font-family: 'Inter', sans-serif;
-        }
-        .splash-atelier .vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at center, rgba(255,255,255,0.015) 0%, transparent 60%);
-        }
-        .splash-atelier .edition {
-            position: absolute;
-            top: 24px; right: 28px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 3px;
-            color: #444;
-            text-transform: uppercase;
-        }
-        .splash-atelier .edition .dot {
-            display: inline-block;
-            width: 4px; height: 4px;
-            border-radius: 50%;
-            background: #ff6a00;
-            margin: 0 8px 1px;
-            vertical-align: middle;
-            box-shadow: 0 0 8px rgba(255,106,0,0.6);
-            animation: edition-pulse 2.4s ease-in-out infinite;
-        }
-        @keyframes edition-pulse {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
-        }
-        .splash-atelier .logo-area {
-            position: absolute;
-            top: 80px; left: 60px; right: 60px;
-            height: 100px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .splash-atelier .logo-area img {
-            max-width: 420px; max-height: 100px; object-fit: contain;
-            filter: drop-shadow(0 6px 24px rgba(0,0,0,0.6));
-        }
-        .splash-atelier .title {
-            position: absolute;
-            top: 220px; left: 20px; right: 20px;
-            text-align: center;
-            font-family: 'Inter', sans-serif;
-            font-weight: 300;
-            font-size: 22px;
-            letter-spacing: 8px;
-            color: #e8e8e8;
-            text-transform: uppercase;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .splash-atelier .divider {
-            position: absolute;
-            top: 268px; left: 50%; transform: translateX(-50%);
-            width: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,106,0,0.6), transparent);
-            animation: divider-grow 2s ease-out forwards;
-        }
-        @keyframes divider-grow {
-            to { width: 200px; }
-        }
-        .splash-atelier .status {
-            position: absolute;
-            top: 290px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Inter', serif;
-            font-style: italic;
-            font-weight: 300;
-            font-size: 12px;
-            color: #6b6b6b;
-            letter-spacing: 0.5px;
-        }
-        .splash-atelier .progress-line {
-            position: absolute;
-            bottom: 40px;
-            left: 80px; right: 80px;
-            height: 1px;
-            background: rgba(255,255,255,0.06);
-            overflow: hidden;
-        }
-        .splash-atelier .progress-fill {
+        /* Left vertical orange accent bar */
+        .splash-marquee .accent {
             position: absolute;
             top: 0; left: 0; bottom: 0;
-            width: 0;
-            background: linear-gradient(90deg, transparent, #ff6a00, #ff9d4d);
-            transition: width 2.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 4px;
+            background: linear-gradient(180deg, #ff9d4d 0%, #ff6a00 50%, #ff9d4d 100%);
+            background-size: 100% 200%;
+            animation: marquee-accent 4s ease-in-out infinite;
+            box-shadow: 0 0 24px rgba(255,123,31,0.6);
         }
-        .splash-atelier .corners {
-            position: absolute; inset: 24px;
-            pointer-events: none;
-        }
-        .splash-atelier .corners::before,
-        .splash-atelier .corners::after {
-            content: '';
-            position: absolute;
-            width: 16px; height: 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .splash-atelier .corners::before {
-            top: 0; left: 0;
-            border-right: 0; border-bottom: 0;
-        }
-        .splash-atelier .corners::after {
-            bottom: 0; right: 0;
-            border-left: 0; border-top: 0;
+        @keyframes marquee-accent {
+            0%, 100% { background-position: 0% 0%; opacity: 0.85; }
+            50%      { background-position: 0% 100%; opacity: 1; }
         }
 
-        /* ============================================================
-           OPTION D — OBSIDIAN
-           Luxury watchmaker. Matte black + champagne gold hairlines,
-           serif display title, Roman numeral edition mark, slow gold arc.
-           ============================================================ */
-        .splash-obsidian {
-            position: relative;
-            width: 620px;
-            height: 420px;
-            background:
-                radial-gradient(ellipse 80% 60% at 50% 38%, #1a1714 0%, #0a0908 55%, #050403 100%);
-            border-radius: 4px;
-            overflow: hidden;
-            color: #e8d8b8;
-            box-shadow:
-                inset 0 0 0 1px rgba(212,175,122,0.10),
-                inset 0 0 60px rgba(0,0,0,0.6),
-                0 30px 80px rgba(0,0,0,0.7);
-            font-family: 'Inter', sans-serif;
-        }
-        .splash-obsidian::before {
-            /* brushed-metal sheen on top */
-            content: '';
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                95deg,
-                rgba(212,175,122,0.015) 0px,
-                rgba(212,175,122,0.015) 1px,
-                transparent 1px,
-                transparent 3px
-            );
-            pointer-events: none;
-        }
-        .splash-obsidian::after {
-            /* warm spotlight from above */
-            content: '';
+        /* Top metadata row */
+        .splash-marquee .meta-row {
             position: absolute;
-            top: -120px; left: 50%;
-            transform: translateX(-50%);
-            width: 500px; height: 300px;
-            background: radial-gradient(ellipse, rgba(212,175,122,0.10) 0%, transparent 65%);
-            pointer-events: none;
-        }
-        .splash-obsidian .frame {
-            position: absolute;
-            inset: 18px;
-            border: 1px solid rgba(212,175,122,0.18);
-            border-radius: 2px;
-            pointer-events: none;
-        }
-        .splash-obsidian .frame::before,
-        .splash-obsidian .frame::after {
-            content: '';
-            position: absolute;
-            width: 24px; height: 24px;
-            border: 1px solid rgba(212,175,122,0.5);
-        }
-        .splash-obsidian .frame::before { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
-        .splash-obsidian .frame::after { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
-
-        .splash-obsidian .crest {
-            position: absolute;
-            top: 38px;
-            left: 50%; transform: translateX(-50%);
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-weight: 300;
-            font-size: 11px;
-            letter-spacing: 6px;
-            color: rgba(212,175,122,0.6);
-            text-transform: uppercase;
-            text-align: center;
-        }
-        .splash-obsidian .crest::before,
-        .splash-obsidian .crest::after {
-            content: '—';
-            color: rgba(212,175,122,0.4);
-            margin: 0 12px;
-            font-style: normal;
-            letter-spacing: 0;
-        }
-
-        .splash-obsidian .logo-area {
-            position: absolute;
-            top: 88px; left: 0; right: 0;
-            text-align: center;
-            opacity: 0.92;
-        }
-        .splash-obsidian .logo-area img {
-            max-width: 380px; max-height: 70px;
-            object-fit: contain;
-            filter: brightness(0) invert(1) opacity(0.85)
-                    drop-shadow(0 0 24px rgba(212,175,122,0.15));
-        }
-        .splash-obsidian .title {
-            position: absolute;
-            top: 178px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Playfair Display', 'Cormorant Garamond', serif;
-            font-weight: 500;
-            font-size: 56px;
-            letter-spacing: -0.5px;
-            color: #f4e6c8;
-            text-shadow: 0 1px 0 rgba(0,0,0,0.4);
-        }
-        .splash-obsidian .underline {
-            position: absolute;
-            top: 252px; left: 50%;
-            transform: translateX(-50%);
-            display: flex; align-items: center;
-            gap: 14px;
-            color: rgba(212,175,122,0.6);
-            font-size: 9px;
-        }
-        .splash-obsidian .underline .line {
-            width: 90px; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(212,175,122,0.55), transparent);
-        }
-        .splash-obsidian .underline .diamond {
-            color: #d4af7a;
-            font-size: 8px;
-            transform: translateY(-1px);
-        }
-        .splash-obsidian .tagline {
-            position: absolute;
-            top: 280px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-weight: 300;
-            font-size: 16px;
-            color: rgba(232,216,184,0.65);
-            letter-spacing: 0.5px;
-        }
-
-        .splash-obsidian .arc-wrap {
-            position: absolute;
-            bottom: 56px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 36px;
-        }
-        .splash-obsidian .arc-bg {
-            position: absolute; inset: 0;
-            border-radius: 50%;
-            border: 1px solid rgba(212,175,122,0.14);
-        }
-        .splash-obsidian .arc-spin {
-            position: absolute; inset: 0;
-            border-radius: 50%;
-            border: 1px solid transparent;
-            border-top-color: #d4af7a;
-            border-right-color: rgba(212,175,122,0.45);
-            animation: obsidian-spin 2.6s linear infinite;
-        }
-        @keyframes obsidian-spin { to { transform: rotate(360deg); } }
-
-        .splash-obsidian .edition-mark {
-            position: absolute;
-            bottom: 32px; left: 32px;
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-weight: 400;
-            font-size: 12px;
-            color: rgba(212,175,122,0.55);
-            letter-spacing: 1px;
-        }
-        .splash-obsidian .edition-mark .roman {
-            font-style: normal;
-            letter-spacing: 4px;
-            color: rgba(212,175,122,0.75);
-        }
-        .splash-obsidian .signature {
-            position: absolute;
-            bottom: 32px; right: 32px;
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-weight: 300;
-            font-size: 11px;
-            color: rgba(232,216,184,0.4);
-            letter-spacing: 0.5px;
-        }
-
-        /* ============================================================
-           OPTION E — PRISM
-           Apple Vision Pro / iridescent foil. Rotating conic gradient
-           under heavy frosted glass, chrome title, iridescent ring.
-           ============================================================ */
-        .splash-prism {
-            position: relative;
-            width: 620px;
-            height: 420px;
-            background: #0a0a10;
-            border-radius: 22px;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            box-shadow:
-                0 0 0 1px rgba(255,255,255,0.06),
-                0 30px 80px rgba(0,0,0,0.6),
-                0 0 120px rgba(120,80,200,0.15);
-        }
-        .splash-prism .iris {
-            position: absolute;
-            top: -40%; left: -40%;
-            width: 180%; height: 180%;
-            background: conic-gradient(
-                from 0deg,
-                #00d4ff 0%,
-                #b865ff 18%,
-                #ff5db4 35%,
-                #ffb555 52%,
-                #c8ff5d 68%,
-                #5dffd0 84%,
-                #00d4ff 100%
-            );
-            filter: blur(60px) saturate(1.4);
-            opacity: 0.55;
-            animation: prism-rotate 24s linear infinite;
-        }
-        @keyframes prism-rotate { to { transform: rotate(360deg); } }
-        .splash-prism .iris-2 {
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse 100% 70% at 50% 100%, rgba(0,0,0,0.55), transparent 60%);
-            pointer-events: none;
-        }
-        .splash-prism .grain {
-            position: absolute; inset: 0;
-            opacity: 0.4;
-            mix-blend-mode: overlay;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.4 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
-            pointer-events: none;
-        }
-
-        .splash-prism .glass {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 480px;
-            padding: 44px 40px 38px;
-            border-radius: 22px;
-            background: rgba(20, 18, 30, 0.42);
-            backdrop-filter: blur(28px) saturate(1.4);
-            -webkit-backdrop-filter: blur(28px) saturate(1.4);
-            border: 1px solid rgba(255,255,255,0.16);
-            box-shadow:
-                0 1px 0 rgba(255,255,255,0.18) inset,
-                0 -1px 0 rgba(0,0,0,0.3) inset,
-                0 24px 60px rgba(0,0,0,0.4);
-            text-align: center;
-        }
-        .splash-prism .eyebrow {
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.55);
-            margin-bottom: 18px;
-            background: linear-gradient(90deg, #00d4ff, #b865ff, #ffb555, #5dffd0);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .splash-prism .logo-wrap {
-            display: flex; justify-content: center;
-            margin-bottom: 14px;
-            min-height: 50px;
+            top: 26px;
+            left: 36px;
+            right: 28px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
-        .splash-prism .logo-wrap img {
-            max-width: 280px; max-height: 50px;
-            object-fit: contain;
-            filter: brightness(0) invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.4));
-        }
-        .splash-prism .title {
-            font-size: 40px;
-            font-weight: 200;
-            letter-spacing: -1px;
-            margin-bottom: 8px;
-            background: linear-gradient(180deg, #ffffff 0%, #c8c8d8 50%, #8a8aa0 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 40px rgba(255,255,255,0.2);
-        }
-        .splash-prism .sub {
-            font-size: 13px;
-            font-weight: 400;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 0.3px;
-            margin-bottom: 28px;
-        }
-        .splash-prism .ring-wrap {
-            position: relative;
-            width: 56px; height: 56px;
-            margin: 0 auto 14px;
-        }
-        .splash-prism .ring-wrap svg {
-            position: absolute; inset: 0;
-            transform: rotate(-90deg);
-            animation: prism-ring-rot 3s linear infinite;
-        }
-        @keyframes prism-ring-rot { to { transform: rotate(270deg); } }
-        .splash-prism .ring-wrap circle {
-            fill: none;
-            stroke-width: 2;
-            stroke-linecap: round;
-        }
-        .splash-prism .status {
-            font-size: 12px;
-            font-weight: 400;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 0.2px;
-            transition: opacity 0.4s;
-        }
-        .splash-prism .footer {
-            position: absolute;
-            bottom: 16px; left: 0; right: 0;
-            text-align: center;
-            font-size: 9px;
+        .splash-marquee .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px;
+            font-weight: 600;
             letter-spacing: 3px;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.35);
+            color: rgba(244,244,246,0.85);
         }
-
-        /* ============================================================
-           OPTION F — STRATUS
-           Cinematic title card. Volumetric beams, particle dust,
-           wide aspect, massive thin title with "PRESENTED BY" footer.
-           ============================================================ */
-        .splash-stratus {
-            position: relative;
-            width: 720px;
-            height: 360px;
-            background:
-                radial-gradient(ellipse 70% 50% at 50% 50%, #11131c 0%, #06070d 60%, #020308 100%);
-            border-radius: 6px;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #f0e8d8;
-            box-shadow:
-                inset 0 0 0 1px rgba(232,216,184,0.06),
-                0 30px 80px rgba(0,0,0,0.7);
+        .splash-marquee .brand-dot {
+            width: 6px; height: 6px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,123,31,0.7);
         }
-        .splash-stratus .beam {
-            position: absolute;
-            top: -20%; left: -20%;
-            width: 80%; height: 140%;
-            background: linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(232,216,184,0.10) 45%,
-                rgba(232,216,184,0.18) 50%,
-                rgba(232,216,184,0.10) 55%,
-                transparent 100%
-            );
-            transform: rotate(18deg);
-            filter: blur(28px);
-            mix-blend-mode: screen;
-            animation: stratus-beam 9s ease-in-out infinite;
-        }
-        .splash-stratus .beam.b2 {
-            top: -10%; left: 35%;
-            width: 60%;
-            opacity: 0.6;
-            transform: rotate(22deg);
-            animation-delay: -3s;
-            animation-duration: 11s;
-        }
-        .splash-stratus .beam.b3 {
-            top: 0%; left: 10%;
-            width: 50%;
-            opacity: 0.4;
-            transform: rotate(15deg);
-            animation-delay: -6s;
-            animation-duration: 13s;
-        }
-        @keyframes stratus-beam {
-            0%, 100% { transform: translateX(-10%) rotate(18deg); opacity: 0.55; }
-            50% { transform: translateX(20%) rotate(18deg); opacity: 0.85; }
-        }
-        .splash-stratus .dust {
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,0.6), transparent),
-                radial-gradient(1px 1px at 28% 68%, rgba(255,255,255,0.4), transparent),
-                radial-gradient(1.5px 1.5px at 47% 14%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1px 1px at 62% 84%, rgba(255,255,255,0.55), transparent),
-                radial-gradient(1px 1px at 78% 38%, rgba(255,255,255,0.35), transparent),
-                radial-gradient(1.5px 1.5px at 88% 72%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1px 1px at 38% 92%, rgba(255,255,255,0.45), transparent),
-                radial-gradient(1px 1px at 8% 58%, rgba(255,255,255,0.4), transparent),
-                radial-gradient(1px 1px at 92% 18%, rgba(255,255,255,0.6), transparent);
-            opacity: 0.7;
-            animation: stratus-dust 14s ease-in-out infinite;
-            pointer-events: none;
-        }
-        @keyframes stratus-dust {
-            0%, 100% { opacity: 0.55; transform: translateY(0); }
-            50% { opacity: 0.85; transform: translateY(-6px); }
-        }
-        .splash-stratus .vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse 100% 80% at 50% 50%, transparent 30%, rgba(0,0,0,0.65) 100%);
-            pointer-events: none;
-        }
-        .splash-stratus .top-rule,
-        .splash-stratus .bot-rule {
-            position: absolute;
-            left: 50%; transform: translateX(-50%);
-            width: 60%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(232,216,184,0.35), transparent);
-        }
-        .splash-stratus .top-rule { top: 28px; }
-        .splash-stratus .bot-rule { bottom: 28px; }
-
-        .splash-stratus .presented {
-            position: absolute;
-            top: 44px; left: 0; right: 0;
-            text-align: center;
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            color: rgba(232,216,184,0.55);
-        }
-
-        .splash-stratus .logo-area {
-            position: absolute;
-            top: 86px; left: 0; right: 0;
-            text-align: center;
-            opacity: 0.85;
-        }
-        .splash-stratus .logo-area img {
-            max-width: 320px; max-height: 56px;
-            object-fit: contain;
-            filter: brightness(0) invert(1) opacity(0.8)
-                    drop-shadow(0 0 30px rgba(232,216,184,0.25));
-        }
-        .splash-stratus .title {
-            position: absolute;
-            top: 168px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Inter', sans-serif;
-            font-weight: 200;
-            font-size: 64px;
-            letter-spacing: 14px;
-            text-indent: 14px; /* compensate trailing letter-spacing */
-            color: #f8f0e0;
-            text-shadow:
-                0 0 30px rgba(255,240,210,0.25),
-                0 0 60px rgba(232,216,184,0.15);
-            animation: stratus-title-glow 4s ease-in-out infinite;
-        }
-        @keyframes stratus-title-glow {
-            0%, 100% { text-shadow: 0 0 30px rgba(255,240,210,0.20), 0 0 60px rgba(232,216,184,0.10); }
-            50%      { text-shadow: 0 0 40px rgba(255,240,210,0.45), 0 0 100px rgba(232,216,184,0.30); }
-        }
-        .splash-stratus .title-sub {
-            position: absolute;
-            top: 248px; left: 0; right: 0;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 400;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            color: rgba(232,216,184,0.5);
-        }
-        .splash-stratus .status {
-            position: absolute;
-            bottom: 50px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-weight: 300;
-            font-size: 13px;
-            color: rgba(240,232,216,0.55);
-            letter-spacing: 1px;
-            transition: opacity 0.4s;
-        }
-        .splash-stratus .meta-tl,
-        .splash-stratus .meta-tr {
-            position: absolute;
-            top: 14px;
+        .splash-marquee .version {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(232,216,184,0.32);
-            letter-spacing: 2px;
+            font-size: 11px;
+            color: rgba(244,244,246,0.45);
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
         }
-        .splash-stratus .meta-tl { left: 16px; }
-        .splash-stratus .meta-tr { right: 16px; }
+
+        /* Logo: small, top area, NOT the hero */
+        .splash-marquee .logo-strip {
+            position: absolute;
+            top: 78px;
+            left: 36px;
+            display: flex; align-items: center;
+        }
+        .splash-marquee .logo-strip img {
+            max-height: 40px;
+            max-width: 220px;
+            object-fit: contain;
+            opacity: 0.9;
+        }
+
+        /* Big editorial title — left-aligned */
+        .splash-marquee .title {
+            position: absolute;
+            top: 148px;
+            left: 36px;
+            right: 36px;
+            font-size: 76px;
+            font-weight: 700;
+            line-height: 0.95;
+            letter-spacing: -3.5px;
+            color: #ffffff;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+        }
+        .splash-marquee .title .accent-char {
+            color: #ff7b1f;
+        }
+
+        /* Subtitle directly under title */
+        .splash-marquee .subtitle {
+            position: absolute;
+            top: 234px;
+            left: 36px;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(244,244,246,0.55);
+            letter-spacing: 0.2px;
+        }
+        .splash-marquee .subtitle .sep {
+            color: rgba(244,244,246,0.2);
+            margin: 0 10px;
+        }
+        .splash-marquee .subtitle .premium {
+            color: #ff9d4d;
+            font-weight: 600;
+        }
+
+        /* Status row — bottom-left, subdued */
+        .splash-marquee .status-row {
+            position: absolute;
+            bottom: 36px;
+            left: 36px;
+            display: flex; align-items: center;
+            gap: 10px;
+        }
+        .splash-marquee .status-dot {
+            width: 8px; height: 8px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(255,123,31,0.6);
+            animation: marquee-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes marquee-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(255,123,31,0.55); }
+            70%  { box-shadow: 0 0 0 10px rgba(255,123,31,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,123,31,0); }
+        }
+        .splash-marquee .status-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: rgba(244,244,246,0.7);
+            letter-spacing: 0.2px;
+            transition: opacity 0.3s;
+        }
+
+        /* Right-bottom counter */
+        .splash-marquee .counter {
+            position: absolute;
+            bottom: 36px; right: 36px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.35);
+            letter-spacing: 1px;
+        }
+        .splash-marquee .counter .num {
+            color: rgba(244,244,246,0.85);
+            font-weight: 500;
+        }
+
+        /* Full-bleed thin progress at the very bottom */
+        .splash-marquee .progress-bleed {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.05);
+        }
+        .splash-marquee .progress-bleed-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
+            box-shadow: 0 0 12px rgba(255,123,31,0.7);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
 </head>
 <body>
@@ -1058,14 +364,14 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Six directions to compare. Your current splash is at the top for reference.<br>
-            <strong>D, E, F are the new premium-leaning ideas.</strong> Nothing has been changed in the launcher — pick one and tell me to apply it.<br>
+            One brand-new direction below your current splash. Completely different layout — left-aligned, editorial, no centered card.<br>
+            Nothing has been changed in the launcher yet.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
     </div>
 
     <!-- ====================================================
-         CURRENT
+         CURRENT — for reference
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
@@ -1084,7 +390,7 @@
                 {% else %}
                 <div class="logo-area no-logo">No splash_logo.gif/png found</div>
                 {% endif %}
-                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
+                <div class="title">{{ app_name or 'ROBLOX' }}</div>
                 <div class="subtitle">PORTABLE</div>
                 <div class="divider"></div>
                 <div class="status">Checking Roblox files...</div>
@@ -1097,257 +403,59 @@
     </section>
 
     <!-- ====================================================
-         OPTION A — AURORA
+         NEW — MARQUEE
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag option-a">OPTION A</span>
-            <span class="design-name">Aurora</span>
+            <span class="design-tag new">NEW</span>
+            <span class="design-name">Marquee</span>
         </div>
         <div class="design-desc">
-            Premium SaaS feel. Floating frosted-glass card sits over a slow-drifting orange + violet aurora. Clean Inter typography, subtle "Premium" eyebrow tag, refined circular spinner instead of a bar. Looks like a paid pro tool, not a free download.
+            Editorial / developer-tool premium. Asymmetric left-aligned layout instead of a centered card. Logo lives small at the top as a wordmark, the title is the hero — huge, tight, confident sans-serif with one orange accent character. A single 4px vertical orange bar on the left edge ties everything together. Status sits bottom-left with a soft pulsing dot, version chip top-right, full-bleed 2px progress line at the very bottom. Looks like a real product (Linear, Raycast, Vercel) — confident through restraint, not through ornament.
         </div>
         <div class="design-stage">
-            <div class="splash-aurora">
-                <div class="aurora-blob blob-1"></div>
-                <div class="aurora-blob blob-2"></div>
-                <div class="aurora-blob blob-3"></div>
-                <div class="vignette"></div>
-                <div class="glass-card">
-                    {% if splash_file %}
-                    <div class="logo-wrap"><img src="/splash_logo_file" alt="Logo"></div>
-                    {% else %}
-                    <div class="logo-wrap no-logo">No splash_logo found</div>
-                    {% endif %}
-                    <div class="title">{{ app_name or 'ROBLOX' }}</div>
-                    <div class="subtitle">Premium Edition</div>
-                    <div class="ring-wrap">
-                        <div class="ring-bg"></div>
-                        <div class="ring-spin"></div>
+            <div class="splash-marquee">
+                <div class="accent"></div>
+
+                <div class="meta-row">
+                    <div class="brand">
+                        <span class="brand-dot"></span>
+                        <span>Denfi</span>
                     </div>
-                    <div class="status" id="aurora-status">Initializing</div>
+                    <div class="version">v1.0.0</div>
                 </div>
-            </div>
-        </div>
-        <div class="design-meta">600 × 400 &nbsp;|&nbsp; glassmorphism + animated aurora</div>
-    </section>
-
-    <!-- ====================================================
-         OPTION B — PULSE
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag option-b">OPTION B</span>
-            <span class="design-name">Pulse</span>
-        </div>
-        <div class="design-desc">
-            Cyberpunk gamer energy. Faint orange grid backdrop with sweeping scanline, hex corner brackets, big glowing title with chromatic glow, segmented loader that fills in a wave, terminal-style status with blinking cursor. Built for the youth-gamer audience that wants their tools to feel like Mission Control.
-        </div>
-        <div class="design-stage">
-            <div class="splash-pulse">
-                <div class="grid"></div>
-                <div class="scanline"></div>
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-                <div class="meta-tr">SYS-LINK 01</div>
-                <div class="meta-bl">v1.0.0 // BUILD 26.04</div>
 
                 {% if splash_file %}
-                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                {% else %}
-                <div class="logo-area no-logo">No splash_logo found</div>
+                <div class="logo-strip"><img src="/splash_logo_file" alt="Logo"></div>
                 {% endif %}
-                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
-                <div class="title-underline"></div>
-                <div class="subtitle">// SYSTEM READY</div>
 
-                <div class="segments" id="pulse-segments">
-                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
-                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
-                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
-                    <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+                <div class="title" id="marquee-title">{{ app_name or 'Roblox' }}</div>
+
+                <div class="subtitle">
+                    Portable Launcher
+                    <span class="sep">·</span>
+                    <span class="premium">Premium</span>
                 </div>
 
-                <div class="status">
-                    <span class="prompt">&gt;</span><span id="pulse-status-text">initializing modules</span><span class="cursor"></span>
+                <div class="status-row">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="marquee-status">checking roblox files</span>
                 </div>
-            </div>
-        </div>
-        <div class="design-meta">560 × 360 &nbsp;|&nbsp; grid + scanline + 12-segment loader</div>
-    </section>
 
-    <!-- ====================================================
-         OPTION C — ATELIER
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag option-c">OPTION C</span>
-            <span class="design-name">Atelier</span>
-        </div>
-        <div class="design-desc">
-            Ultra-minimal, "Apple-grade" restraint. Deep black, generous breathing room, hairline corner brackets, light-weight wide-spaced caps, a single 1-pixel orange progress line at the bottom. Tiny "EDITION 01" tag with a pulsing dot in the corner. Status text in italic serif. Lets the logo do the talking. Feels timeless and premium.
-        </div>
-        <div class="design-stage">
-            <div class="splash-atelier">
-                <div class="vignette"></div>
-                <div class="corners"></div>
-                <div class="edition">EDITION<span class="dot"></span>01</div>
-                {% if splash_file %}
-                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                {% else %}
-                <div class="logo-area no-logo">No splash_logo found</div>
-                {% endif %}
-                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
-                <div class="divider"></div>
-                <div class="status">Preparing your experience</div>
-                <div class="progress-line">
-                    <div class="progress-fill" id="atelier-fill"></div>
+                <div class="counter">
+                    <span class="num" id="marquee-num">00</span> / 100
+                </div>
+
+                <div class="progress-bleed">
+                    <div class="progress-bleed-fill" id="marquee-fill"></div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">620 × 420 &nbsp;|&nbsp; minimal + hairline + 1-pixel progress</div>
-    </section>
-
-    <!-- ====================================================
-         OPTION D — OBSIDIAN
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag option-d">OPTION D</span>
-            <span class="design-name">Obsidian</span>
-        </div>
-        <div class="design-desc">
-            Luxury watchmaker. Matte black with brushed-metal sheen, champagne-gold hairline frame and corner brackets, serif display title (Playfair) in mixed case, italic Garamond tagline, Roman numeral edition mark, and a slow rotating gold arc that feels like a watch hand. The kind of restraint Bentley or Patek Philippe ships their software with. Says "this is paid, this is serious" without yelling.
-        </div>
-        <div class="design-stage">
-            <div class="splash-obsidian">
-                <div class="frame"></div>
-                <div class="crest">Denfi · Established MMXXVI</div>
-                {% if splash_file %}
-                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                {% else %}
-                <div class="logo-area no-logo">No splash_logo found</div>
-                {% endif %}
-                <div class="title">{{ app_name or 'Roblox' }}</div>
-                <div class="underline">
-                    <span class="line"></span>
-                    <span class="diamond">◆</span>
-                    <span class="line"></span>
-                </div>
-                <div class="tagline">Crafted for the discerning player</div>
-                <div class="arc-wrap">
-                    <div class="arc-bg"></div>
-                    <div class="arc-spin"></div>
-                </div>
-                <div class="edition-mark">Edition&nbsp;<span class="roman">N° MMXXVI</span></div>
-                <div class="signature">by Denfi Atelier</div>
-            </div>
-        </div>
-        <div class="design-meta">620 × 420 &nbsp;|&nbsp; matte black + champagne gold + serif display</div>
-    </section>
-
-    <!-- ====================================================
-         OPTION E — PRISM
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag option-e">OPTION E</span>
-            <span class="design-name">Prism</span>
-        </div>
-        <div class="design-desc">
-            Apple Vision Pro / holographic foil. A slowly rotating iridescent conic gradient (cyan → magenta → gold → mint) sits behind heavy frosted glass, with subtle film grain. Title uses a chrome-style silver gradient, eyebrow tag uses iridescent gradient text. Loading is a thin rotating ring. Looks like a $999 piece of consumer hardware software. Modern, polished, unmistakably current-decade.
-        </div>
-        <div class="design-stage">
-            <div class="splash-prism">
-                <div class="iris"></div>
-                <div class="iris-2"></div>
-                <div class="grain"></div>
-                <div class="glass">
-                    <div class="eyebrow">Premium · Performance Edition</div>
-                    {% if splash_file %}
-                    <div class="logo-wrap"><img src="/splash_logo_file" alt="Logo"></div>
-                    {% else %}
-                    <div class="logo-wrap no-logo">No splash_logo</div>
-                    {% endif %}
-                    <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
-                    <div class="sub">Built for speed. Designed to disappear.</div>
-                    <div class="ring-wrap">
-                        <svg viewBox="0 0 56 56">
-                            <defs>
-                                <linearGradient id="prism-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#00d4ff"/>
-                                    <stop offset="33%" stop-color="#b865ff"/>
-                                    <stop offset="66%" stop-color="#ff5db4"/>
-                                    <stop offset="100%" stop-color="#ffb555"/>
-                                </linearGradient>
-                            </defs>
-                            <circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,0.10)"/>
-                            <circle cx="28" cy="28" r="24" stroke="url(#prism-grad)" stroke-dasharray="50 200"/>
-                        </svg>
-                    </div>
-                    <div class="status" id="prism-status">Initializing</div>
-                </div>
-                <div class="footer">Designed for performance · v1.0</div>
-            </div>
-        </div>
-        <div class="design-meta">620 × 420 &nbsp;|&nbsp; iridescent conic + frosted glass + chrome title</div>
-    </section>
-
-    <!-- ====================================================
-         OPTION F — STRATUS
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag option-f">OPTION F</span>
-            <span class="design-name">Stratus</span>
-        </div>
-        <div class="design-desc">
-            Cinematic title card. Wide aspect ratio with deep navy-black depth, slow-drifting volumetric light beams cutting across, particle dust floating, and "PRESENTED BY" eyebrow at the top. Massive thin-weight title with wide letter-spacing breathes and pulses with a soft warm glow. Status text is italic serif at the bottom. Feels like the opening credits of a film — the launcher equivalent of "A Christopher Nolan picture."
-        </div>
-        <div class="design-stage">
-            <div class="splash-stratus">
-                <div class="beam"></div>
-                <div class="beam b2"></div>
-                <div class="beam b3"></div>
-                <div class="dust"></div>
-                <div class="vignette"></div>
-                <div class="meta-tl">DENFI · MMXXVI</div>
-                <div class="meta-tr">REEL 01 · v1.0</div>
-                <div class="top-rule"></div>
-                <div class="presented">Presented by Denfi</div>
-                {% if splash_file %}
-                <div class="logo-area"><img src="/splash_logo_file" alt="Logo"></div>
-                {% else %}
-                <div class="logo-area no-logo">No splash_logo</div>
-                {% endif %}
-                <div class="title fit-title">{{ app_name or 'ROBLOX' }}</div>
-                <div class="title-sub">A premium experience</div>
-                <div class="status" id="stratus-status">Now loading</div>
-                <div class="bot-rule"></div>
-            </div>
-        </div>
-        <div class="design-meta">720 × 360 &nbsp;|&nbsp; cinematic beams + dust + glowing display title</div>
+        <div class="design-meta">640 × 380 &nbsp;|&nbsp; asymmetric editorial · left accent · full-bleed progress</div>
     </section>
 
     <script>
     (function() {
-        // Auto-fit any title that's too wide for its container.
-        document.querySelectorAll('.fit-title').forEach(function(el) {
-            var parent = el.parentElement;
-            var maxW = parent.offsetWidth - 40;
-            var size = parseFloat(getComputedStyle(el).fontSize);
-            var spacing = parseFloat(getComputedStyle(el).letterSpacing) || 0;
-            var guard = 0;
-            while (size >= 12 && el.scrollWidth > maxW && guard++ < 30) {
-                size -= 1;
-                spacing = Math.max(0, spacing - 0.5);
-                el.style.fontSize = size + 'px';
-                el.style.letterSpacing = spacing + 'px';
-            }
-        });
-
         // CURRENT — bouncing progress bar
         var curFill = document.getElementById('cur-fill');
         var curPct = 0, curDir = 1;
@@ -1358,117 +466,76 @@
             if (curFill) curFill.style.width = curPct + '%';
         }, 400);
 
-        // AURORA — cycling status text
-        var auroraStatuses = [
-            'Initializing',
-            'Verifying license',
-            'Checking for updates',
-            'Loading assets',
-            'Almost there'
-        ];
-        var auroraEl = document.getElementById('aurora-status');
-        var auroraIdx = 0;
-        setInterval(function() {
-            if (!auroraEl) return;
-            auroraIdx = (auroraIdx + 1) % auroraStatuses.length;
-            auroraEl.style.opacity = '0';
-            setTimeout(function() {
-                auroraEl.textContent = auroraStatuses[auroraIdx];
-                auroraEl.style.transition = 'opacity 0.4s';
-                auroraEl.style.opacity = '1';
-            }, 200);
-        }, 1800);
+        // MARQUEE — title accent on last character
+        (function() {
+            var t = document.getElementById('marquee-title');
+            if (!t) return;
+            var txt = t.textContent;
+            if (txt.length < 1) return;
+            var last = txt.slice(-1);
+            var rest = txt.slice(0, -1);
+            t.innerHTML = rest + '<span class="accent-char">' + last + '</span>';
 
-        // PULSE — segmented wave loader + terminal status
-        var pulseSegs = document.querySelectorAll('#pulse-segments .seg');
-        var pulseHead = 0;
-        setInterval(function() {
-            pulseSegs.forEach(function(s, i) {
-                var dist = (i - pulseHead + pulseSegs.length) % pulseSegs.length;
-                if (dist < 4) {
-                    s.classList.add('on');
-                    s.style.opacity = (1 - dist * 0.18).toString();
-                } else {
-                    s.classList.remove('on');
-                    s.style.opacity = '1';
-                }
-            });
-            pulseHead = (pulseHead + 1) % pulseSegs.length;
-        }, 130);
-
-        var pulseMessages = [
-            'initializing modules',
-            'handshake with license server',
-            'verifying signature',
-            'patching roblox client',
-            'spawning instance'
-        ];
-        var pulseTextEl = document.getElementById('pulse-status-text');
-        var pulseMsgIdx = 0;
-        setInterval(function() {
-            if (!pulseTextEl) return;
-            pulseMsgIdx = (pulseMsgIdx + 1) % pulseMessages.length;
-            pulseTextEl.textContent = pulseMessages[pulseMsgIdx];
-        }, 2200);
-
-        // ATELIER — slow elegant fill that loops
-        var atelierFill = document.getElementById('atelier-fill');
-        var atelierPct = 0;
-        function atelierTick() {
-            if (!atelierFill) return;
-            atelierPct = (atelierPct + 22) % 110;
-            atelierFill.style.transition = 'width 2.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            atelierFill.style.width = Math.min(atelierPct, 100) + '%';
-            if (atelierPct >= 100) {
-                setTimeout(function() {
-                    atelierFill.style.transition = 'none';
-                    atelierFill.style.width = '0%';
-                    atelierPct = 0;
-                }, 800);
+            // auto-fit if too wide
+            var parent = t.parentElement;
+            var maxW = parent.offsetWidth - 72;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var spacing = parseFloat(getComputedStyle(t).letterSpacing) || 0;
+            var guard = 0;
+            while (size >= 28 && t.scrollWidth > maxW && guard++ < 40) {
+                size -= 2;
+                spacing = Math.max(-2, spacing + 0.1);
+                t.style.fontSize = size + 'px';
+                t.style.letterSpacing = spacing + 'px';
             }
+        })();
+
+        // MARQUEE — cycling status + counter + progress
+        var marqueeStatuses = [
+            'checking roblox files',
+            'verifying license',
+            'fetching latest update',
+            'preparing instance',
+            'almost ready'
+        ];
+        var mStat = document.getElementById('marquee-status');
+        var mNum = document.getElementById('marquee-num');
+        var mFill = document.getElementById('marquee-fill');
+        var mIdx = 0;
+        var mPct = 0;
+
+        function tickProgress() {
+            mPct += 2 + Math.random() * 3;
+            if (mPct >= 100) {
+                mPct = 100;
+                if (mFill) mFill.style.width = '100%';
+                if (mNum) mNum.textContent = '100';
+                setTimeout(function() {
+                    mPct = 0;
+                    if (mFill) {
+                        mFill.style.transition = 'none';
+                        mFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (mFill) mFill.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    }, 50);
+                }, 1200);
+                return;
+            }
+            if (mFill) mFill.style.width = mPct + '%';
+            if (mNum) mNum.textContent = String(Math.floor(mPct)).padStart(2, '0');
         }
-        setInterval(atelierTick, 2600);
-        atelierTick();
+        setInterval(tickProgress, 220);
 
-        // PRISM — cycling status text
-        var prismStatuses = [
-            'Initializing',
-            'Verifying license',
-            'Checking for updates',
-            'Loading assets',
-            'Almost ready'
-        ];
-        var prismEl = document.getElementById('prism-status');
-        var prismIdx = 0;
         setInterval(function() {
-            if (!prismEl) return;
-            prismIdx = (prismIdx + 1) % prismStatuses.length;
-            prismEl.style.opacity = '0';
+            if (!mStat) return;
+            mIdx = (mIdx + 1) % marqueeStatuses.length;
+            mStat.style.opacity = '0';
             setTimeout(function() {
-                prismEl.textContent = prismStatuses[prismIdx];
-                prismEl.style.opacity = '1';
+                mStat.textContent = marqueeStatuses[mIdx];
+                mStat.style.opacity = '1';
             }, 200);
-        }, 1900);
-
-        // STRATUS — cycling italic status
-        var stratusStatuses = [
-            'Now loading',
-            'Verifying credentials',
-            'Calibrating engine',
-            'Preparing your experience',
-            'Ready in moments'
-        ];
-        var stratusEl = document.getElementById('stratus-status');
-        var stratusIdx = 0;
-        setInterval(function() {
-            if (!stratusEl) return;
-            stratusIdx = (stratusIdx + 1) % stratusStatuses.length;
-            stratusEl.style.opacity = '0';
-            setTimeout(function() {
-                stratusEl.textContent = stratusStatuses[stratusIdx];
-                stratusEl.style.opacity = '1';
-            }, 200);
-        }, 2400);
+        }, 2200);
     })();
     </script>
 </body>
