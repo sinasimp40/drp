@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Roblox Bundles - License Admin{% endblock %}
+{% block topbar_title %}Roblox Bundles{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px;">
+    <div class="card" style="padding: 24px; margin-bottom: 16px;">
+        <h3 style="margin-top:0; color: var(--accent);">Upload new bundle</h3>
+        <p style="color: var(--text-mute); font-size: 12px;">
+            ZIP of a complete Roblox installation folder (containing <code>RobloxPlayerBeta.exe</code>).
+            Trial-mode launchers download &amp; extract the latest bundle on first run.
+        </p>
+        <form method="POST" enctype="multipart/form-data" autocomplete="off">
+            <div class="form-row" style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Version (integer, higher = newer)</label>
+                    <input type="number" name="version" min="1" value="{{ (bundles|length and bundles[0].version + 1) or 1 }}" required>
+                </div>
+                <div class="form-group" style="flex:2;">
+                    <label>Note (optional)</label>
+                    <input type="text" name="note" placeholder="e.g. Roblox 0.700 release">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Bundle (.zip)</label>
+                <input type="file" name="bundle" accept=".zip" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload Bundle</button>
+        </form>
+    </div>
+
+    <div class="card" style="padding: 0;">
+        {% if bundles %}
+        <table class="cc-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Version</th>
+                    <th>File</th>
+                    <th>Size</th>
+                    <th>SHA256</th>
+                    <th>Uploaded</th>
+                    <th>Note</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bundles %}
+                <tr>
+                    <td style="font-weight:600; color:var(--accent);">v{{ b.version }}</td>
+                    <td><code style="font-size:11px;">{{ b.filename }}</code></td>
+                    <td>{{ b.file_size_mb }} MB</td>
+                    <td><code style="font-size:11px;">{{ b.sha256_short }}…</code></td>
+                    <td>{{ b.uploaded }}</td>
+                    <td style="color: var(--text-mute);">{{ b.note }}</td>
+                    <td style="text-align:right;">
+                        <form method="POST" action="{{ url_for('roblox_bundles_delete', bundle_id=b.id) }}" onsubmit="return confirm('Delete bundle v{{ b.version }}?')" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 32px;"><p>No bundles uploaded yet</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

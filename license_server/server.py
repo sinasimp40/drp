@@ -29,15 +29,23 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses.db")
 SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KEY_2024")
+TRIAL_REGISTER_SECRET = os.environ.get("TRIAL_REGISTER_SECRET", "DENFI_TRIAL_REGISTER_SECRET_2026")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 HEARTBEAT_TIMEOUT = 60
 REQUEST_TIMESTAMP_TOLERANCE = 300
+TRIAL_RATE_LIMIT_WINDOW = 3600
+TRIAL_RATE_LIMIT_MAX = 20
 _used_nonces = set()
 _nonce_cleanup_time = 0
+_trial_rate_log = {}
+_trial_rate_lock = threading.Lock()
 
 BUILDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "builds")
 ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_icons")
+BUNDLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "roblox_bundles")
 SOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_bundle_tokens = {}
+_bundle_token_lock = threading.Lock()
 _build_progress = {}
 _build_lock = threading.Lock()
 _recent_ota_log = []
@@ -186,6 +194,44 @@ def init_db():
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE build_configs ADD COLUMN embedded_key TEXT DEFAULT ''")
         conn.commit()
+    # ── Trial-mode schema additions (backwards compatible) ──────────────
+    for col, ddl, default in (
+        ("is_trial", "ALTER TABLE licenses ADD COLUMN is_trial INTEGER DEFAULT 0", 0),
+        ("parent_config_id", "ALTER TABLE licenses ADD COLUMN parent_config_id INTEGER", None),
+    ):
+        try:
+            conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
+        except sqlite3.OperationalError:
+            conn.execute(ddl)
+            conn.commit()
+    for col, ddl, default in (
+        ("is_trial", "ALTER TABLE build_configs ADD COLUMN is_trial INTEGER DEFAULT 0", 0),
+        ("trial_duration_seconds", "ALTER TABLE build_configs ADD COLUMN trial_duration_seconds INTEGER DEFAULT 86400", 86400),
+        ("trial_max_per_subnet", "ALTER TABLE build_configs ADD COLUMN trial_max_per_subnet INTEGER DEFAULT 5", 5),
+    ):
+        try:
+            conn.execute(f"SELECT {col} FROM build_configs LIMIT 1")
+        except sqlite3.OperationalError:
+            conn.execute(ddl)
+            conn.commit()
+    # Enforce one trial config at the DB level (partial unique index).
+    try:
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_one_trial_config ON build_configs(is_trial) WHERE is_trial = 1")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS roblox_bundles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            version INTEGER NOT NULL,
+            filename TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            sha256 TEXT NOT NULL,
+            uploaded_at REAL NOT NULL,
+            note TEXT DEFAULT ''
+        )
+    """)
+    conn.commit()
     conn.close()
 
 
@@ -261,6 +307,73 @@ def require_signed_request(f):
             return jsonify({"data": resp, "signature": sign_response(resp)}), 403
         return f(*args, **kwargs)
     return decorated
+
+
+def sign_response_with_secret(data, secret):
+    payload = json.dumps(data, sort_keys=True, separators=(',', ':'))
+    return hmac.new(secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+
+
+def verify_trial_request_signature():
+    global _used_nonces, _nonce_cleanup_time
+    timestamp = request.headers.get("X-Timestamp", "")
+    nonce = request.headers.get("X-Nonce", "")
+    signature = request.headers.get("X-Signature", "")
+    if not timestamp or not nonce or not signature:
+        return False, "Missing authentication headers"
+    try:
+        ts = int(timestamp)
+    except ValueError:
+        return False, "Invalid timestamp"
+    now = int(time.time())
+    if abs(now - ts) > REQUEST_TIMESTAMP_TOLERANCE:
+        return False, "Request expired"
+    nonce_key = "trial:" + nonce
+    if nonce_key in _used_nonces:
+        return False, "Replay detected"
+    body = request.get_json(silent=True) or {}
+    body_json = json.dumps(body, sort_keys=True, separators=(',', ':'))
+    sign_payload = f"{timestamp}:{nonce}:{body_json}"
+    expected = hmac.new(
+        TRIAL_REGISTER_SECRET.encode('utf-8'),
+        sign_payload.encode('utf-8'),
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return False, "Invalid signature"
+    _used_nonces.add(nonce_key)
+    if now - _nonce_cleanup_time > 600:
+        _used_nonces = set()
+        _nonce_cleanup_time = now
+    return True, "OK"
+
+
+def require_trial_signed_request(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        valid, msg = verify_trial_request_signature()
+        if not valid:
+            try:
+                client_ip = _get_client_ip()
+            except Exception:
+                client_ip = request.remote_addr
+            print(f"[trial-auth] 403 {request.path} from {client_ip}: {msg}", flush=True)
+            resp = {"valid": False, "error": msg}
+            return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _trial_rate_limit_check(client_ip):
+    now = time.time()
+    cutoff = now - TRIAL_RATE_LIMIT_WINDOW
+    with _trial_rate_lock:
+        bucket = _trial_rate_log.setdefault(client_ip, [])
+        bucket[:] = [t for t in bucket if t >= cutoff]
+        if len(bucket) >= TRIAL_RATE_LIMIT_MAX:
+            return False
+        bucket.append(now)
+    return True
 
 
 def generate_key():
@@ -1402,6 +1515,17 @@ def _patch_launcher_source(source, config, version):
             f'\\1\nCONFIG_ID = {cid}',
             source
         )
+    is_trial_val = "True" if config.get("is_trial") else "False"
+    if re.search(r'IS_TRIAL\s*=\s*(True|False)', source):
+        source = re.sub(r'IS_TRIAL\s*=\s*(True|False)', f'IS_TRIAL = {is_trial_val}', source)
+    if config.get("is_trial"):
+        trial_secret = config.get("trial_register_secret") or TRIAL_REGISTER_SECRET
+        xor_trial = _encode_secret_xor(trial_secret)
+        source = re.sub(
+            r'_TRIAL_REGISTER_SECRET_XOR = \[.*?\]',
+            f'_TRIAL_REGISTER_SECRET_XOR = {xor_trial}',
+            source,
+        )
     return source
 
 
@@ -1840,6 +1964,7 @@ def builds_page():
             "license_note": c["license_note"] or "",
             "has_icon": bool(c["icon_filename"]),
             "license_server_url": c["license_server_url"] or "",
+            "is_trial": bool(c["is_trial"]) if "is_trial" in c.keys() else False,
         })
 
     return render_template("builds.html", configs=config_list, builds=build_list)
@@ -1857,6 +1982,27 @@ def create_build_config():
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
+        is_trial = 1 if request.form.get("is_trial") == "on" else 0
+        try:
+            trial_duration_seconds = max(60, int(request.form.get("trial_duration_seconds", "86400")))
+        except ValueError:
+            trial_duration_seconds = 86400
+        try:
+            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "5")))
+        except ValueError:
+            trial_max_per_subnet = 5
+
+        if is_trial:
+            existing_trial = conn.execute(
+                "SELECT id, app_name FROM build_configs WHERE is_trial = 1 LIMIT 1"
+            ).fetchone()
+            if existing_trial:
+                conn.close()
+                flash(
+                    f"Only one trial config allowed at a time — '{existing_trial['app_name']}' is already trial",
+                    "error",
+                )
+                return redirect(url_for("create_build_config"))
 
         icon_filename = ""
         icon_file = request.files.get("icon")
@@ -1872,12 +2018,12 @@ def create_build_config():
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, icon_filename))
 
         conn.execute(
-            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time())
+            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, time.time())
         )
         conn.commit()
         conn.close()
-        flash(f"Build config created for '{app_name}'", "success")
+        flash(f"Build config created for '{app_name}'" + (" (TRIAL)" if is_trial else ""), "success")
         return redirect(url_for("builds_page"))
 
     licenses = conn.execute(
@@ -1905,6 +2051,28 @@ def edit_build_config(config_id):
         license_server_url = request.form.get("license_server_url", "").strip()
         license_secret = request.form.get("license_secret", "DENFI_LICENSE_SECRET_KEY_2024").strip()
         embedded_key = request.form.get("embedded_key", "").strip()
+        is_trial = 1 if request.form.get("is_trial") == "on" else 0
+        try:
+            trial_duration_seconds = max(60, int(request.form.get("trial_duration_seconds", str(config["trial_duration_seconds"] or 86400))))
+        except ValueError:
+            trial_duration_seconds = 86400
+        try:
+            trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 5))))
+        except ValueError:
+            trial_max_per_subnet = 5
+
+        if is_trial:
+            existing_trial = conn.execute(
+                "SELECT id, app_name FROM build_configs WHERE is_trial = 1 AND id != ? LIMIT 1",
+                (config_id,),
+            ).fetchone()
+            if existing_trial:
+                conn.close()
+                flash(
+                    f"Only one trial config allowed at a time — '{existing_trial['app_name']}' is already trial",
+                    "error",
+                )
+                return redirect(url_for("edit_build_config", config_id=config_id))
 
         icon_filename = config["icon_filename"]
         icon_file = request.files.get("icon")
@@ -1920,12 +2088,12 @@ def edit_build_config(config_id):
                 icon_filename = new_icon
 
         conn.execute(
-            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, updated_at=? WHERE id=?",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, time.time(), config_id)
+            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, is_trial=?, trial_duration_seconds=?, trial_max_per_subnet=?, updated_at=? WHERE id=?",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, time.time(), config_id)
         )
         conn.commit()
         conn.close()
-        flash(f"Build config updated for '{app_name}'", "success")
+        flash(f"Build config updated for '{app_name}'" + (" (TRIAL)" if is_trial else ""), "success")
         return redirect(url_for("builds_page"))
 
     licenses = conn.execute(
@@ -1938,6 +2106,9 @@ def edit_build_config(config_id):
         "license_server_url": config["license_server_url"],
         "license_secret": config["license_secret"], "icon_filename": config["icon_filename"],
         "embedded_key": config["embedded_key"] or "",
+        "is_trial": bool(config["is_trial"]),
+        "trial_duration_seconds": config["trial_duration_seconds"] or 86400,
+        "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
 
@@ -2010,6 +2181,228 @@ def delete_build_config(config_id):
         bits.append("(also removed " + ", ".join(extras) + ")")
     flash(" ".join(bits), "success")
     return redirect(url_for("builds_page"))
+
+
+# ─────────────────────────── Trial mode endpoints ───────────────────────────
+
+def _get_trial_config(conn, config_id=None):
+    if config_id:
+        return conn.execute(
+            "SELECT * FROM build_configs WHERE id = ? AND is_trial = 1", (config_id,)
+        ).fetchone()
+    return conn.execute(
+        "SELECT * FROM build_configs WHERE is_trial = 1 ORDER BY id LIMIT 1"
+    ).fetchone()
+
+
+@app.route("/api/trial_register", methods=["POST"])
+@require_trial_signed_request
+def api_trial_register():
+    data = request.get_json(silent=True) or {}
+    config_id = int(data.get("config_id") or 0) or None
+    client_ip = _get_client_ip()
+
+    if not _trial_rate_limit_check(client_ip):
+        resp = {"valid": False, "error": "Too many trial requests, try again later"}
+        return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
+
+    conn = get_db()
+    cfg = _get_trial_config(conn, config_id)
+    if not cfg:
+        conn.close()
+        resp = {"valid": False, "error": "Trial not available"}
+        return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 404
+
+    duration = int(cfg["trial_duration_seconds"] or 86400)
+    max_per_subnet = int(cfg["trial_max_per_subnet"] or 5)
+
+    rows = conn.execute(
+        "SELECT registered_ip FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
+        (cfg["id"],),
+    ).fetchall()
+    same_subnet = sum(1 for r in rows if r["registered_ip"] and _is_same_subnet(r["registered_ip"], client_ip))
+    if same_subnet >= max_per_subnet:
+        conn.close()
+        resp = {"valid": False, "error": "Trial limit reached for your network"}
+        return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
+
+    new_key = generate_key()
+    while conn.execute("SELECT 1 FROM licenses WHERE license_key = ?", (new_key,)).fetchone():
+        new_key = generate_key()
+
+    now = time.time()
+    expires_at = now + duration
+    conn.execute(
+        """INSERT INTO licenses
+           (license_key, note, status, duration_seconds, created_at, activated_at, expires_at,
+            registered_ip, last_heartbeat, last_ip, is_trial, parent_config_id)
+           VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, 1, ?)""",
+        (
+            new_key,
+            f"TRIAL ({cfg['app_name']}) ip={client_ip}",
+            duration,
+            now, now, expires_at,
+            client_ip, now, client_ip,
+            cfg["id"],
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    print(f"[trial] issued {new_key} to {client_ip} cfg={cfg['id']} duration={duration}s", flush=True)
+    resp = {
+        "valid": True,
+        "license_key": new_key,
+        "expires_at": expires_at,
+        "duration_seconds": duration,
+    }
+    return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)})
+
+
+def _latest_bundle(conn):
+    return conn.execute(
+        "SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC LIMIT 1"
+    ).fetchone()
+
+
+@app.route("/api/roblox_bundle/info", methods=["POST"])
+@require_trial_signed_request
+def api_roblox_bundle_info():
+    conn = get_db()
+    bundle = _latest_bundle(conn)
+    conn.close()
+    if not bundle:
+        resp = {"valid": False, "error": "No bundle available"}
+        return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 404
+
+    token = uuid.uuid4().hex
+    with _bundle_token_lock:
+        _bundle_tokens[token] = {
+            "bundle_id": bundle["id"],
+            "filename": bundle["filename"],
+            "expires": time.time() + 600,
+        }
+        # prune expired tokens
+        now = time.time()
+        for k in list(_bundle_tokens):
+            if _bundle_tokens[k]["expires"] < now:
+                del _bundle_tokens[k]
+
+    resp = {
+        "valid": True,
+        "version": bundle["version"],
+        "file_size": bundle["file_size"],
+        "sha256": bundle["sha256"],
+        "download_token": token,
+    }
+    return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)})
+
+
+@app.route("/api/roblox_bundle/download/<token>")
+def api_roblox_bundle_download(token):
+    with _bundle_token_lock:
+        info = _bundle_tokens.get(token)
+        if not info or info["expires"] < time.time():
+            _bundle_tokens.pop(token, None)
+            return "Invalid or expired token", 403
+    path = os.path.join(BUNDLES_DIR, info["filename"])
+    if not os.path.isfile(path):
+        return "Bundle file missing", 404
+    return send_file(path, as_attachment=True, download_name=info["filename"])
+
+
+@app.route("/download_trial")
+def download_trial_public():
+    """Public landing route to download the trial .exe (rate-limited)."""
+    client_ip = _get_client_ip()
+    if not _trial_rate_limit_check(client_ip):
+        return "Rate limit exceeded, try later", 429
+    conn = get_db()
+    cfg = _get_trial_config(conn)
+    if not cfg:
+        conn.close()
+        return "No trial available", 404
+    art = conn.execute(
+        """SELECT ba.exe_filename, b.version FROM build_artifacts ba
+           JOIN builds b ON ba.build_id = b.id
+           WHERE ba.build_config_id = ? AND ba.status = 'completed' AND ba.exe_filename != ''
+           ORDER BY b.created_at DESC LIMIT 1""",
+        (cfg["id"],),
+    ).fetchone()
+    conn.close()
+    if not art:
+        return "Trial build not ready yet", 404
+    fp = os.path.join(BUILDS_DIR, art["version"], str(cfg["id"]), art["exe_filename"])
+    if not os.path.isfile(fp):
+        return "Trial file missing", 404
+    print(f"[trial] download_trial -> {client_ip} {art['exe_filename']}", flush=True)
+    return send_file(fp, as_attachment=True, download_name=art["exe_filename"])
+
+
+@app.route("/roblox_bundles", methods=["GET", "POST"])
+@require_admin
+def roblox_bundles_page():
+    os.makedirs(BUNDLES_DIR, exist_ok=True)
+    conn = get_db()
+    if request.method == "POST":
+        f = request.files.get("bundle")
+        try:
+            version = int(request.form.get("version", "0"))
+        except ValueError:
+            version = 0
+        note = request.form.get("note", "").strip()
+        if not f or not f.filename or version <= 0:
+            flash("Bundle file and a positive version number are required", "error")
+        elif not f.filename.lower().endswith(".zip"):
+            flash("Bundle must be a .zip", "error")
+        else:
+            fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+            dest = os.path.join(BUNDLES_DIR, fname)
+            f.save(dest)
+            sha = hashlib.sha256()
+            with open(dest, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    sha.update(chunk)
+            size = os.path.getsize(dest)
+            conn.execute(
+                "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) VALUES (?, ?, ?, ?, ?, ?)",
+                (version, fname, size, sha.hexdigest(), time.time(), note),
+            )
+            conn.commit()
+            flash(f"Uploaded bundle v{version} ({size/1048576:.1f} MB)", "success")
+            return redirect(url_for("roblox_bundles_page"))
+    bundles = conn.execute("SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC").fetchall()
+    conn.close()
+    rows = [{
+        "id": b["id"], "version": b["version"], "filename": b["filename"],
+        "file_size_mb": round((b["file_size"] or 0) / 1048576, 1),
+        "sha256_short": (b["sha256"] or "")[:16],
+        "uploaded": format_time(b["uploaded_at"]),
+        "note": b["note"] or "",
+    } for b in bundles]
+    return render_template("roblox_bundles.html", bundles=rows)
+
+
+@app.route("/roblox_bundles/<int:bundle_id>/delete", methods=["POST"])
+@require_admin
+def roblox_bundles_delete(bundle_id):
+    conn = get_db()
+    row = conn.execute("SELECT filename FROM roblox_bundles WHERE id = ?", (bundle_id,)).fetchone()
+    if row:
+        fp = os.path.join(BUNDLES_DIR, row["filename"])
+        if os.path.isfile(fp):
+            try:
+                os.remove(fp)
+            except Exception:
+                pass
+        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (bundle_id,))
+        conn.commit()
+        flash("Bundle deleted", "success")
+    conn.close()
+    return redirect(url_for("roblox_bundles_page"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 @app.route("/build_configs/bulk_edit", methods=["POST"])
@@ -2090,6 +2483,9 @@ def bulk_edit_build_configs():
             "icon_filename": c["icon_filename"],
             "embedded_key": c["embedded_key"] or (c["license_key"] or ""),
             "license_id": c["license_id"],
+            "is_trial": bool(c["is_trial"]),
+            "trial_duration_seconds": c["trial_duration_seconds"] or 86400,
+            "trial_max_per_subnet": c["trial_max_per_subnet"] or 5,
         })
 
     if not config_list:
@@ -2272,6 +2668,9 @@ def rebuild_single_config(config_id):
         "license_secret": config["license_secret"],
         "icon_filename": config["icon_filename"],
         "embedded_key": embedded_key,
+        "is_trial": bool(config["is_trial"]),
+        "trial_duration_seconds": config["trial_duration_seconds"] or 86400,
+        "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
     }
 
     with _build_lock:
@@ -2520,6 +2919,9 @@ def api_trigger_build():
             "license_secret": c["license_secret"],
             "icon_filename": c["icon_filename"],
             "embedded_key": embedded_key,
+            "is_trial": bool(c["is_trial"]),
+            "trial_duration_seconds": c["trial_duration_seconds"] or 86400,
+            "trial_max_per_subnet": c["trial_max_per_subnet"] or 5,
         })
 
     if not config_list:

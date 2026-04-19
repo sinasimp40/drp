@@ -27,6 +27,9 @@ _LICENSE_SECRET_KEY = 0x57
 EMBEDDED_LICENSE_KEY = ""
 CONFIG_HASH = ""
 CONFIG_ID = 0
+IS_TRIAL = False
+# XOR of "DENFI_TRIAL_REGISTER_SECRET_2026" — overwritten by the build server when a trial config is built.
+_TRIAL_REGISTER_SECRET_XOR = [0x13,0x12,0x19,0x11,0x1e,0x08,0x03,0x05,0x1e,0x16,0x1b,0x08,0x05,0x12,0x10,0x1e,0x04,0x03,0x12,0x05,0x08,0x04,0x12,0x14,0x05,0x12,0x03,0x08,0x65,0x67,0x65,0x61]
 LICENSE_CHECK_INTERVAL = 10000
 LICENSE_OFFLINE_GRACE = 18
 LICENSE_FATAL_GRACE = 3
@@ -34,6 +37,10 @@ LICENSE_FATAL_GRACE = 3
 
 def _decode_secret():
     return "".join(chr(b ^ _LICENSE_SECRET_KEY) for b in _LICENSE_SECRET_XOR)
+
+
+def _decode_trial_secret():
+    return "".join(chr(b ^ _LICENSE_SECRET_KEY) for b in _TRIAL_REGISTER_SECRET_XOR)
 
 
 def get_app_dir():
@@ -1249,6 +1256,285 @@ def validate_license(key, endpoint="validate"):
         return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
 
 
+def _sign_request_with_secret(body_dict, secret):
+    timestamp = str(int(import_time()))
+    nonce = hashlib.md5(os.urandom(16)).hexdigest()[:12]
+    body_json = json.dumps(body_dict, sort_keys=True, separators=(',', ':'))
+    sign_payload = f"{timestamp}:{nonce}:{body_json}"
+    sig = hmac.new(secret.encode('utf-8'), sign_payload.encode('utf-8'), hashlib.sha256).hexdigest()
+    return timestamp, nonce, sig
+
+
+def _verify_signature_with_secret(data, signature, secret):
+    if not signature:
+        return False
+    payload = json.dumps(data, sort_keys=True, separators=(',', ':'))
+    expected = hmac.new(secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def register_trial_license():
+    """Ask the server to mint a fresh time-limited trial license for this PC.
+    Returns the new key string on success, or None on failure (caller should
+    show an error)."""
+    if not LICENSE_SERVER_URL:
+        return None
+    try:
+        import urllib.request, urllib.error
+        url = LICENSE_SERVER_URL.rstrip("/") + "/api/trial_register"
+        body = {"config_id": CONFIG_ID, "version": APP_VERSION, "app_name": APP_NAME}
+        secret = _decode_trial_secret()
+        ts, nonce, sig = _sign_request_with_secret(body, secret)
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "X-Timestamp": ts, "X-Nonce": nonce, "X-Signature": sig,
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as he:
+            try:
+                result = json.loads(he.read().decode("utf-8", errors="replace"))
+            except Exception:
+                return {"valid": False, "error": f"Trial server error {he.code}"}
+        data = result.get("data", {}) or {}
+        if not _verify_signature_with_secret(data, result.get("signature", ""), secret):
+            return {"valid": False, "error": "Invalid trial server signature"}
+        return data
+    except Exception as e:
+        return {"valid": False, "error": f"Trial server unreachable: {str(e)[:80]}"}
+
+
+def fetch_roblox_bundle_info():
+    if not LICENSE_SERVER_URL:
+        return None
+    try:
+        import urllib.request, urllib.error
+        url = LICENSE_SERVER_URL.rstrip("/") + "/api/roblox_bundle/info"
+        body = {"version": APP_VERSION, "app_name": APP_NAME}
+        secret = _decode_trial_secret()
+        ts, nonce, sig = _sign_request_with_secret(body, secret)
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "X-Timestamp": ts, "X-Nonce": nonce, "X-Signature": sig,
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as he:
+            try:
+                result = json.loads(he.read().decode("utf-8", errors="replace"))
+            except Exception:
+                return {"valid": False, "error": f"Bundle info error {he.code}"}
+        data = result.get("data", {}) or {}
+        if not _verify_signature_with_secret(data, result.get("signature", ""), secret):
+            return {"valid": False, "error": "Invalid bundle server signature"}
+        return data
+    except Exception as e:
+        return {"valid": False, "error": f"Bundle server unreachable: {str(e)[:80]}"}
+
+
+def download_and_extract_roblox_bundle(splash, app, paths):
+    """Download the Roblox bundle and extract it into paths['roblox'].
+    All progress shown on the splash. Returns True on success.
+    Skips download if local .bundle_version matches the latest server version."""
+    import threading
+    import time as _time
+    import urllib.request
+    import zipfile
+
+    info = fetch_roblox_bundle_info()
+    if not isinstance(info, dict) or not info.get("valid"):
+        err = (info or {}).get("error", "no bundle info") if isinstance(info, dict) else "no bundle info"
+        if splash:
+            splash.set_progress(40, f"Bundle unavailable: {err}")
+            app.processEvents()
+        return False
+
+    target_version = info.get("version")
+    bundle_token = info.get("download_token")
+    total_size = int(info.get("file_size", 0) or 0)
+    expected_hash = info.get("sha256", "")
+
+    version_marker = os.path.join(paths["roblox"], ".bundle_version")
+    have_exe = os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
+    cached_ver = None
+    if os.path.isfile(version_marker):
+        try:
+            with open(version_marker, "r") as fm:
+                cached_ver = fm.read().strip()
+        except Exception:
+            cached_ver = None
+    if have_exe and cached_ver and str(cached_ver) == str(target_version):
+        if splash:
+            splash.set_progress(70, "Roblox files up to date!")
+            app.processEvents()
+        return True
+
+    url = LICENSE_SERVER_URL.rstrip("/") + f"/api/roblox_bundle/download/{bundle_token}"
+    state = {"downloaded": 0, "total": total_size, "result": None, "error": None, "done": False}
+
+    tmp_dir = os.path.join(paths["base"], "_bundle")
+    os.makedirs(tmp_dir, exist_ok=True)
+    zip_path = os.path.join(tmp_dir, f"roblox_bundle_v{target_version}.zip")
+
+    def worker():
+        try:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=600) as resp, open(zip_path, "wb") as out:
+                downloaded = 0
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    downloaded += len(chunk)
+                    state["downloaded"] = downloaded
+            state["result"] = zip_path
+        except Exception as e:
+            state["error"] = e
+        finally:
+            state["done"] = True
+
+    t = threading.Thread(target=worker, name="BundleDownloader", daemon=True)
+    t.start()
+
+    while not state["done"]:
+        app.processEvents()
+        if splash and total_size > 0:
+            pct = min(100, int(state["downloaded"] * 100 / total_size))
+            dl_mb = state["downloaded"] / 1048576
+            tot_mb = total_size / 1048576
+            splash.set_progress(
+                25 + int(pct * 0.30),
+                f"Downloading Roblox... {dl_mb:.1f}/{tot_mb:.1f} MB",
+            )
+        elif splash:
+            dl_mb = state["downloaded"] / 1048576
+            splash.set_progress(40, f"Downloading Roblox... {dl_mb:.1f} MB")
+        _time.sleep(0.05)
+
+    if state["error"] or not state["result"]:
+        if splash:
+            splash.set_progress(40, f"Bundle download failed: {state.get('error')}")
+            app.processEvents()
+        return False
+
+    if expected_hash:
+        sha = hashlib.sha256()
+        with open(zip_path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(65536), b""):
+                sha.update(chunk)
+        if sha.hexdigest() != expected_hash:
+            if splash:
+                splash.set_progress(40, "Bundle hash mismatch!")
+                app.processEvents()
+            try:
+                os.remove(zip_path)
+            except Exception:
+                pass
+            return False
+
+    # Extract on a worker thread, repaint splash from the main thread.
+    extract_state = {"done": False, "error": None, "extracted": 0, "total": 0}
+
+    def extract_worker():
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                members = zf.namelist()
+                extract_state["total"] = len(members)
+                # Detect if everything is wrapped in a single top-level folder.
+                top_levels = {m.split("/", 1)[0] for m in members if m.strip("/")}
+                strip_prefix = ""
+                if len(top_levels) == 1:
+                    only = next(iter(top_levels))
+                    if any(m.startswith(only + "/") for m in members):
+                        strip_prefix = only + "/"
+                os.makedirs(paths["roblox"], exist_ok=True)
+                roblox_root = os.path.realpath(paths["roblox"])
+                for i, m in enumerate(members):
+                    if m.endswith("/"):
+                        extract_state["extracted"] = i + 1
+                        continue
+                    rel = m[len(strip_prefix):] if (strip_prefix and m.startswith(strip_prefix)) else m
+                    if not rel:
+                        extract_state["extracted"] = i + 1
+                        continue
+                    rel = rel.replace("\\", "/").lstrip("/")
+                    parts = [p for p in rel.split("/") if p not in ("", ".")]
+                    # Reject path traversal, absolute, or drive-prefixed entries.
+                    if (not parts) or any(p == ".." for p in parts) or (":" in parts[0]):
+                        extract_state["extracted"] = i + 1
+                        continue
+                    dest_path = os.path.join(roblox_root, *parts)
+                    real_dest = os.path.realpath(dest_path)
+                    try:
+                        if os.path.commonpath([real_dest, roblox_root]) != roblox_root:
+                            extract_state["extracted"] = i + 1
+                            continue
+                    except ValueError:
+                        extract_state["extracted"] = i + 1
+                        continue
+                    os.makedirs(os.path.dirname(dest_path) or roblox_root, exist_ok=True)
+                    with zf.open(m) as src, open(dest_path, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    extract_state["extracted"] = i + 1
+        except Exception as e:
+            extract_state["error"] = e
+        finally:
+            extract_state["done"] = True
+
+    et = threading.Thread(target=extract_worker, name="BundleExtractor", daemon=True)
+    et.start()
+    while not extract_state["done"]:
+        app.processEvents()
+        if splash and extract_state["total"] > 0:
+            pct = min(100, int(extract_state["extracted"] * 100 / extract_state["total"]))
+            splash.set_progress(
+                55 + int(pct * 0.15),
+                f"Extracting Roblox... {extract_state['extracted']}/{extract_state['total']} files",
+            )
+        _time.sleep(0.05)
+
+    try:
+        os.remove(zip_path)
+        if not os.listdir(tmp_dir):
+            os.rmdir(tmp_dir)
+    except Exception:
+        pass
+
+    if extract_state["error"]:
+        if splash:
+            splash.set_progress(70, f"Extraction failed: {extract_state['error']}")
+            app.processEvents()
+        return False
+
+    try:
+        with open(version_marker, "w") as fm:
+            fm.write(str(target_version))
+    except Exception:
+        pass
+
+    if not os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe")):
+        if splash:
+            splash.set_progress(70, "Bundle missing RobloxPlayerBeta.exe")
+            app.processEvents()
+        return False
+
+    if splash:
+        splash.set_progress(70, "Roblox files ready!")
+        app.processEvents()
+    return True
+
+
 def check_for_update(key):
     if not LICENSE_SERVER_URL:
         return None
@@ -1729,6 +2015,40 @@ class LicenseDialog(QDialog):
             self.move(event.globalPos() - self._drag_pos)
 
 
+class TrialExpiredDialog(QDialog):
+    def __init__(self, parent=None, message=""):
+        super().__init__(parent)
+        self.setWindowTitle(f"{APP_NAME} - Trial Expired")
+        self.setFixedSize(440, 220)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.setStyleSheet("""
+            QDialog { background: #1c1c26; border: 1px solid #2a2a38; border-radius: 10px; }
+            QLabel { color: #e8e8ef; background: transparent; }
+            QPushButton { background: #ff6a00; color: white; border: none; border-radius: 6px;
+                         padding: 9px 24px; font-size: 13px; font-weight: bold; }
+            QPushButton:hover { background: #ff8c33; }
+        """)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 24, 32, 24)
+        layout.setSpacing(10)
+        title = QLabel("Trial Expired")
+        title.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title.setStyleSheet("color: #ff6a00;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        msg = QLabel(message or "Your free trial has ended.\nContact the developer to get a full license.")
+        msg.setFont(QFont("Segoe UI", 10))
+        msg.setStyleSheet("color: #b0b0c0;")
+        msg.setAlignment(Qt.AlignCenter)
+        msg.setWordWrap(True)
+        layout.addWidget(msg)
+        layout.addSpacing(8)
+        ok_btn = QPushButton("Close")
+        ok_btn.clicked.connect(self.accept)
+        layout.addWidget(ok_btn)
+
+
 class LockScreen(QWidget):
     def __init__(self, reason="License expired"):
         super().__init__()
@@ -1806,6 +2126,32 @@ def check_license_or_prompt(app, splash=None):
             return False
 
     if EMBEDDED_LICENSE_KEY:
+        return False
+
+    if IS_TRIAL:
+        if splash:
+            splash.set_progress(8, "Activating free trial...")
+            app.processEvents()
+        trial_result = register_trial_license()
+        if isinstance(trial_result, dict) and trial_result.get("valid") and (trial_result.get("license_key") or trial_result.get("key")):
+            new_key = trial_result.get("license_key") or trial_result.get("key")
+            save_license_key(new_key)
+            if splash:
+                splash.set_progress(15, "Trial activated!")
+                app.processEvents()
+            return True
+        # Trial mint failed — show a friendly trial-expired/quota dialog and quit.
+        err = (trial_result or {}).get("error", "Could not start your free trial.") if isinstance(trial_result, dict) else "Could not start your free trial."
+        lower = (err or "").lower()
+        if "expired" in lower:
+            msg = "Your free trial has ended.\nContact the developer to get a full license."
+        elif "quota" in lower or "limit" in lower or "rate" in lower:
+            msg = "Trial limit reached for your network.\nContact the developer to get a full license."
+        else:
+            msg = err
+        if splash:
+            splash.hide()
+        TrialExpiredDialog(message=msg).exec_()
         return False
 
     if splash:
@@ -2049,6 +2395,32 @@ def main():
                 log_lines.append("RobloxPlayerBeta.exe not found yet")
 
         elif idx == 2:
+            if IS_TRIAL:
+                splash.set_progress(25, "Checking Roblox bundle...")
+                app.processEvents()
+                version_marker = os.path.join(paths["roblox"], ".bundle_version")
+                had_marker = os.path.isfile(version_marker)
+                ok = download_and_extract_roblox_bundle(splash, app, paths)
+                if ok:
+                    detected = get_roblox_version(paths["roblox"])
+                    splash.roblox_version = detected if detected else "Roblox"
+                    log_lines.append("Trial bundle ready")
+                else:
+                    log_lines.append("Trial bundle download/extract failed")
+                    # On first run (no marker) any failure is fatal — never silently
+                    # continue with stale/partial files. On subsequent runs, fall
+                    # through and reuse the cached bundle if it has the exe.
+                    has_exe = os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
+                    if not had_marker or not has_exe:
+                        splash.show_error("Could not download Roblox files.\nPlease check your internet and retry.")
+                        write_log(paths["logs"], "\n".join(log_lines))
+                        QTimer.singleShot(5000, app.quit)
+                        return
+                    log_lines.append("Continuing with previously cached bundle")
+                # Skip the system-roblox sync path entirely.
+                step_index[0] = 3
+                QTimer.singleShot(20, do_step)
+                return
             splash.set_progress(40, "Scanning for updates...")
             app.processEvents()
             system_path, system_fp, sys_version = find_system_roblox()
@@ -2076,7 +2448,10 @@ def main():
                 log_lines.append("No system Roblox found")
 
         elif idx == 3:
-            if sync_state["do_sync"]:
+            if IS_TRIAL:
+                splash.set_progress(72, "Roblox files ready!")
+                app.processEvents()
+            elif sync_state["do_sync"]:
                 splash.set_progress(55, "Syncing Roblox files...")
                 app.processEvents()
                 try:
