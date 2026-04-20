@@ -16,6 +16,7 @@ import re
 import subprocess
 from datetime import datetime, timedelta
 from functools import wraps
+from urllib.parse import urlparse
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, send_file, get_flashed_messages
 from flask_socketio import SocketIO, emit
@@ -74,6 +75,12 @@ def _global_rate_limit():
         # 60/minute is plenty for a human; way under what a brute-forcer wants.
         if not _api_rate_limit(ip, "login_hit", 60, 60):
             return "Too many requests", 429
+    elif path.startswith("/s/"):
+        # Short-link redirects: prevent hit-counter DoS via mass replays.
+        # 300/min/IP is comfortably above any human use; clicks beyond that
+        # smell like a bot inflating the counter or hammering the DB.
+        if not _api_rate_limit(ip, "short_redirect", 300, 60):
+            return "Too many requests", 429
     elif path.startswith("/api/"):
         # generic catch-all for any other API endpoint
         if not _api_rate_limit(ip, "api_other", 200, 60):
@@ -102,6 +109,142 @@ def _apply_security_headers(resp):
 def _payload_too_large(e):
     # Triggered when MAX_CONTENT_LENGTH is exceeded; return small JSON
     return jsonify({"error": "payload_too_large"}), 413
+
+
+# --- self-hosted short links --------------------------------------------
+# Admins can shorten any URL that points to THIS server; the redirect
+# endpoint only ever serves local paths, so a stolen admin session can't
+# turn this into an open-redirect / phishing tool.
+
+_SHORT_CODE_ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+# (excludes l, I, 1, O, 0 to avoid copy-paste confusion)
+
+def _gen_short_code(length=6):
+    return "".join(secrets.choice(_SHORT_CODE_ALPHABET) for _ in range(length))
+
+def _normalize_short_target(raw_url):
+    """Accept either a relative path ('/download_trial?config_id=3') or an
+    absolute URL pointing at this same server. Returns the path+query string
+    that we'll redirect to, or None if the URL targets a foreign host."""
+    if not raw_url:
+        return None
+    raw_url = raw_url.strip()
+    if not raw_url:
+        return None
+    if raw_url.startswith("/"):
+        # already a local path; strip any leading "//" to defeat scheme-relative tricks
+        if raw_url.startswith("//"):
+            return None
+        path_q = raw_url
+    else:
+        try:
+            p = urlparse(raw_url)
+        except Exception:
+            return None
+        if not p.scheme or p.scheme not in ("http", "https"):
+            return None
+        # must point at *this* server
+        if p.netloc and p.netloc.lower() != request.host.lower():
+            return None
+        path_q = p.path or "/"
+        if p.query:
+            path_q += "?" + p.query
+    if len(path_q) > 1000:
+        return None
+    return path_q
+
+def _make_short_link(target_path, ip):
+    """Insert (or reuse) a short code for the given local path. Returns code.
+
+    Atomicity: the short_links table has UNIQUE(code) AND UNIQUE(target_path).
+    On insert collision we distinguish:
+      * collision on `code`         -> regenerate code and retry
+      * collision on `target_path`  -> someone else just inserted the same
+                                       URL; SELECT and return their code
+    This makes the function safe against concurrent shortens of the same URL.
+    """
+    conn = get_db()
+    try:
+        existing = conn.execute(
+            "SELECT code FROM short_links WHERE target_path = ? LIMIT 1",
+            (target_path,)
+        ).fetchone()
+        if existing:
+            return existing["code"]
+        for attempt in range(20):
+            code = _gen_short_code(6 if attempt < 15 else 10)
+            try:
+                conn.execute(
+                    "INSERT INTO short_links (code, target_path, created_at, created_by_ip)"
+                    " VALUES (?, ?, ?, ?)",
+                    (code, target_path, time.time(), ip or "")
+                )
+                conn.commit()
+                return code
+            except sqlite3.IntegrityError:
+                # Could be code collision OR target_path collision (race).
+                row = conn.execute(
+                    "SELECT code FROM short_links WHERE target_path = ? LIMIT 1",
+                    (target_path,)
+                ).fetchone()
+                if row:
+                    # someone else inserted the same target while we were trying
+                    return row["code"]
+                # otherwise it was a code collision — pick another code
+                continue
+        raise RuntimeError("could not allocate unique short code")
+    finally:
+        conn.close()
+
+
+@app.route("/s/<code>")
+def short_redirect(code):
+    # very loose validation: codes are short alphanumerics; reject obvious junk
+    if not code or len(code) > 32 or not re.match(r"^[A-Za-z0-9]+$", code):
+        return "Not Found", 404
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT target_path FROM short_links WHERE code = ?", (code,)
+        ).fetchone()
+        if not row:
+            return "Not Found", 404
+        target = row["target_path"]
+        # async-ish hit counter: best-effort, don't block redirect on failure
+        try:
+            conn.execute(
+                "UPDATE short_links SET hits = hits + 1, last_hit_at = ? WHERE code = ?",
+                (time.time(), code)
+            )
+            conn.commit()
+        except Exception:
+            pass
+    finally:
+        conn.close()
+    # Defense in depth: only redirect to local paths. Anything weird = 404.
+    if not target.startswith("/") or target.startswith("//"):
+        return "Not Found", 404
+    return redirect(target, code=302)
+
+
+@app.route("/api/admin/shorten", methods=["POST"])
+def api_admin_shorten():
+    # Inline auth check (require_admin is defined later in the file).
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "auth_required"}), 401
+    data = request.get_json(silent=True) or {}
+    raw_url = data.get("url", "")
+    target = _normalize_short_target(raw_url)
+    if not target:
+        return jsonify({
+            "error": "invalid_url",
+            "message": "URL must be a path on this server (or an absolute URL "
+                       "with the same host)."
+        }), 400
+    ip = _real_client_ip()
+    code = _make_short_link(target, ip)
+    short_url = request.host_url.rstrip("/") + "/s/" + code
+    return jsonify({"short_url": short_url, "code": code, "target": target})
 
 
 def _real_client_ip():
@@ -395,6 +538,25 @@ def init_db():
             note TEXT DEFAULT ''
         )
     """)
+    # Self-hosted short-link table. Codes map to local URL paths only — we
+    # never redirect to an external domain, which makes this safe against
+    # open-redirect abuse even if an admin session is hijacked.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS short_links (
+            code TEXT PRIMARY KEY,
+            target_path TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            created_by_ip TEXT,
+            hits INTEGER NOT NULL DEFAULT 0,
+            last_hit_at REAL
+        )
+    """)
+    # UNIQUE on target_path so concurrent shortens of the same URL can't
+    # produce two rows. _make_short_link relies on this for atomicity.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_short_links_target_unique"
+        " ON short_links(target_path)"
+    )
     conn.commit()
     conn.close()
 

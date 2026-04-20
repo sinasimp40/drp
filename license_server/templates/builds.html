@@ -107,7 +107,8 @@
                                     <span style="background:#ff6a00; color:#fff; font-size:9px; padding:2px 6px; border-radius:3px; vertical-align:middle; margin-left:4px;">TRIAL</span>
                                     <div style="margin-top:4px; display:flex; gap:6px; align-items:center;">
                                         <input type="text" readonly value="{{ c.trial_download_url }}" id="trial-link-{{ c.id }}" style="flex:1; min-width:140px; max-width:280px; font-size:10px; padding:2px 6px; background:#0c0c14; color:#9b9bad; border:1px solid #2a2a38; border-radius:3px;">
-                                        <button type="button" onclick="(function(){var el=document.getElementById('trial-link-{{ c.id }}'); el.select(); document.execCommand('copy');})()" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;">Copy</button>
+                                        <button type="button" onclick="copyToClipboard(document.getElementById('trial-link-{{ c.id }}').value, this)" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;">Copy</button>
+                                        <button type="button" onclick="copyShortLink(document.getElementById('trial-link-{{ c.id }}').value, this)" class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 6px;" title="Generate a short link to this download and copy it">Short</button>
                                     </div>
                                     {% endif %}
                                 </td>
@@ -214,9 +215,12 @@
                                     {% if b.status == 'completed' and b.artifacts %}
                                         {% for art in b.artifacts %}
                                             {% if art.status == 'completed' and art.exe_filename %}
-                                            <a href="{{ url_for('api_download_artifact', build_id=b.id, config_id=art.config_id) }}" class="btn btn-primary btn-sm" style="margin-bottom: 4px; display: inline-block;">
-                                                {{ art.app_name }} ({{ (art.file_size / 1048576)|round(1) }} MB)
-                                            </a>
+                                            <div style="display:flex; gap:4px; align-items:center; margin-bottom: 4px;">
+                                                <a href="{{ url_for('api_download_artifact', build_id=b.id, config_id=art.config_id) }}" id="art-link-{{ b.id }}-{{ art.config_id }}" class="btn btn-primary btn-sm" style="display: inline-block;">
+                                                    {{ art.app_name }} ({{ (art.file_size / 1048576)|round(1) }} MB)
+                                                </a>
+                                                <button type="button" onclick="copyShortLink(document.getElementById('art-link-{{ b.id }}-{{ art.config_id }}').href, this)" class="btn btn-secondary btn-sm" style="font-size:10px; padding:4px 6px;" title="Generate a short download link and copy it">Short</button>
+                                            </div>
                                             {% endif %}
                                         {% endfor %}
                                     {% endif %}
@@ -768,5 +772,58 @@
     loadOtaStatus();
     setInterval(loadOtaStatus, 5000);
 })();
+
+// --- clipboard + short-link helpers ---------------------------------
+function _flashBtn(btn, label, ms) {
+    if (!btn) return;
+    var orig = btn.dataset._orig || btn.textContent;
+    btn.dataset._orig = orig;
+    btn.textContent = label;
+    btn.disabled = true;
+    setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, ms || 1500);
+}
+function _writeClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function(resolve, reject){
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            var ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            ok ? resolve() : reject(new Error('copy failed'));
+        } catch(e){ reject(e); }
+    });
+}
+function copyToClipboard(text, btn) {
+    _writeClipboard(text).then(function(){ _flashBtn(btn, 'Copied!'); })
+        .catch(function(){ _flashBtn(btn, 'Copy failed'); });
+}
+function copyShortLink(longUrl, btn) {
+    if (!longUrl) { _flashBtn(btn, 'No URL'); return; }
+    _flashBtn(btn, '...', 30000);
+    fetch('/api/admin/shorten', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify({url: longUrl}),
+        credentials: 'same-origin',
+    }).then(function(r){
+        return r.json().then(function(j){ return {ok: r.ok, body: j}; });
+    }).then(function(res){
+        if (!res.ok) {
+            _flashBtn(btn, res.body && res.body.message ? 'Error' : 'Failed', 2000);
+            console.error('shorten error:', res.body);
+            return;
+        }
+        return _writeClipboard(res.body.short_url).then(function(){
+            _flashBtn(btn, 'Short copied!', 2000);
+        });
+    }).catch(function(e){
+        console.error(e);
+        _flashBtn(btn, 'Failed', 2000);
+    });
+}
 </script>
 {% endblock %}
