@@ -42,7 +42,10 @@ SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KE
 TRIAL_REGISTER_SECRET = os.environ.get("TRIAL_REGISTER_SECRET", "DENFI_TRIAL_REGISTER_SECRET_2026")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 ADMIN_UNLOCK_SECRET = os.environ.get("ADMIN_UNLOCK_SECRET", "zxc1")
-_UNLOCK_PBKDF2_ITERATIONS = 60000
+_UNLOCK_PBKDF2_ITERATIONS = 5000  # was 60k — 60k took ~200ms PER keystroke,
+# which made fast typing miss decrypts on slower devices. The keystream is
+# only used to hide the form HTML from casual View-Source snoopers; it isn't
+# protecting a high-value secret, so 5k iterations (~10-20ms) is plenty.
 
 # --- security: brute-force lockout + per-IP rate limiting ----------------
 _security_lock = threading.Lock()
