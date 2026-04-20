@@ -166,57 +166,180 @@ def get_folder_fingerprint(folder):
     return None
 
 
+_ROBLOX_PROC_NAMES = (
+    "RobloxPlayerBeta.exe",
+    "RobloxPlayerLauncher.exe",
+    "RobloxStudioBeta.exe",
+    "RobloxStudioLauncherBeta.exe",
+    "RobloxCrashHandler.exe",
+    "RobloxBackgroundTask.exe",
+    "RobloxStartupNotification.exe",
+    "RobloxRichPresence.exe",
+)
+
+
+def _kill_roblox_processes_and_wait(timeout_s=5.0):
+    """Force-kill every known Roblox process image and POLL until they're
+    actually gone (or until timeout_s elapses). Returns True if no Roblox
+    processes are running at exit, False if any survived past the timeout.
+    Best-effort: taskkill failures and tasklist hiccups are non-fatal."""
+    if sys.platform != "win32":
+        return True
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    def _send_kill():
+        for proc in _ROBLOX_PROC_NAMES:
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/IM", proc, "/T"],
+                    capture_output=True, timeout=5, creationflags=flags,
+                )
+            except Exception:
+                pass
+
+    def _any_alive():
+        # tasklist /FI "IMAGENAME eq <name>" prints "INFO: No tasks..."
+        # on stderr/stdout when the image isn't running, otherwise lists
+        # the row. We check both streams for the image name.
+        for proc in _ROBLOX_PROC_NAMES:
+            try:
+                r = subprocess.run(
+                    ["tasklist", "/FI", f"IMAGENAME eq {proc}"],
+                    capture_output=True, timeout=5, creationflags=flags,
+                )
+                blob = (r.stdout or b"") + (r.stderr or b"")
+                if proc.encode("utf-8", "ignore").lower() in blob.lower():
+                    return True
+            except Exception:
+                # If tasklist itself fails, assume nothing is alive (we
+                # already issued kills) rather than spinning forever.
+                pass
+        return False
+
+    import time as _t
+    deadline = _t.time() + timeout_s
+    _send_kill()
+    while _t.time() < deadline:
+        if not _any_alive():
+            return True
+        _t.sleep(0.2)
+        _send_kill()
+    return not _any_alive()
+
+
 def purge_appdata_roblox_versions():
-    """Completely wipe %LOCALAPPDATA%\\Roblox\\ — every subfolder and file.
-    Best-effort: anything locked by a running Roblox process is skipped
-    silently and we just delete what we can.
+    """Wipe every Roblox-related folder under %LOCALAPPDATA%\\.
 
-    Why: when our launcher is using its OWN bundled Roblox, ANY leftover
-    system Roblox state (Versions\\, LocalStorage, logs, settings) can
-    confuse multi-instance / multi-account handling and version checks.
-    Nuking the whole folder guarantees our bundled .exe is the only
-    Roblox install on the machine.
+    Search semantics: walk %LOCALAPPDATA% top-level entries only (we never
+    recurse into unrelated apps) and delete any entry whose name contains
+    "roblox" (case-insensitive). That catches:
+      * Roblox
+      * Roblox Corporation
+      * RobloxStudio
+      * RobloxLauncher
+      * Anything else Roblox-branded that might land here in the future.
 
-    NOTE: this also removes %LOCALAPPDATA%\\Roblox\\LocalStorage, which
-    holds Roblox login cookies. After a wipe the user will need to log
-    into their Roblox account(s) again on first launch. This was the
-    user's explicit request — see chat history "just complety delete
-    everything here \\AppData\\Local\\Roblox\\".
+    Why this design: a previous narrower wipe of just %LOCALAPPDATA%\\Roblox
+    left multi-instance-blocking state on some client machines because the
+    running Roblox process was holding file handles, and Roblox state
+    sometimes lives in sibling folders too. Hardening (per code review):
+      1. Kill EVERY known Roblox process image and POLL until they're
+         actually gone (up to 5s) — no fixed-sleep race window.
+      2. Path-boundary guard: each target is resolved with realpath() and
+         must remain under realpath(%LOCALAPPDATA%) before we touch it,
+         so a malicious symlink/junction can't trick us into deleting
+         folders elsewhere on disk. Symlinks themselves are unlinked
+         (not followed).
+      3. Up to 5 delete passes with exponential backoff and a
+         chmod-then-retry onerror handler for read-only files.
 
-    Returns the number of TOP-LEVEL items actually deleted (0 if folder
-    didn't exist, 1+ otherwise).
+    Returns the count of top-level Roblox-named items successfully deleted.
     """
     if sys.platform != "win32":
         return 0
+
+    # --- Step 1: kill processes and WAIT until they're actually gone. ---
+    _kill_roblox_processes_and_wait(timeout_s=5.0)
+
     local_app = os.environ.get("LOCALAPPDATA", "")
-    if not local_app:
+    if not local_app or not os.path.isdir(local_app):
         return 0
-    roblox_root = os.path.join(local_app, "Roblox")
-    if not os.path.isdir(roblox_root):
-        return 0
-    removed = 0
     try:
-        entries = os.listdir(roblox_root)
+        local_app_real = os.path.realpath(local_app)
+    except OSError:
+        local_app_real = local_app
+
+    # --- Step 2: collect every top-level name containing "roblox". ---
+    try:
+        all_entries = os.listdir(local_app)
     except OSError:
         return 0
-    for item in entries:
-        full = os.path.join(roblox_root, item)
+    targets = [e for e in all_entries if "roblox" in e.lower()]
+    if not targets:
+        return 0
+
+    # --- Step 3: defensive deleter with path-boundary check + chmod retry.
+    def _safe_inside_localappdata(path):
+        # Resolve realpath; require the result is still under LOCALAPPDATA.
+        # On Windows this also resolves junctions/symlinks. If realpath
+        # fails or escapes, refuse to touch.
         try:
-            if os.path.isdir(full) and not os.path.islink(full):
-                shutil.rmtree(full, ignore_errors=True)
+            real = os.path.realpath(path)
+            common = os.path.commonpath([real, local_app_real])
+            return common == local_app_real and real != local_app_real
+        except (OSError, ValueError):
+            return False
+
+    def _force_remove(path):
+        if not _safe_inside_localappdata(path):
+            # Symlink that escapes — unlink the link itself only.
+            try:
+                if os.path.islink(path):
+                    os.unlink(path)
+            except Exception:
+                pass
+            return
+
+        def _onerror(func, p, _exc):
+            # Most common cause: a leftover read-only file. Clear the
+            # attribute and retry the failing operation once.
+            try:
+                os.chmod(p, 0o777)
+                func(p)
+            except Exception:
+                pass
+        try:
+            if os.path.islink(path):
+                # Never recurse through a link — just unlink the link.
+                os.unlink(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path, onerror=_onerror)
             else:
-                os.remove(full)
-            if not os.path.exists(full):
-                removed += 1
+                try:
+                    os.chmod(path, 0o777)
+                except Exception:
+                    pass
+                os.remove(path)
         except Exception:
             pass
-    # Try to remove the now-empty \Roblox\ folder itself too. If anything
-    # is still locked inside, leave the (mostly empty) shell behind —
-    # it'll be handled on the next launch.
-    try:
-        os.rmdir(roblox_root)
-    except OSError:
-        pass
+
+    # --- Step 4: up to 5 passes with exponential backoff. ---
+    import time as _t
+    backoff = 0.1
+    for _pass in range(5):
+        survivors = [n for n in targets
+                     if os.path.exists(os.path.join(local_app, n))]
+        if not survivors:
+            break
+        for name in survivors:
+            _force_remove(os.path.join(local_app, name))
+        _t.sleep(backoff)
+        backoff *= 2  # 0.1, 0.2, 0.4, 0.8, 1.6 s
+
+    removed = sum(
+        1 for n in targets
+        if not os.path.exists(os.path.join(local_app, n))
+    )
     return removed
 
 
