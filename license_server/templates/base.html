@@ -505,13 +505,43 @@
             }
             body.sidebar-open .sidebar { transform: translateX(0); }
             body.sidebar-open .sidebar-backdrop { display: block; }
-            .topbar { padding: 0 16px; }
-            .content { padding: 18px 14px; }
+            .topbar { padding: 0 14px; height: 56px; gap: 8px; }
+            .topbar-title { gap: 8px; }
+            .topbar-actions { gap: 6px; }
+            .content { padding: 16px 12px; }
             .page-header h1 { font-size: 18px; }
+            .card-header { padding: 12px 14px; }
+            .card-body { padding: 14px; }
+            /* Bigger tap targets on touch */
+            .btn { padding: 9px 14px; min-height: 38px; font-size: 13px; }
+            .btn-sm { padding: 7px 12px; min-height: 34px; font-size: 12px; }
+            .form-group input,
+            .form-group select,
+            .form-group textarea { font-size: 16px; padding: 11px 12px; }
+            .form-row { flex-direction: column; gap: 0; }
+            /* Tables convert to horizontally-scrollable cards */
+            table { min-width: 720px; }
+            .modal-card { max-width: calc(100vw - 24px); border-radius: 8px; }
+            .modal-overlay { padding: 12px; }
+            .modal-meta { font-size: 12px; }
+            .meta-label { min-width: 64px; font-size: 10px; }
+            .modal-actions { flex-direction: column-reverse; gap: 8px; }
+            .modal-actions .btn { width: 100%; }
+            .toast-stack { right: 12px; left: 12px; bottom: 12px; }
+            .toast { max-width: none; }
         }
         @media (max-width: 560px) {
             .topbar-title { font-size: 14px; }
-            .btn { padding: 7px 11px; font-size: 12px; }
+            .topbar-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .live-indicator { display: none; }
+        }
+        /* On any touch / coarse-pointer device (covers tablets + phones in
+           desktop mode), keep row-actions and copy buttons fully visible —
+           there is no "hover" to reveal them. */
+        @media (hover: none), (pointer: coarse) {
+            .row-actions { opacity: 1 !important; }
+            .icon-btn { width: 36px; height: 36px; }
+            .icon-btn svg { width: 18px; height: 18px; }
         }
 
         /* Edit license modal (shared by dashboard.html and history.html via _edit_license_modal.html) */

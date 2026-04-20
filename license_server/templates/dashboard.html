@@ -226,6 +226,10 @@
         overflow-y: auto;
         max-height: calc(100vh - 320px);
         min-height: 280px;
+        -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 900px) {
+        .scroll-table { max-height: none; min-height: 0; }
     }
     .scroll-table table { margin: 0; }
     .scroll-table thead th {

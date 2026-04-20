@@ -2546,7 +2546,7 @@ def builds_page():
         names = ", ".join(purge_result["deleted_trials"])
         flash(
             f"Auto-removed {len(purge_result['deleted_trials'])} trial config(s) "
-            f"with expired licenses: {names}",
+            f"(expired, exhausted, or older than 24h): {names}",
             "warning",
         )
     configs = conn.execute("""
@@ -2731,6 +2731,9 @@ def edit_build_config(config_id):
 
 
 _INACTIVE_LICENSE_STATUSES = ('expired', 'revoked', 'deleted', 'suspended')
+# Trial build configs are deleted automatically once they exceed this age,
+# regardless of whether anyone activated them. See _auto_purge_inactive_trial_configs.
+TRIAL_CONFIG_MAX_AGE_SECONDS = 24 * 60 * 60
 
 
 def _auto_purge_inactive_trial_configs(conn):
@@ -2739,7 +2742,7 @@ def _auto_purge_inactive_trial_configs(conn):
 
     A trial config is DELETED (config row + icon file + every build_artifact
     + the corresponding .exe file on disk + any now-empty parent build row)
-    when EITHER:
+    when ANY of:
 
       (a) the config is linked to a `licenses` row whose status is in
           {expired, revoked, deleted, suspended} — same rule as before, OR
@@ -2747,7 +2750,13 @@ def _auto_purge_inactive_trial_configs(conn):
       (b) the config has issued at least one trial license and *zero* of
           those issued trial licenses are still active. In other words,
           every trial it ever minted has expired/been revoked/deleted, so
-          the template itself is dead weight and was wasting build time.
+          the template itself is dead weight and was wasting build time, OR
+
+      (c) the config is older than TRIAL_CONFIG_MAX_AGE_SECONDS (24 hours)
+          regardless of activation. Per-user request: trial templates are
+          short-lived by design — if nobody downloaded it within a day,
+          it gets cleaned up automatically along with all of its builds
+          and build history rows.
 
     Premium (non-trial) configs are intentionally left in place even when
     their linked license is inactive — the build code already skips them
@@ -2781,9 +2790,21 @@ def _auto_purge_inactive_trial_configs(conn):
            HAVING total > 0 AND active_n = 0""",
     ).fetchall()
 
+    # Case (c): trial config older than TRIAL_CONFIG_MAX_AGE_SECONDS,
+    # regardless of activation status. Per-user request: trial templates
+    # auto-expire after 24h so the build list and history don't accumulate
+    # stale entries. Use the build_configs.created_at column directly.
+    cutoff = time.time() - TRIAL_CONFIG_MAX_AGE_SECONDS
+    rows_c = conn.execute(
+        """SELECT id, app_name, icon_filename
+             FROM build_configs
+            WHERE is_trial = 1 AND created_at IS NOT NULL AND created_at < ?""",
+        (cutoff,),
+    ).fetchall()
+
     seen = set()
     deleted = []
-    for r in list(rows_a) + list(rows_b):
+    for r in list(rows_a) + list(rows_b) + list(rows_c):
         cid = r["id"]
         if cid in seen:
             continue
