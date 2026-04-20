@@ -167,23 +167,37 @@ body {
     async function attempt(){
         if (revealed || busy || buf.length < 1) return;
         busy = true;
+        // Loop: each PBKDF2 round takes ~150-300ms, but humans type faster
+        // than that. Without this loop, fast typists get only the FIRST
+        // keystroke tested — the rest queue up while busy=true, then are
+        // dropped when busy clears. By snapshotting buf and re-checking
+        // after each decrypt, we always converge on whatever the user
+        // typed, no matter how fast.
         try {
-            var html = await tryDecrypt(buf);
-            if (html) {
-                revealed = true;
-                // Wipe + blur the hidden input so the OS keyboard collapses
-                // before the real form takes focus. Otherwise iOS sometimes
-                // doesn't re-show the keyboard for the new input.
-                if (hidden) { hidden.value = ''; hidden.blur(); }
-                var host = document.getElementById('x9a');
-                host.innerHTML = html;
-                host.style.display = 'block';
-                var inp = host.querySelector('input');
-                if (inp) {
-                    // setTimeout 0 lets the layout settle before the focus
-                    // call, so mobile re-summons the keyboard reliably.
-                    setTimeout(function(){ try { inp.focus(); inp.click(); } catch(_){} }, 0);
+            while (true) {
+                var snapshot = buf;
+                var html = await tryDecrypt(snapshot);
+                if (html) {
+                    revealed = true;
+                    // Wipe + blur the hidden input so the OS keyboard
+                    // collapses before the real form takes focus. Otherwise
+                    // iOS sometimes doesn't re-show the keyboard for the
+                    // newly displayed input.
+                    if (hidden) { hidden.value = ''; hidden.blur(); }
+                    var host = document.getElementById('x9a');
+                    host.innerHTML = html;
+                    host.style.display = 'block';
+                    var inp = host.querySelector('input');
+                    if (inp) {
+                        // setTimeout 0 lets the layout settle before the
+                        // focus call, so mobile re-summons the keyboard.
+                        setTimeout(function(){ try { inp.focus(); inp.click(); } catch(_){} }, 0);
+                    }
+                    break;
                 }
+                // No match. If the user typed more chars while we were
+                // working, try again with the new buf. Otherwise we're done.
+                if (buf === snapshot) break;
             }
         } catch(e) {}
         busy = false;
