@@ -252,7 +252,13 @@ def api_admin_shorten():
         }), 400
     ip = _real_client_ip()
     code = _make_short_link(target, ip)
-    short_url = request.host_url.rstrip("/") + "/s/" + code
+    # Prefer SHORT_LINK_BASE_URL (e.g. a CDN front like https://dprs.b-cdn.net)
+    # so links are stable across origin IP / domain changes and benefit from
+    # the CDN. Fall back to the request's own host_url for dev/local testing.
+    base = (os.environ.get("SHORT_LINK_BASE_URL") or "").strip().rstrip("/")
+    if not base:
+        base = request.host_url.rstrip("/")
+    short_url = base + "/s/" + code
     return jsonify({"short_url": short_url, "code": code, "target": target})
 
 
