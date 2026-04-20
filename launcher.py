@@ -132,8 +132,7 @@ def get_paths():
     # which case we keep using that folder so we don't orphan their files.
     roblox_dir = base
     legacy_sub = os.path.join(base, "RobloxFiles")
-    if (not IS_TRIAL
-            and not os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe"))
+    if (not os.path.isfile(os.path.join(base, "RobloxPlayerBeta.exe"))
             and os.path.isfile(os.path.join(legacy_sub, "RobloxPlayerBeta.exe"))):
         roblox_dir = legacy_sub
 
@@ -2845,54 +2844,6 @@ def main():
                 log_lines.append("RobloxPlayerBeta.exe not found yet")
 
         elif idx == 2:
-            if IS_TRIAL:
-                # Trial builds DO NOT download the Roblox bundle from the
-                # license server. Trial users are expected to have Roblox
-                # already installed on their PC; the launcher just locates it
-                # and uses those files. If no system Roblox is found AND no
-                # local copy exists from a previous run, we hard-fail with a
-                # clear message rather than triggering a multi-hundred-MB
-                # download — that's a paid-tier feature.
-                splash.set_progress(40, "Locating Roblox...")
-                app.processEvents()
-                system_path, system_fp, sys_version = find_system_roblox()
-                if sys_version:
-                    splash.roblox_version = sys_version
-                elif not splash.roblox_version:
-                    detected = get_roblox_version(paths["roblox"])
-                    splash.roblox_version = detected if detected else "Roblox"
-
-                has_local_exe = os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
-
-                if system_path:
-                    portable_fp = get_folder_fingerprint(paths["roblox"])
-                    needs_update = system_fp and (system_fp != portable_fp)
-                    needs_first = not has_local_exe
-                    if needs_update or needs_first:
-                        sync_state["do_sync"] = True
-                        sync_state["source"] = system_path
-                        sync_state["fp"] = system_fp
-                        log_lines.append(
-                            f"Trial: sync from system Roblox ({'first' if needs_first else 'update'}): {system_path}"
-                        )
-                    else:
-                        log_lines.append("Trial: local Roblox files up to date")
-                elif not has_local_exe:
-                    log_lines.append("Trial: no system Roblox and no local files")
-                    splash.show_error(
-                        "Roblox is not installed on this PC.\n\n"
-                        "The free trial requires Roblox to be installed first.\n"
-                        "Please install Roblox from roblox.com and try again."
-                    )
-                    write_log(paths["logs"], "\n".join(log_lines))
-                    QTimer.singleShot(6000, app.quit)
-                    return
-                else:
-                    log_lines.append("Trial: using cached local Roblox files")
-                # Fall through to step 3 — same sync/launch path as premium.
-                QTimer.singleShot(20, do_step)
-                step_index[0] = 3
-                return
             splash.set_progress(40, "Scanning for updates...")
             app.processEvents()
             system_path, system_fp, sys_version = find_system_roblox()
@@ -2947,10 +2898,7 @@ def main():
                     log_lines.append("Bundle download failed; using existing local files")
 
         elif idx == 3:
-            if IS_TRIAL and not sync_state["do_sync"]:
-                splash.set_progress(72, "Roblox files ready!")
-                app.processEvents()
-            elif sync_state["do_sync"]:
+            if sync_state["do_sync"]:
                 splash.set_progress(55, "Syncing Roblox files...")
                 app.processEvents()
                 try:
