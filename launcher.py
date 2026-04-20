@@ -1467,13 +1467,10 @@ def download_and_extract_roblox_bundle(splash, app, paths):
         except Exception:
             cached_ver = None
     if have_exe and cached_ver and str(cached_ver) == str(target_version):
-        # Even on cached/up-to-date launches, scrub leftover system Roblox
-        # installs each time so a user who installs official Roblox between
-        # launches doesn't break our multi-instance handling.
-        try:
-            purge_appdata_roblox_versions()
-        except Exception:
-            pass
+        # Cache hit: nothing to download, so we leave %LOCALAPPDATA%\Roblox\
+        # alone. The full wipe ONLY runs after a fresh bundle download (see
+        # call site below the extract step) so user Roblox cookies / login
+        # survive between normal launches.
         if splash:
             splash.set_progress(70, "Roblox files up to date!")
             app.processEvents()
