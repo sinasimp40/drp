@@ -45,6 +45,29 @@
     </div>
 </div>
 
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <h2>Public Download URL</h2>
+    </div>
+    <div style="padding:12px 16px;">
+        <p style="margin:0 0 10px 0; color:#9ca3af; font-size:13px;">
+            Set the public hostname (CDN or DNS) used in generated short links so the origin server IP is hidden.
+            Leave blank to use whatever host the request came in on.
+            Example: <code>https://dprs.b-cdn.net</code>
+        </p>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="text" id="public-base-url-input" placeholder="https://your-cdn-or-dns.example.com"
+                   style="flex:1; min-width:280px; padding:8px 10px; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:6px; font-family:monospace; font-size:13px;">
+            <button type="button" onclick="savePublicBaseUrl()" class="btn btn-primary btn-sm">Save</button>
+            <button type="button" onclick="clearPublicBaseUrl()" class="btn btn-secondary btn-sm" title="Clear and use the request host">Clear</button>
+            <span id="public-base-url-status" style="font-size:12px; color:#9ca3af;"></span>
+        </div>
+        <p style="margin:10px 0 0 0; color:#6b7280; font-size:12px;">
+            Currently using: <code id="public-base-url-effective">…</code>
+        </p>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h2>All Licenses</h2>
@@ -456,6 +479,49 @@
     // Modal HTML + interaction JS are provided by _edit_license_modal.html include.
     // Wire its success callback to refresh the live dashboard data instead of reloading the page.
     window.editLicenseOnSuccess = function() { refreshData(); };
+
+    // ----- Public base URL (CDN/DNS) settings -----
+    function loadPublicBaseUrl() {
+        fetch('/api/admin/public_base_url', { credentials: 'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+                if (j && typeof j.value === 'string') {
+                    document.getElementById('public-base-url-input').value = j.value;
+                }
+                if (j && j.effective) {
+                    document.getElementById('public-base-url-effective').textContent = j.effective;
+                }
+            }).catch(function(){});
+    }
+    function _basePublicStatus(msg, isErr) {
+        var el = document.getElementById('public-base-url-status');
+        el.textContent = msg;
+        el.style.color = isErr ? '#f87171' : '#34d399';
+        setTimeout(function(){ el.textContent = ''; }, 3500);
+    }
+    window.savePublicBaseUrl = function() {
+        var v = document.getElementById('public-base-url-input').value;
+        fetch('/api/admin/public_base_url', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: v})
+        }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+        .then(function(res){
+            if (!res.ok) {
+                _basePublicStatus(res.body && res.body.message ? res.body.message : 'Save failed', true);
+                return;
+            }
+            document.getElementById('public-base-url-effective').textContent = res.body.effective || '';
+            document.getElementById('public-base-url-input').value = res.body.value || '';
+            _basePublicStatus('Saved.', false);
+        }).catch(function(){ _basePublicStatus('Network error', true); });
+    };
+    window.clearPublicBaseUrl = function() {
+        document.getElementById('public-base-url-input').value = '';
+        window.savePublicBaseUrl();
+    };
+    loadPublicBaseUrl();
 
     setInterval(refreshData, POLL_INTERVAL);
     setInterval(tickCountdowns, 1000);

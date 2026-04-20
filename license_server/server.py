@@ -122,6 +122,72 @@ _SHORT_CODE_ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ2345678
 def _gen_short_code(length=6):
     return "".join(secrets.choice(_SHORT_CODE_ALPHABET) for _ in range(length))
 
+def _get_setting(key, default=""):
+    """Read a value from app_settings; returns default if missing."""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT value FROM app_settings WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else default
+    finally:
+        conn.close()
+
+def _set_setting(key, value):
+    """Upsert an app_settings row."""
+    conn = get_db()
+    try:
+        conn.execute(
+            "INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)"
+            " ON CONFLICT(key) DO UPDATE SET value = excluded.value,"
+            " updated_at = excluded.updated_at",
+            (key, value, time.time())
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def _get_short_link_base():
+    """Resolve the base URL prefix used when handing out short links.
+    Priority:
+      1. admin-configured value in app_settings (set via the dashboard UI)
+      2. SHORT_LINK_BASE_URL env var (legacy / ops override)
+      3. fall back to whatever host the request came in on
+    The returned value never has a trailing slash.
+    """
+    db_val = (_get_setting("short_link_base_url", "") or "").strip()
+    if db_val:
+        return db_val.rstrip("/")
+    env_val = (os.environ.get("SHORT_LINK_BASE_URL") or "").strip()
+    if env_val:
+        return env_val.rstrip("/")
+    return request.host_url.rstrip("/")
+
+def _validate_public_base_url(raw):
+    """Sanity-check an admin-supplied public base URL. Returns the cleaned
+    value, or None if it's not a usable http(s) origin. Empty string is
+    treated as 'clear the setting' and is OK (returns '')."""
+    if raw is None:
+        return None
+    raw = raw.strip()
+    if not raw:
+        return ""
+    if len(raw) > 500:
+        return None
+    try:
+        p = urlparse(raw)
+    except Exception:
+        return None
+    if p.scheme not in ("http", "https"):
+        return None
+    if not p.netloc:
+        return None
+    # Disallow any path/query/fragment — we only want a bare origin
+    if p.path not in ("", "/") or p.query or p.fragment:
+        return None
+    return p.scheme + "://" + p.netloc.rstrip("/")
+
+
 def _normalize_short_target(raw_url):
     """Accept either a relative path ('/download_trial?config_id=3') or an
     absolute URL. Returns the local path+query that we'll redirect to.
@@ -252,14 +318,32 @@ def api_admin_shorten():
         }), 400
     ip = _real_client_ip()
     code = _make_short_link(target, ip)
-    # Prefer SHORT_LINK_BASE_URL (e.g. a CDN front like https://dprs.b-cdn.net)
-    # so links are stable across origin IP / domain changes and benefit from
-    # the CDN. Fall back to the request's own host_url for dev/local testing.
-    base = (os.environ.get("SHORT_LINK_BASE_URL") or "").strip().rstrip("/")
-    if not base:
-        base = request.host_url.rstrip("/")
-    short_url = base + "/s/" + code
+    short_url = _get_short_link_base() + "/s/" + code
     return jsonify({"short_url": short_url, "code": code, "target": target})
+
+
+@app.route("/api/admin/public_base_url", methods=["GET", "POST"])
+def api_admin_public_base_url():
+    """Get/set the public base URL used for generated short links.
+    GET  -> {"value": "<current>", "effective": "<resolved with fallbacks>"}
+    POST -> {"url": "https://dprs.b-cdn.net"}  (empty string clears it)
+    """
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "auth_required"}), 401
+    if request.method == "GET":
+        return jsonify({
+            "value": _get_setting("short_link_base_url", ""),
+            "effective": _get_short_link_base(),
+        })
+    data = request.get_json(silent=True) or {}
+    cleaned = _validate_public_base_url(data.get("url", ""))
+    if cleaned is None:
+        return jsonify({
+            "error": "invalid_url",
+            "message": "Enter a bare https://host (no path, no query)."
+        }), 400
+    _set_setting("short_link_base_url", cleaned)
+    return jsonify({"ok": True, "value": cleaned, "effective": _get_short_link_base()})
 
 
 def _real_client_ip():
@@ -551,6 +635,16 @@ def init_db():
             sha256 TEXT NOT NULL,
             uploaded_at REAL NOT NULL,
             note TEXT DEFAULT ''
+        )
+    """)
+    # Generic key/value settings (admin-configurable, persisted across restarts).
+    # Used for things like the public short-link base URL (CDN/DNS hostname)
+    # so the origin IP never has to appear in shared download links.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at REAL NOT NULL
         )
     """)
     # Self-hosted short-link table. Codes map to local URL paths only — we
