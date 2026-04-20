@@ -3683,7 +3683,17 @@ def api_trigger_build():
     config_list = []
     skipped = 0
     skipped_expired = 0
+    skipped_trial = 0
     for c in configs:
+        # Trial configs are excluded from "Build All" — they auto-purge in
+        # 24h and trial launchers no longer embed the Roblox bundle, so
+        # rebuilding them with every paid release wastes build slots and
+        # bandwidth. Admins can still rebuild a specific trial config via
+        # the per-row Build button (rebuild_single_config), which is a
+        # one-off intentional action.
+        if c["is_trial"]:
+            skipped_trial += 1
+            continue
         if c["license_status"] not in ('active', None):
             skipped_expired += 1
             continue
@@ -3716,6 +3726,8 @@ def api_trigger_build():
             parts.append(f"{skipped} already built")
         if skipped_expired > 0:
             parts.append(f"{skipped_expired} skipped (not active)")
+        if skipped_trial > 0:
+            parts.append(f"{skipped_trial} trial(s) skipped (use per-config Build)")
         flash(f"Nothing to build for v{version}. {', '.join(parts)}.", "warning")
         return redirect(url_for("builds_page"))
 
@@ -3738,6 +3750,8 @@ def api_trigger_build():
         skip_parts.append(f"{skipped} already built")
     if skipped_expired > 0:
         skip_parts.append(f"{skipped_expired} skipped (not active)")
+    if skipped_trial > 0:
+        skip_parts.append(f"{skipped_trial} trial(s) excluded")
     skip_msg = f" ({', '.join(skip_parts)})" if skip_parts else ""
     flash(f"Build v{version} started for {len(config_list)} config(s){skip_msg}", "success")
     return redirect(url_for("builds_page"))
