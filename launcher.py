@@ -111,47 +111,56 @@ def get_folder_fingerprint(folder):
 
 
 def purge_appdata_roblox_versions():
-    """Wipe %LOCALAPPDATA%\\Roblox\\Versions\\<hash>\\ folders that contain
-    RobloxPlayerBeta.exe (i.e. official-installer copies). Best-effort —
-    files locked by a running Roblox process are skipped silently.
+    """Completely wipe %LOCALAPPDATA%\\Roblox\\ — every subfolder and file.
+    Best-effort: anything locked by a running Roblox process is skipped
+    silently and we just delete what we can.
 
-    Why: when our launcher is using its OWN bundled Roblox, a leftover
-    system install in Versions\\ confuses multi-instance / multi-account
-    handling. Wiping it keeps our bundled .exe as the only player on the
-    machine and frees up the singleton mutex paths Roblox keys off.
+    Why: when our launcher is using its OWN bundled Roblox, ANY leftover
+    system Roblox state (Versions\\, LocalStorage, logs, settings) can
+    confuse multi-instance / multi-account handling and version checks.
+    Nuking the whole folder guarantees our bundled .exe is the only
+    Roblox install on the machine.
 
-    Carefully preserves:
-      * %LOCALAPPDATA%\\Roblox\\LocalStorage   (cookies — we read these)
-      * Any non-Versions sibling under \\Roblox\\
-      * Anything inside Versions\\ that is NOT a Roblox install (no
-        RobloxPlayerBeta.exe present) — leaves random files alone.
+    NOTE: this also removes %LOCALAPPDATA%\\Roblox\\LocalStorage, which
+    holds Roblox login cookies. After a wipe the user will need to log
+    into their Roblox account(s) again on first launch. This was the
+    user's explicit request — see chat history "just complety delete
+    everything here \\AppData\\Local\\Roblox\\".
+
+    Returns the number of TOP-LEVEL items actually deleted (0 if folder
+    didn't exist, 1+ otherwise).
     """
     if sys.platform != "win32":
         return 0
     local_app = os.environ.get("LOCALAPPDATA", "")
     if not local_app:
         return 0
-    versions_path = os.path.join(local_app, "Roblox", "Versions")
-    if not os.path.isdir(versions_path):
-        return 0
-    try:
-        entries = os.listdir(versions_path)
-    except OSError:
+    roblox_root = os.path.join(local_app, "Roblox")
+    if not os.path.isdir(roblox_root):
         return 0
     removed = 0
+    try:
+        entries = os.listdir(roblox_root)
+    except OSError:
+        return 0
     for item in entries:
-        full = os.path.join(versions_path, item)
-        if not os.path.isdir(full):
-            continue
-        # Only nuke folders that look like an official Roblox install.
-        if not os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
-            continue
+        full = os.path.join(roblox_root, item)
         try:
-            shutil.rmtree(full, ignore_errors=True)
+            if os.path.isdir(full) and not os.path.islink(full):
+                shutil.rmtree(full, ignore_errors=True)
+            else:
+                os.remove(full)
             if not os.path.exists(full):
                 removed += 1
         except Exception:
             pass
+    # Try to remove the now-empty \Roblox\ folder itself too. If anything
+    # is still locked inside, leave the (mostly empty) shell behind —
+    # it'll be handled on the next launch.
+    try:
+        os.rmdir(roblox_root)
+    except OSError:
+        pass
     return removed
 
 
