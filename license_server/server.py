@@ -70,11 +70,16 @@ def _global_rate_limit():
     elif path == "/api/heartbeat":
         if not _api_rate_limit(ip, "heartbeat", 120, 60):
             return jsonify({"error": "rate_limited"}), 429
-    elif path == "/login" or request.endpoint == "login_unlock_direct":
-        # Cap how many times a single IP can hit either the disguise page
-        # or the direct-URL shortcut. 60/min/IP is plenty for a human; way
-        # under what a brute-forcer wants. Shared bucket so an attacker
-        # can't double their budget by alternating between the two routes.
+    elif (request.endpoint == "login_unlock_direct"
+          or (request.endpoint == "dashboard"
+              and not session.get("admin_logged_in"))):
+        # Cap how many times a single IP can hit either the disguise root
+        # (when not logged in) or the direct-URL shortcut. 60/min/IP is
+        # plenty for a human typing a password; way under what a brute-
+        # forcer wants. Shared bucket across both routes so an attacker
+        # can't double their budget by alternating between them.
+        # Authenticated dashboard requests are intentionally excluded so
+        # admins refreshing the page don't get throttled.
         if not _api_rate_limit(ip, "login_hit", 60, 60):
             return "Too many requests", 429
     elif path.startswith("/s/"):
@@ -1153,9 +1158,9 @@ def require_admin(f):
                     "success": False,
                     "message": "Session expired. Please log in again.",
                     "auth_required": True,
-                    "login_url": url_for("login_page"),
+                    "login_url": url_for("dashboard"),
                 }), 401
-            return redirect(url_for("login_page"))
+            return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
     return decorated
 
@@ -1262,13 +1267,15 @@ def _do_admin_login(direct_template):
     return render_template("login.html", payload=payload)
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login_page():
-    """Disguised admin login. Renders a fake nginx 404 page; typing the
-    ADMIN_UNLOCK_SECRET sequence on the keyboard XOR-decrypts and reveals
-    the real form. This is the desktop-friendly flow — mobile users should
-    use the /<ADMIN_UNLOCK_SECRET> direct URL (registered below) instead,
-    since a static page never summons the soft keyboard.
+def _serve_disguise_login():
+    """Disguised admin login on the site root. Renders a fake nginx 404
+    page; typing the ADMIN_UNLOCK_SECRET sequence on the keyboard
+    XOR-decrypts and reveals the real form. This is the desktop-friendly
+    flow — mobile users should use the /<ADMIN_UNLOCK_SECRET> direct URL
+    (registered below) instead, since a static page never summons the
+    soft keyboard. There is intentionally no /login route — that's the
+    first path bots and casual visitors guess, so giving them a real
+    response (even a fake 404) would tip our hand.
     """
     return _do_admin_login(direct_template=None)
 
@@ -1312,12 +1319,25 @@ _register_unlock_shortcut_route()
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login_page"))
+    return redirect(url_for("dashboard"))
 
 
-@app.route("/")
-@require_admin
+@app.route("/", methods=["GET", "POST"])
 def dashboard():
+    # Site root pulls double duty:
+    #   * unauthenticated visitors  → fake nginx 404 disguise (login.html);
+    #     typing the unlock secret on their keyboard reveals the real form,
+    #     which posts back here. POST handling lives in _serve_disguise_login
+    #     → _do_admin_login.
+    #   * authenticated admins       → the real dashboard.
+    # There is intentionally no /login route — common guesses just 404.
+    if not session.get("admin_logged_in"):
+        return _serve_disguise_login()
+    if request.method == "POST":
+        # already logged in but somebody re-posted the login form (e.g.
+        # browser back button). Just bounce them to a clean GET so we
+        # don't double-process and mess with the session.
+        return redirect(url_for("dashboard"))
     conn = get_db()
     now = time.time()
     expire_active_licenses(conn)
