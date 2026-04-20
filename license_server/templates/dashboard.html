@@ -99,7 +99,7 @@
                     <td>
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span class="key-text">{{ lic.key }}</span>
-                            <button type="button" class="icon-btn" title="Copy license key" aria-label="Copy" onclick="(function(btn){var t=btn.parentNode.querySelector('.key-text').textContent.trim();var done=function(){var prev=btn.innerHTML;btn.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'14\' height=\'14\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg>';btn.style.color='#42d6a4';setTimeout(function(){btn.innerHTML=prev;btn.style.color='';},1200);};if(navigator.clipboard){navigator.clipboard.writeText(t).then(done);}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}})(this)">
+                            <button type="button" class="icon-btn copy-key-btn" title="Copy license key" aria-label="Copy">
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                             </button>
                         </div>
@@ -304,6 +304,8 @@
     var unsuspendUrl = "{{ url_for('unsuspend_license', license_id=0) }}".replace('/0', '');
 
     var ICON_PLAY   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    var ICON_COPY   = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var ICON_CHECK  = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     var ICON_REVOKE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
     var ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
     var ICON_EDIT   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
@@ -380,7 +382,10 @@
         var verColor = lic.version ? '#ff9d4d' : '#3a3a48';
 
         tr.innerHTML =
-            '<td><span class="key-text">' + lic.key + '</span></td>' +
+            '<td><div style="display:flex; align-items:center; gap:6px;">' +
+                '<span class="key-text">' + lic.key + '</span>' +
+                '<button type="button" class="icon-btn copy-key-btn" title="Copy license key" aria-label="Copy">' + ICON_COPY + '</button>' +
+            '</div></td>' +
             '<td>' + statusBadge(lic) + '</td>' +
             '<td>' + activatedText + '</td>' +
             '<td class="time-remaining" data-seconds="' + lic.remaining_seconds + '" data-status="' + lic.status + '">' + remainingText + '</td>' +
@@ -526,6 +531,43 @@
         window.savePublicBaseUrl();
     };
     loadPublicBaseUrl();
+
+    // Delegated copy-key handler. Survives the 5-second refreshData() that
+    // rebuilds rows via innerHTML — without delegation the per-row onclick
+    // attribute would have to be re-attached every refresh and the icon
+    // would visibly flicker / disappear between refreshes.
+    document.addEventListener('click', function(ev) {
+        var btn = ev.target.closest && ev.target.closest('.copy-key-btn');
+        if (!btn) return;
+        ev.preventDefault();
+        var keyEl = btn.parentNode && btn.parentNode.querySelector('.key-text');
+        if (!keyEl) return;
+        var text = keyEl.textContent.trim();
+        var done = function() {
+            var prev = btn.innerHTML;
+            btn.innerHTML = ICON_CHECK;
+            btn.style.color = '#42d6a4';
+            setTimeout(function() { btn.innerHTML = prev; btn.style.color = ''; }, 1200);
+        };
+        var fallback = function() {
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                done();
+            } catch (_e) { /* swallow */ }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(fallback);
+        } else {
+            fallback();
+        }
+    });
 
     setInterval(refreshData, POLL_INTERVAL);
     setInterval(tickCountdowns, 1000);
