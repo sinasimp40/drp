@@ -70,11 +70,11 @@ def _global_rate_limit():
     elif path == "/api/heartbeat":
         if not _api_rate_limit(ip, "heartbeat", 120, 60):
             return jsonify({"error": "rate_limited"}), 429
-    elif request.endpoint == "login_page":
-        # Cap how many times a single IP can hit the secret login URL.
-        # 60/minute is plenty for a human; way under what a brute-forcer
-        # would want. Matched by endpoint so it follows whatever slug the
-        # admin chose (default /zxc1).
+    elif path == "/login" or request.endpoint == "login_unlock_direct":
+        # Cap how many times a single IP can hit either the disguise page
+        # or the direct-URL shortcut. 60/min/IP is plenty for a human; way
+        # under what a brute-forcer wants. Shared bucket so an attacker
+        # can't double their budget by alternating between the two routes.
         if not _api_rate_limit(ip, "login_hit", 60, 60):
             return "Too many requests", 429
     elif path.startswith("/s/"):
@@ -1160,43 +1160,54 @@ def require_admin(f):
     return decorated
 
 
-def _resolved_unlock_slug():
-    """Pick the URL slug used for the admin login route. Defaults to 'zxc1'
-    if ADMIN_UNLOCK_SECRET is missing or not a clean slug — we never want
-    url_for('login_page') to blow up because of a bad env value. A warning
-    is printed so the admin notices and sets a real one.
-    """
-    secret = (ADMIN_UNLOCK_SECRET or "").strip()
-    if secret and re.match(r"^[A-Za-z0-9_-]{1,64}$", secret):
-        return secret
-    if secret:
-        print(
-            "[WARN] ADMIN_UNLOCK_SECRET is not URL-slug-safe "
-            "(allowed: A-Z a-z 0-9 _ -, max 64 chars). Falling back to 'zxc1'.",
-            flush=True,
-        )
-    else:
-        print(
-            "[WARN] ADMIN_UNLOCK_SECRET is not set. Using default 'zxc1' — "
-            "set a strong slug in your environment for production.",
-            flush=True,
-        )
-    return "zxc1"
+def _build_login_form_payload(flash_messages):
+    """Encrypt the real login form HTML so it can't be recovered from page
+    source without first knowing ADMIN_UNLOCK_SECRET. The disguise page
+    sends only base64 ciphertext to the browser; client-side JS derives the
+    same key via PBKDF2 from the typed unlock sequence and XOR-decrypts."""
+    flash_html = ""
+    for category, msg in flash_messages:
+        # crude escape; flash text is server-controlled so this is enough
+        safe = (msg.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;"))
+        flash_html += f'<div class="flash">{safe}</div>'
+
+    form_html = (
+        f'{flash_html}'
+        '<form method="POST" autocomplete="off">'
+        '<div class="fg">'
+        '<label>Password</label>'
+        '<input type="password" name="password" autofocus required>'
+        '</div>'
+        '<button type="submit" class="btn">Sign in</button>'
+        '</form>'
+    )
+
+    plaintext = b"OK::" + form_html.encode("utf-8")
+    salt = secrets.token_bytes(16)
+    keystream = hashlib.pbkdf2_hmac(
+        "sha256",
+        ADMIN_UNLOCK_SECRET.encode("utf-8"),
+        salt,
+        _UNLOCK_PBKDF2_ITERATIONS,
+        dklen=len(plaintext),
+    )
+    ciphertext = bytes(p ^ k for p, k in zip(plaintext, keystream))
+    return {
+        "salt_b64": base64.b64encode(salt).decode("ascii"),
+        "ct_b64": base64.b64encode(ciphertext).decode("ascii"),
+        "iter": _UNLOCK_PBKDF2_ITERATIONS,
+    }
 
 
-_LOGIN_URL_SLUG = _resolved_unlock_slug()
+def _do_admin_login(direct_template):
+    """Shared auth flow used by both /login (disguise) and /<secret> (direct).
 
-
-def login_page():
-    """Admin sign-in. Mounted at /<ADMIN_UNLOCK_SECRET> (e.g. /zxc1) — there
-    is no /login route on purpose, since /login is the first path bots and
-    casual visitors guess. Knowing the secret URL is what gates discovery;
-    knowing the password is what gates entry.
-
-    Hardening:
-      * Per-IP brute-force lockout (_check_login_lockout / _record_login_failure)
-      * Per-IP rate limit on hits (login_hit bucket in _global_rate_limit)
-      * Constant-time password compare + small artificial delay per attempt
+    `direct_template` controls which template renders error/success states
+    that DON'T return through render_template("login.html") — i.e. the
+    direct-URL route uses login_direct.html for its lockout / failure pages.
+    The disguise route passes None and handles its own rendering.
     """
     ip = _real_client_ip()
     _maybe_gc()
@@ -1204,10 +1215,20 @@ def login_page():
     if not allowed:
         if request.method == "POST":
             time.sleep(0.5)
-        return render_template(
-            "login_direct.html",
-            extra_error=f"Too many attempts. Try again in {retry // 60 + 1} min."
-        ), 429
+        if direct_template:
+            return render_template(
+                direct_template,
+                extra_error=f"Too many attempts. Try again in {retry // 60 + 1} min."
+            ), 429
+        # disguise mode: keep the 404 illusion, surface error inside the
+        # encrypted form payload so only an unlocked viewer sees it
+        if request.method == "POST":
+            payload = _build_login_form_payload([
+                ("error", f"Too many attempts. Try again in {retry // 60 + 1} min.")
+            ])
+            return render_template("login.html", payload=payload), 429
+        payload = _build_login_form_payload([])
+        return render_template("login.html", payload=payload), 429
 
     if request.method == "POST":
         password = request.form.get("password", "")
@@ -1224,24 +1245,68 @@ def login_page():
         if locked_for:
             print(f"[SECURITY] Login locked out: ip={ip} duration={locked_for}s",
                   flush=True)
-            return render_template(
-                "login_direct.html",
-                extra_error=f"Too many failed attempts. Locked for {locked_for // 60 + 1} min."
-            ), 429
+            if direct_template:
+                return render_template(
+                    direct_template,
+                    extra_error=f"Too many failed attempts. Locked for {locked_for // 60 + 1} min."
+                ), 429
+            payload = _build_login_form_payload([
+                ("error", f"Too many failed attempts. Locked for {locked_for // 60 + 1} min.")
+            ])
+            return render_template("login.html", payload=payload), 429
         flash("Invalid password", "error")
-    return render_template("login_direct.html")
+
+    if direct_template:
+        return render_template(direct_template)
+    payload = _build_login_form_payload(get_flashed_messages(with_categories=True))
+    return render_template("login.html", payload=payload)
 
 
-# Register the login view at /<secret>. Endpoint name is kept as
-# "login_page" so every existing url_for("login_page") in the codebase
-# (require_admin, logout, JSON 401 responses, templates) keeps working
-# without any other edits.
-app.add_url_rule(
-    "/" + _LOGIN_URL_SLUG,
-    endpoint="login_page",
-    view_func=login_page,
-    methods=["GET", "POST"],
-)
+@app.route("/login", methods=["GET", "POST"])
+def login_page():
+    """Disguised admin login. Renders a fake nginx 404 page; typing the
+    ADMIN_UNLOCK_SECRET sequence on the keyboard XOR-decrypts and reveals
+    the real form. This is the desktop-friendly flow — mobile users should
+    use the /<ADMIN_UNLOCK_SECRET> direct URL (registered below) instead,
+    since a static page never summons the soft keyboard.
+    """
+    return _do_admin_login(direct_template=None)
+
+
+def login_unlock_direct():
+    """Direct-access login form behind a secret URL (e.g. /zxc1). The URL
+    path itself is the unlock secret, so anyone hitting this route has
+    already proven they know it — render the real form straight away.
+    Primarily for mobile, where the keystroke unlock on /login is awkward
+    (no element is focused, so the soft keyboard never opens).
+    All the same brute-force lockout, rate-limit, and timing protections
+    that guard /login apply here too (see _global_rate_limit).
+    """
+    return _do_admin_login(direct_template="login_direct.html")
+
+
+def _register_unlock_shortcut_route():
+    """Mount login_unlock_direct at /<ADMIN_UNLOCK_SECRET> (e.g. /zxc1).
+    Skipped silently if the secret isn't a clean URL slug — admins who
+    use weird characters lose only the mobile shortcut, not access (the
+    /login disguise still works)."""
+    secret = (ADMIN_UNLOCK_SECRET or "").strip()
+    if not secret:
+        return
+    if not re.match(r"^[A-Za-z0-9_-]{1,64}$", secret):
+        return
+    path = "/" + secret
+    for rule in app.url_map.iter_rules():
+        if rule.rule == path:
+            return  # don't shadow an existing route
+    app.add_url_rule(
+        path,
+        endpoint="login_unlock_direct",
+        view_func=login_unlock_direct,
+        methods=["GET", "POST"],
+    )
+
+_register_unlock_shortcut_route()
 
 
 @app.route("/logout")
