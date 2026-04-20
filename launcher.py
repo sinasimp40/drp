@@ -2869,8 +2869,8 @@ def main():
                     log_lines.append("Roblox files up to date")
             else:
                 log_lines.append("No system Roblox found")
-                # Premium build with no system Roblox install: fall back to
-                # downloading the same bundle the trial flow uses. This means
+                # No system Roblox install (trial OR premium): fall back to
+                # downloading the bundle from the license server. This means
                 # the admin doesn't need to set hardcoded_path or pre-install
                 # Roblox on the user's PC. If the bundle download fails and
                 # we already have a working RobloxPlayerBeta.exe locally, we
