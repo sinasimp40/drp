@@ -7,6 +7,62 @@ import ctypes
 import json
 import hmac
 import hashlib
+import ssl
+
+
+def _install_secure_ssl_context():
+    """Make every urllib HTTPS call validate against a trust store that
+    actually works on real Windows boxes.
+
+    The default Python in a PyInstaller bundle uses whatever CA bundle was
+    frozen at build time (or none at all on some configs), which leads to
+    "CERTIFICATE_VERIFY_FAILED" on user PCs whose CA store is stale, whose
+    AV rewrites TLS, or whose Windows simply hasn't been updated in years.
+
+    Resolution order (best -> last-resort), each strictly verifying certs:
+      1. truststore  — delegates to the OS trust store. On Windows this
+         reads the live Windows Certificate Store, which is what Edge /
+         Chrome / curl.exe use and which Windows Update keeps fresh.
+         Same goes for macOS Keychain and Linux ca-certificates.
+      2. certifi     — Mozilla CA bundle shipped with the package; works
+         even when the OS store is broken, as long as our .exe ships
+         certifi (we list it in requirements.txt now).
+      3. Python default — last resort; same behavior we had before.
+
+    SSL verification is NEVER disabled — that would let a network attacker
+    MITM license traffic and steal keys. If all three fail we keep the
+    Python default and let the resulting cert error surface so the user
+    sees a real failure instead of a silent security downgrade.
+    """
+    ctx = None
+    # 1) truststore — uses the OS trust store (live, kept fresh by the OS).
+    try:
+        import truststore
+        ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except Exception:
+        ctx = None
+    # 2) certifi — bundled Mozilla CA roots.
+    if ctx is None:
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            ctx = None
+    # 3) Python default.
+    if ctx is None:
+        try:
+            ctx = ssl.create_default_context()
+        except Exception:
+            return
+    # Make this the default for every urllib HTTPS request in the process,
+    # so we don't have to thread `context=` into ~10 urlopen() call sites.
+    try:
+        ssl._create_default_https_context = lambda: ctx
+    except Exception:
+        pass
+
+
+_install_secure_ssl_context()
 
 from PyQt5.QtWidgets import (
     QApplication, QSplashScreen, QDialog, QVBoxLayout, QHBoxLayout,
@@ -1346,7 +1402,22 @@ def validate_license(key, endpoint="validate"):
 
         return data
     except Exception as e:
-        return {"valid": False, "error": f"Server unreachable: {str(e)[:80]}"}
+        return {"valid": False, "error": _friendly_net_error(e)}
+
+
+def _friendly_net_error(e):
+    """Turn a low-level networking exception into a short user-facing
+    message. Special-cases SSL cert failures (most common cause: the
+    user's PC clock is wrong, or their AV is rewriting TLS) so users see
+    actionable text instead of the raw Python traceback."""
+    s = str(e)
+    low = s.lower()
+    if "certificate_verify_failed" in low or "ssl: certificate" in low:
+        return ("Secure connection failed. Please check your PC date/time "
+                "and antivirus, then retry.")
+    if "ssl" in low or "handshake" in low:
+        return "Secure connection error. Check your network and retry."
+    return f"Server unreachable: {s[:80]}"
 
 
 def _sign_request_with_secret(body_dict, secret):

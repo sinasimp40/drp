@@ -6,3 +6,5 @@ flask-socketio
 PySocks
 python-dotenv
 requests
+truststore>=0.10.0
+certifi>=2024.2.2
