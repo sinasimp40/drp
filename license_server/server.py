@@ -3306,6 +3306,53 @@ def bulk_edit_build_configs():
     return redirect(url_for("builds_page"))
 
 
+@app.route("/builds/<int:build_id>/abort", methods=["POST"])
+@require_admin
+def abort_build(build_id):
+    """Force-mark a stuck 'pending'/'building' build as failed so the
+    admin can start a new build. Use this when a build is wedged because
+    the server was killed mid-run, or PyInstaller is hanging on the
+    builder machine. The actual subprocess (if any) will continue until
+    it exits on its own — this only unblocks the queue."""
+    conn = get_db()
+    build = conn.execute(
+        "SELECT id, version, status FROM builds WHERE id=?", (build_id,)
+    ).fetchone()
+    if not build:
+        conn.close()
+        flash("Build not found.", "error")
+        return redirect(url_for("builds_page"))
+    if build["status"] not in ('pending', 'building'):
+        conn.close()
+        flash(f"Build v{build['version']} is already {build['status']}.", "warning")
+        return redirect(url_for("builds_page"))
+    now = time.time()
+    conn.execute(
+        "UPDATE build_artifacts SET status='failed', "
+        "error_message='Aborted by admin', completed_at=? "
+        "WHERE build_id=? AND status IN ('pending', 'building')",
+        (now, build_id)
+    )
+    conn.execute(
+        "UPDATE builds SET status='failed', completed_at=?, "
+        "error_message='Aborted by admin' WHERE id=?",
+        (now, build_id)
+    )
+    conn.commit()
+    conn.close()
+    with _build_lock:
+        if build_id in _build_progress:
+            _build_progress[build_id]["status"] = "failed"
+            _build_progress[build_id]["error"] = "Aborted by admin"
+    flash(
+        f"Build v{build['version']} marked as failed. You can start a new build now. "
+        f"Note: any PyInstaller process already running on the build machine will "
+        f"finish on its own — its output will be ignored.",
+        "success"
+    )
+    return redirect(url_for("builds_page"))
+
+
 @app.route("/builds/bulk_delete", methods=["POST"])
 @require_admin
 def bulk_delete_builds():
@@ -4300,6 +4347,48 @@ def backups_status():
 
 
 init_db()
+
+
+def _recover_orphaned_builds():
+    """Mark any build/artifact rows left in 'pending' or 'building' state
+    as failed at startup. Those rows can only exist if a previous
+    server.py process was killed mid-build (Ctrl+C, OS shutdown, kill -9,
+    Replit workflow restart). Without this recovery the next 'Build All'
+    is permanently blocked by 'A build is already in progress' because
+    the in-memory _build_progress dict is empty but the DB still says
+    a build is running."""
+    try:
+        conn = get_db()
+        stale_builds = conn.execute(
+            "SELECT id, version FROM builds WHERE status IN ('pending', 'building')"
+        ).fetchall()
+        if not stale_builds:
+            conn.close()
+            return
+        now = time.time()
+        for b in stale_builds:
+            conn.execute(
+                "UPDATE build_artifacts SET status='failed', "
+                "error_message='Server was restarted during build', "
+                "completed_at=? "
+                "WHERE build_id=? AND status IN ('pending', 'building')",
+                (now, b["id"])
+            )
+            conn.execute(
+                "UPDATE builds SET status='failed', completed_at=?, "
+                "error_message='Server was restarted during build (auto-recovered)' "
+                "WHERE id=?",
+                (now, b["id"])
+            )
+            print(f"[STARTUP] Recovered orphaned build #{b['id']} "
+                  f"v{b['version']} (was 'building' from a previous run)")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[STARTUP] Build recovery failed: {e}")
+
+
+_recover_orphaned_builds()
 telegram_backup.start_scheduler(DB_PATH)
 
 

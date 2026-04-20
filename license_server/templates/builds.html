@@ -230,7 +230,11 @@
                                     <form method="POST" action="{{ url_for('delete_build', build_id=b.id) }}" onsubmit="return confirm('Delete build v{{ b.version }}?')" style="display: inline;">
                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                     </form>
-                                    {% else %}<span style="color:var(--text-mute);">—</span>{% endif %}
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('abort_build', build_id=b.id) }}" onsubmit="return confirm('Abort build v{{ b.version }}? This unblocks the queue so you can start a new build. Any PyInstaller process already running on the build machine will continue until it finishes on its own.')" style="display: inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Force-mark this build as failed so a new build can start">Abort</button>
+                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
