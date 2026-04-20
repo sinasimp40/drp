@@ -1,172 +1,76 @@
 # Portable Roblox Launcher
 
-## Recent Changes
-- **2026-04-18 — Update progress dialog:** During a launcher self-update download, a dedicated frameless `UpdateProgressDialog` now appears instead of relying on the splash status line. Shows app name, target version, MB downloaded / total, percentage, a real `QProgressBar`, and a prominent "Update in progress — please don't close this window" warning. Splash is hidden while the dialog is up; the dialog stays visible through downloading → installing → restarting phases. On download failure or apply failure, the dialog closes cleanly and the splash returns so the launcher continues normally. Close button / Esc are intentionally swallowed during the update so users can't accidentally interrupt and corrupt the swap. Files: `launcher.py` (`UpdateProgressDialog` class, `main()` update flow).
-- **2026-04-18 — Telegram backups:** New `/backups` admin page lets the operator save a Telegram bot token + chat ID and pick a schedule (Off / Every N hours / Daily HH:MM / Weekly day+time). A daemon thread (`telegram_backup.start_scheduler`) wakes every minute and uploads `licenses.db` via the Telegram Bot API (`sendDocument`) using only the standard library — no new pip deps. Settings persist in `license_server/backup_settings.json`; bot token is masked in the UI with a "Replace" affordance. Buttons: **Test Connection** (sends a chat message), **Send Backup Now** (uploads immediately). Last 10 attempts shown with status + message; failures retry once. Routes return JSON when called via XHR, HTML redirects otherwise.
-- **2026-04-17 — Admin panel redesign (Sidebar SaaS):** Replaced top-navbar layout with a persistent left sidebar + topbar shell (vanilla CSS in `base.html`, lucide icons inlined as SVG). Dashboard gained a 4-card KPI strip (Total / Online / Suspended / Expiring<24h), icon-button row actions, and a fix for the live `TypeError: 'NoneType' - 'float'` crash that triggered when an active license had `expires_at=NULL` (`server.py` `dashboard()` and `api_dashboard_data()`). Restyled history, builds, create, build_config_form, and login pages. Mobile (<900px) collapses the sidebar to a hamburger drawer; KPI strip stacks; tables scroll horizontally. All existing JS hooks, polling, search, bulk-edit modal, Recover Suspended, and per-row actions preserved. e2e tested green.
-
 ## Overview
-A zero-interaction portable Roblox launcher. Double-click the .exe and it does everything automatically:
-1. Validates license key with online server (if configured)
-2. Checks for OTA updates and auto-updates if available
-3. Shows custom-named splash screen (e.g. "DENFI ROBLOX PORTABLE")
-4. Auto-syncs Roblox files if an update is detected on the system
-5. Clears login data (rbx-storage.db) so each instance starts fresh
-6. Grabs the Roblox mutex to allow multiple instances
-7. Launches Roblox from the portable folder
-8. Stays running in background to hold the mutex, cleans up login on exit
+The Portable Roblox Launcher is a zero-interaction application designed to provide a seamless, portable Roblox experience. It automates license validation, OTA updates, Roblox synchronization, and login management, allowing multiple Roblox instances to run concurrently. The project aims to offer a robust and easily deployable solution for managing Roblox environments, particularly for setups requiring controlled access and updates.
 
-## How It Works
-- The build script asks for your Roblox files path, launcher name, and license server URL — bakes all into the exe
-- The launcher checks `%LOCALAPPDATA%\Roblox\Versions\` for the latest Roblox version
-- Compares it against the files in the configured folder using fingerprinting
-- If there's a newer version (or first run), it syncs everything automatically
-- Before launching, deletes `%LOCALAPPDATA%\Roblox\rbx-storage.db` to ensure fresh login
-- Grabs `ROBLOX_singletonEvent` mutex (same as MultiRoblox) so multiple instances can coexist
-- Launcher stays running hidden in background to hold the mutex alive
-- When Roblox closes, deletes rbx-storage.db again and exits
-- No config files needed at runtime — path, name, and license server are hardcoded during build
+Key capabilities include:
+- Automatic license validation with an online server.
+- Over-the-air (OTA) updates for the launcher itself.
+- Custom branded splash screens.
+- Automatic synchronization of Roblox game files.
+- Clearing of login data for fresh sessions.
+- Multi-instance support via mutex handling.
+- Background process for mutex management and cleanup.
 
-## License System
-- License server runs on your server (set URL during build)
-- Admin dashboard — create keys, monitor online users, revoke access
-- Dashboard updates live every 5 seconds via AJAX (no page reload), with real-time countdown timers
-- New keys start as **Pending** — countdown only begins when someone actually activates the key
-- Launcher prompts for license key on first run, saves encrypted `.license_key` file next to the EXE
-- **Embedded key mode**: bake a license key into the EXE at build time — perfect for diskless setups
-- Key file is **encrypted** (XOR with app-derived key) — raw binary, cannot be read in a text editor, only the launcher can decrypt it
-- Key file saved **only** next to the EXE — no ProgramData/AppData fallbacks (diskless-friendly: all clients share one file)
-- Validates with server before launching, re-checks every 10 seconds for near-instant revocation
-- Server returns clear status: "License has expired", "License has been revoked", "License suspended", etc.
-- One-time activation: once a key is activated (pending → active), it cannot be activated again
-- **IP binding (subnet-based)**: first activation records the client IP (`registered_ip`); subsequent heartbeats and validations check the first 3 octets (e.g., 103.188.86.x). IPs in the same /24 subnet are allowed — different subnets trigger suspension. This supports diskless setups where PCs share a subnet but have different last octets.
-- **Suspended state**: suspended licenses block usage until an admin unsuspends them. Unsuspending resets the license to pending with cleared IP, allowing re-activation from a new IP.
-- Heartbeats keep the running session alive and report launcher version
-- Dashboard shows registered IP alongside last-seen IP and launcher version for each license
-- **Unsuspend button**: admin can unsuspend a suspended license from the dashboard or history page
-- If license expires, is revoked, or is suspended: shows lock screen, kills Roblox
-- Suspended licenses do NOT delete the `.license_key` file (so user can reconnect after unsuspend)
-- Offline grace: 3 consecutive server failures tolerated before locking (prevents brief network blips from killing sessions)
-- Fatal error grace: 3 consecutive fatal/suspended errors required before locking (prevents single-request glitches from killing sessions)
-- Server signs responses with HMAC to prevent tampering
-- Optional: leave license server URL blank during build to disable checking
+## User Preferences
+I prefer simple language and direct instructions. I want the agent to prioritize high-level architectural tasks over granular code changes initially. When making significant changes, please ask for confirmation first. I prefer an iterative development approach, where features are implemented and tested in small, manageable steps. Do not make changes to files within the `license_server/templates/` folder without explicit instruction.
 
-## OTA Update System
-- **Server-side builds**: Admin configures per-user build configs (app name, icon, Roblox path, license key embedded)
-- **Build configs**: Each config links to a license — the license key gets baked into the .exe as EMBEDDED_LICENSE_KEY
-- **Build engine**: Server runs PyInstaller per config, patches launcher.py source with config values, produces personalized .exe files
-- **Version management**: Admin enters version number (X.Y.Z format) and triggers "Build All" — builds every config
-- **Config-change detection**: Each build stores a config_hash (SHA256 of config fields). When a client checks for updates, the server compares config hashes — if the config changed (new icon, path, etc.), the launcher auto-updates even without a version bump
-- **Single-config rebuild**: Admin can click "Rebuild" on individual build configs to rebuild just that one client's launcher using the latest version, without rebuilding all configs
-- **Build progress**: Real-time progress tracking via WebSocket (Flask-SocketIO) + HTTP polling fallback — admin sees per-config progress bars on the Builds page
-- **Launcher OTA**: After license check, launcher calls `/api/update_check` with current version + config_hash. If update available (new version OR config changed), downloads new .exe with progress shown on splash screen
-- **Self-replace**: On Windows, launcher writes a .bat script that waits for process exit, swaps old/new exe, relaunches
-- **Download tokens**: Update check returns a short-lived token (10 min) for downloading, no signing needed on the download request
-- **Admin download**: Admin can download built artifacts directly from the Builds page
-- **Version display**: Dashboard and History pages show each user's current launcher version
-- **OTA status panel**: Builds page shows per-user update states (outdated/downloading/updated) with download progress
-- **Download progress reporting**: Launcher reports download progress back to server via `/api/report_download_progress`
-- **SHA-256 verification**: Launcher verifies SHA-256 hash of downloaded binary before applying update
-- **Build skipping**: Only active licenses get built; pending, suspended, expired, revoked, deleted licenses are skipped
+## System Architecture
 
-### OTA Database Tables
-- `build_configs` — per-user build configuration (app_name, hardcoded_path, icon, license_server_url, license_secret, linked license_id)
-- `builds` — build runs (version, status, progress, timestamps)
-- `build_artifacts` — per-config results within a build (exe filename, file size, status, progress, config_hash)
-- `licenses.launcher_version` — tracks each launcher's reported version from heartbeats
+### UI/UX
+- **Splash Screen:** Custom-named splash screen (e.g., "DENFI ROBLOX PORTABLE") displaying a logo, custom name, "PORTABLE", a progress bar, and the Roblox version.
+- **Admin Panel:** Features a persistent left sidebar and topbar shell (vanilla CSS, Lucide icons as SVG). The dashboard includes a 4-card KPI strip (Total / Online / Suspended / Expiring < 24h) and icon-button row actions.
+- **Mobile Responsiveness:** For screens <900px, the sidebar collapses into a hamburger drawer, KPI strips stack, and tables scroll horizontally.
+- **Update Progress Dialog:** A dedicated frameless `UpdateProgressDialog` with app name, target version, download progress (MB/total, percentage, `QProgressBar`), and a "Update in progress" warning.
+- **Theme:** Uses a black background (#0a0a0a) with an orange accent (#ff6a00, lighter #ff8c33, darker #cc5500).
 
-### OTA API Endpoints
-- `POST /api/update_check` (signed) — launcher checks for updates
-- `GET /api/download_update/<token>` — launcher downloads new .exe
-- `POST /build_config/<config_id>/rebuild` (admin) — rebuild single config with latest version
-- `POST /api/trigger_build` (admin) — triggers build for all configs
-- `GET /api/build_status/<build_id>` (admin) — poll build progress
-- `GET /api/build_status_all` (admin) — check if any active build
-- `GET /api/download_artifact/<build_id>/<config_id>` (admin) — download built .exe
-- `POST /api/report_download_progress` — launcher reports download % back to server
-- `GET /api/ota_status` (admin) — per-user OTA state (outdated/downloading/updated), resolves version via embedded_key fallback
-- `POST /api/upload_launcher` (admin) — upload launcher.py source file for builds
-- `GET /api/launcher_info` (admin) — returns detected version, app name, size, modified time of current launcher.py
-- `POST /api/upload_server` (admin) — upload server.py, creates backup, auto-restarts server after 3 seconds
-- `GET /api/server_info` (admin) — returns size, modified time of current server.py
+### Technical Implementations
+- **Zero-Interaction Execution:** Double-click .exe to initiate all processes automatically.
+- **Build Process:** A build script customizes the launcher with Roblox path, launcher name, and license server URL, baking these into the executable.
+- **Roblox Synchronization:** Checks `%LOCALAPPDATA%\Roblox\Versions\` for the latest Roblox version, compares it with the portable folder using fingerprinting, and syncs automatically if updates are detected or on first run.
+- **Login Management:** Deletes `%LOCALAPPDATA%\Roblox\rbx-storage.db` before and after launching Roblox to ensure fresh logins.
+- **Multi-Instance Support:** Grabs the `ROBLOX_singletonEvent` mutex to allow multiple Roblox instances to coexist. The launcher stays running hidden in the background to hold the mutex.
+- **License System:**
+    - Server-side license management with an admin dashboard for key creation, monitoring, and revocation.
+    - Keys start as **Pending** and activate upon first use, triggering a countdown.
+    - **Embedded Key Mode:** Allows baking a license key directly into the EXE.
+    - **Encrypted Key File:** `.license_key` file is XOR-encrypted and saved next to the EXE.
+    - **Validation:** Validates with the server before launching and re-checks every 10 seconds.
+    - **IP Binding:** Subnet-based IP binding (first 3 octets) to support diskless setups.
+    - **Suspended State:** Licenses can be suspended by admin or automatically due to IP mismatch.
+    - **Offline Grace:** Tolerates 3 consecutive server failures before locking.
+    - **HMAC Signing:** Server signs responses with HMAC to prevent tampering.
+- **OTA Update System:**
+    - **Server-side Builds:** Admin configures per-user build configurations (app name, icon, Roblox path, embedded license).
+    - **Build Engine:** Uses PyInstaller to create personalized `.exe` files, patching `launcher.py` with config values.
+    - **Version Management:** Admin specifies version numbers (X.Y.Z) and triggers "Build All".
+    - **Config-change Detection:** Uses `config_hash` to trigger updates even without a version bump if configurations change.
+    - **Launcher OTA:** Launcher checks `/api/update_check` and downloads new `.exe` with progress shown.
+    - **Self-Replace:** Uses a `.bat` script for atomic self-replacement on Windows.
+    - **Download Tokens:** Short-lived tokens for update downloads.
+    - **SHA-256 Verification:** Verifies downloaded binaries.
+- **Multi-Instance Flow:** The launcher ensures fresh logins and mutex management for each Roblox instance.
+- **Single-Instance Lock & Update Safety:**
+    - Uses a Windows kernel mutex for one launcher per install.
+    - `.update_state` JSON file manages update phases; heartbeats prevent stale locks.
+    - Atomic update swap using `os.replace` with rollback capability.
+    - Post-update restart mechanism with mutex re-acquisition.
+    - Startup recovery from `.bak` file in case of mid-swap interruption.
 
-### Build File Storage
-- Built .exe files stored at: `license_server/builds/<version>/<config_id>/<ExeName>.exe`
-- Icons stored at: `license_server/build_icons/<filename>.ico`
-- Temp work directories cleaned up after each build
+### Feature Specifications
+- **Telegram Backups:** Admin page `/backups` allows scheduling `licenses.db` backups to Telegram via `sendDocument` using a bot token and chat ID. Settings are stored in `license_server/backup_settings.json`.
+- **License Statuses:** `pending`, `active`, `expired`, `revoked`, `deleted`, `suspended`.
+- **OTA Database Tables:** `build_configs`, `builds`, `build_artifacts`, and `licenses.launcher_version` for tracking build and update states.
+- **OTA API Endpoints:** A comprehensive set of endpoints for update checks, downloads, build triggers, status monitoring, artifact downloads, and progress reporting.
 
-## Multi-Instance Flow
-1. Run exe → validates license → checks for updates → clears rbx-storage.db → grabs mutex → launches Roblox (fresh, not logged in)
-2. Log into Account A
-3. Run exe again → clears rbx-storage.db → grabs mutex → launches second Roblox (fresh)
-4. Log into Account B
-5. Both stay open because both launchers hold the mutex in background
-6. Close Roblox → launcher detects it → clears rbx-storage.db → exits
-
-### Single-Instance Lock & Update Safety
-- Real Windows kernel mutex (`CreateMutexW`, name scoped to install path hash) enforces one launcher per install. The OS releases it automatically on crash/exit.
-- If a second launcher starts while one is already running, it shows a brief "Launcher is already running" / "Update in progress — please wait" splash and exits cleanly.
-- Mutex is released only after Roblox launches successfully, so the user can re-run the launcher to start additional Roblox sessions.
-- `.update_state` JSON file (pid, phase, target_version, started_at, last_heartbeat) is the dedicated update gate. A background heartbeat thread refreshes it every 15s while downloading/applying. Stale gates (dead PID or heartbeat > 120s) are cleared at startup.
-- Update swap is atomic: stage `current.exe.new`, `os.replace` current → `.bak`, `os.replace` `.new` → current, with rollback if the second step fails. `current.exe` is never left missing.
-- After applying the update, the new exe is spawned with `--post-update-restart`; the child retries mutex acquisition for up to 10 s to ride over the brief overlap with the exiting parent.
-- Startup recovery restores `current.exe` from `.bak` if the previous run was killed mid-swap.
-
-## Folder Structure
-```
-YourChosenFolder\
-  RobloxPlayerBeta.exe   <- Roblox files live here
-  Cache\                 <- Portable Roblox data
-  Logs\                  <- Launch logs
-
-license_server\          <- Deploy this to your RDP
-  server.py              <- Flask license server + admin dashboard + OTA build engine
-  templates/             <- Dashboard, History, Builds HTML templates
-  licenses.db            <- SQLite database (auto-created)
-  builds/                <- Built .exe artifacts (auto-created)
-  build_icons/           <- Uploaded icons (auto-created)
-  DEPLOY.md              <- Deployment instructions
-```
-
-## Files
-- **launcher.py** — Main application (license check, OTA update, splash screen, auto-sync, login clear, mutex, auto-launch, lock file)
-- **build_exe.bat** — Windows build script (asks for name + path + license URL, converts icons, builds exe)
-- **build_config.py** — Helper that writes path, app name, and license URL into launcher.py during build
-- **convert_icon.py** — Auto-converts PNG/JPG/BMP/etc to icon.ico for the build
-- **requirements.txt** — Python dependencies (PyQt5, Pillow, PyInstaller)
-- **license_server/** — License server directory (deploy to RDP separately)
-
-## Building
-1. Install Python from python.org (check "Add to PATH")
-2. Optional: Place any image file (PNG, JPG, etc.) next to the build script for the icon
-3. Optional: Place `splash_logo.png` for the logo on the splash screen
-4. Run `build_exe.bat`
-5. Enter the launcher name when prompted (e.g. "DENFI ROBLOX", "MY LAUNCHER")
-6. Enter the path to your Roblox files when prompted
-7. Enter the license server URL (e.g. http://144.31.48.238:3842) or press Enter to skip
-8. Enter the shared secret (or press Enter for default)
-9. **For diskless setups**: Enter a license key to embed, or press Enter to skip (users will enter manually)
-10. Get `{YourName}.exe` from `dist\` folder
-
-## License Server Setup
-See `license_server/DEPLOY.md` for full instructions.
-Quick: copy `license_server/` to your RDP, `pip install flask flask-socketio Pillow pyinstaller`, `python server.py`
-Place `launcher.py` either next to or inside the `license_server/` folder — the server checks both locations.
-
-## Theme
-- Background: black (#0a0a0a)
-- Accent: orange (#ff6a00), lighter (#ff8c33), darker (#cc5500)
-- Splash shows: logo + custom name + "PORTABLE" + progress bar + Roblox version
-
-## Tech Stack
-- Python 3.11, PyQt5, Pillow, PyInstaller, ctypes (Windows mutex)
-- Flask, Flask-SocketIO, SQLite (license server)
-- HMAC-SHA256 (signed API responses)
-
-## License Statuses
-- **pending** — created, not yet activated
-- **active** — activated and running, countdown in progress
-- **expired** — time ran out
-- **revoked** — admin manually revoked
-- **deleted** — admin deleted (soft delete)
-- **suspended** — IP mismatch detected, waiting for admin unsuspend
+## External Dependencies
+- **Python 3.11**
+- **PyQt5:** For GUI elements (splash screen, update dialog).
+- **Pillow:** Image processing (e.g., for icon conversion).
+- **PyInstaller:** For packaging Python applications into standalone executables.
+- **ctypes:** For Windows-specific API interactions (e.g., mutex handling).
+- **Flask:** Web framework for the license server and admin dashboard.
+- **Flask-SocketIO:** For real-time communication (e.g., build progress).
+- **SQLite:** Database for license management (`licenses.db`).
+- **HMAC-SHA256:** For signing API responses.
+- **Telegram Bot API:** For sending backup documents to Telegram.

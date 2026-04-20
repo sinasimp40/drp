@@ -210,11 +210,15 @@ body {
         attempt();
     }
 
-    // Desktop: physical keyboard fires keydown directly on the page, no need
-    // for the hidden input to be focused.
+    // Desktop: physical keyboard fires keydown directly on the page. We
+    // skip when the event came from the hidden input itself, because that
+    // path is already handled by the 'input' listener below — without this
+    // guard every keystroke would be counted twice (once via keydown
+    // bubbling and once via input), turning "zxc1" into "zzxxcc11".
     document.addEventListener('keydown', function(e){
         if (revealed) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (hidden && e.target === hidden) return;
         if (e.key && e.key.length === 1) {
             pushChar(e.key);
         } else if (e.key === 'Backspace') {
