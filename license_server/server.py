@@ -70,9 +70,11 @@ def _global_rate_limit():
     elif path == "/api/heartbeat":
         if not _api_rate_limit(ip, "heartbeat", 120, 60):
             return jsonify({"error": "rate_limited"}), 429
-    elif path == "/login":
-        # Cap how many times a single IP can even hit the disguise page.
-        # 60/minute is plenty for a human; way under what a brute-forcer wants.
+    elif request.endpoint == "login_page":
+        # Cap how many times a single IP can hit the secret login URL.
+        # 60/minute is plenty for a human; way under what a brute-forcer
+        # would want. Matched by endpoint so it follows whatever slug the
+        # admin chose (default /zxc1).
         if not _api_rate_limit(ip, "login_hit", 60, 60):
             return "Too many requests", 429
     elif path.startswith("/s/"):
@@ -1158,68 +1160,57 @@ def require_admin(f):
     return decorated
 
 
-def _build_login_form_payload(flash_messages):
-    """Encrypt the real login form HTML so it can't be recovered from page
-    source without first knowing ADMIN_UNLOCK_SECRET. The disguise page
-    sends only base64 ciphertext to the browser; client-side JS derives the
-    same key via PBKDF2 from the typed unlock sequence and XOR-decrypts."""
-    flash_html = ""
-    for category, msg in flash_messages:
-        # crude escape; flash text is server-controlled so this is enough
-        safe = (msg.replace("&", "&amp;")
-                   .replace("<", "&lt;")
-                   .replace(">", "&gt;"))
-        flash_html += f'<div class="flash">{safe}</div>'
-
-    form_html = (
-        f'{flash_html}'
-        '<form method="POST" autocomplete="off">'
-        '<div class="fg">'
-        '<label>Password</label>'
-        '<input type="password" name="password" autofocus required>'
-        '</div>'
-        '<button type="submit" class="btn">Sign in</button>'
-        '</form>'
-    )
-
-    plaintext = b"OK::" + form_html.encode("utf-8")
-    salt = secrets.token_bytes(16)
-    keystream = hashlib.pbkdf2_hmac(
-        "sha256",
-        ADMIN_UNLOCK_SECRET.encode("utf-8"),
-        salt,
-        _UNLOCK_PBKDF2_ITERATIONS,
-        dklen=len(plaintext),
-    )
-    ciphertext = bytes(p ^ k for p, k in zip(plaintext, keystream))
-    return {
-        "salt_b64": base64.b64encode(salt).decode("ascii"),
-        "ct_b64": base64.b64encode(ciphertext).decode("ascii"),
-        "iter": _UNLOCK_PBKDF2_ITERATIONS,
-    }
+def _resolved_unlock_slug():
+    """Pick the URL slug used for the admin login route. Defaults to 'zxc1'
+    if ADMIN_UNLOCK_SECRET is missing or not a clean slug — we never want
+    url_for('login_page') to blow up because of a bad env value. A warning
+    is printed so the admin notices and sets a real one.
+    """
+    secret = (ADMIN_UNLOCK_SECRET or "").strip()
+    if secret and re.match(r"^[A-Za-z0-9_-]{1,64}$", secret):
+        return secret
+    if secret:
+        print(
+            "[WARN] ADMIN_UNLOCK_SECRET is not URL-slug-safe "
+            "(allowed: A-Z a-z 0-9 _ -, max 64 chars). Falling back to 'zxc1'.",
+            flush=True,
+        )
+    else:
+        print(
+            "[WARN] ADMIN_UNLOCK_SECRET is not set. Using default 'zxc1' — "
+            "set a strong slug in your environment for production.",
+            flush=True,
+        )
+    return "zxc1"
 
 
-@app.route("/login", methods=["GET", "POST"])
+_LOGIN_URL_SLUG = _resolved_unlock_slug()
+
+
 def login_page():
+    """Admin sign-in. Mounted at /<ADMIN_UNLOCK_SECRET> (e.g. /zxc1) — there
+    is no /login route on purpose, since /login is the first path bots and
+    casual visitors guess. Knowing the secret URL is what gates discovery;
+    knowing the password is what gates entry.
+
+    Hardening:
+      * Per-IP brute-force lockout (_check_login_lockout / _record_login_failure)
+      * Per-IP rate limit on hits (login_hit bucket in _global_rate_limit)
+      * Constant-time password compare + small artificial delay per attempt
+    """
     ip = _real_client_ip()
     _maybe_gc()
     allowed, retry = _check_login_lockout(ip)
     if not allowed:
-        # Stay on the disguise; reveal nothing. The lockout is silent so an
-        # attacker can't easily measure when the window resets.
         if request.method == "POST":
-            # add a small constant delay to slow distributed brute force
             time.sleep(0.5)
-            payload = _build_login_form_payload([
-                ("error", f"Too many attempts. Try again in {retry // 60 + 1} min.")
-            ])
-            return render_template("login.html", payload=payload), 429
-        payload = _build_login_form_payload([])
-        return render_template("login.html", payload=payload), 429
+        return render_template(
+            "login_direct.html",
+            extra_error=f"Too many attempts. Try again in {retry // 60 + 1} min."
+        ), 429
 
     if request.method == "POST":
         password = request.form.get("password", "")
-        # constant-time compare; small artificial delay to throttle attempts
         ok = hmac.compare_digest(password, ADMIN_PASSWORD)
         time.sleep(0.25)
         if ok:
@@ -1233,13 +1224,24 @@ def login_page():
         if locked_for:
             print(f"[SECURITY] Login locked out: ip={ip} duration={locked_for}s",
                   flush=True)
-            payload = _build_login_form_payload([
-                ("error", f"Too many failed attempts. Locked for {locked_for // 60 + 1} min.")
-            ])
-            return render_template("login.html", payload=payload), 429
+            return render_template(
+                "login_direct.html",
+                extra_error=f"Too many failed attempts. Locked for {locked_for // 60 + 1} min."
+            ), 429
         flash("Invalid password", "error")
-    payload = _build_login_form_payload(get_flashed_messages(with_categories=True))
-    return render_template("login.html", payload=payload)
+    return render_template("login_direct.html")
+
+
+# Register the login view at /<secret>. Endpoint name is kept as
+# "login_page" so every existing url_for("login_page") in the codebase
+# (require_admin, logout, JSON 401 responses, templates) keeps working
+# without any other edits.
+app.add_url_rule(
+    "/" + _LOGIN_URL_SLUG,
+    endpoint="login_page",
+    view_func=login_page,
+    methods=["GET", "POST"],
+)
 
 
 @app.route("/logout")

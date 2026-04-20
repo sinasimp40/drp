@@ -41,7 +41,7 @@ C:\LicenseServer\
         create.html
         dashboard.html
         history.html
-        login.html
+        login_direct.html
 ```
 
 
