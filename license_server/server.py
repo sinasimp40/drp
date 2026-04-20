@@ -124,15 +124,23 @@ def _gen_short_code(length=6):
 
 def _normalize_short_target(raw_url):
     """Accept either a relative path ('/download_trial?config_id=3') or an
-    absolute URL pointing at this same server. Returns the path+query string
-    that we'll redirect to, or None if the URL targets a foreign host."""
+    absolute URL. Returns the local path+query that we'll redirect to.
+
+    We deliberately discard the host of any absolute URL the admin supplies —
+    Replit's proxy means request.host (localhost:5000) rarely matches the
+    public hostname the admin's browser sees, so a same-host check produces
+    false negatives. Open-redirect protection is enforced separately in the
+    /s/<code> handler, which refuses to redirect to anything that doesn't
+    start with a single '/'. So even an absolute URL pointing at evil.com
+    becomes a path-only short link to /<their path>, served by THIS server.
+    """
     if not raw_url:
         return None
     raw_url = raw_url.strip()
     if not raw_url:
         return None
     if raw_url.startswith("/"):
-        # already a local path; strip any leading "//" to defeat scheme-relative tricks
+        # already a local path; reject scheme-relative '//host/path' tricks
         if raw_url.startswith("//"):
             return None
         path_q = raw_url
@@ -143,12 +151,13 @@ def _normalize_short_target(raw_url):
             return None
         if not p.scheme or p.scheme not in ("http", "https"):
             return None
-        # must point at *this* server
-        if p.netloc and p.netloc.lower() != request.host.lower():
-            return None
+        # We ignore p.netloc on purpose — see docstring.
         path_q = p.path or "/"
         if p.query:
             path_q += "?" + p.query
+    # Final sanity: must look like a local path
+    if not path_q.startswith("/") or path_q.startswith("//"):
+        return None
     if len(path_q) > 1000:
         return None
     return path_q
