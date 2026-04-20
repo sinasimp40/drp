@@ -110,6 +110,51 @@ def get_folder_fingerprint(folder):
     return None
 
 
+def purge_appdata_roblox_versions():
+    """Wipe %LOCALAPPDATA%\\Roblox\\Versions\\<hash>\\ folders that contain
+    RobloxPlayerBeta.exe (i.e. official-installer copies). Best-effort —
+    files locked by a running Roblox process are skipped silently.
+
+    Why: when our launcher is using its OWN bundled Roblox, a leftover
+    system install in Versions\\ confuses multi-instance / multi-account
+    handling. Wiping it keeps our bundled .exe as the only player on the
+    machine and frees up the singleton mutex paths Roblox keys off.
+
+    Carefully preserves:
+      * %LOCALAPPDATA%\\Roblox\\LocalStorage   (cookies — we read these)
+      * Any non-Versions sibling under \\Roblox\\
+      * Anything inside Versions\\ that is NOT a Roblox install (no
+        RobloxPlayerBeta.exe present) — leaves random files alone.
+    """
+    if sys.platform != "win32":
+        return 0
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    if not local_app:
+        return 0
+    versions_path = os.path.join(local_app, "Roblox", "Versions")
+    if not os.path.isdir(versions_path):
+        return 0
+    try:
+        entries = os.listdir(versions_path)
+    except OSError:
+        return 0
+    removed = 0
+    for item in entries:
+        full = os.path.join(versions_path, item)
+        if not os.path.isdir(full):
+            continue
+        # Only nuke folders that look like an official Roblox install.
+        if not os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
+            continue
+        try:
+            shutil.rmtree(full, ignore_errors=True)
+            if not os.path.exists(full):
+                removed += 1
+        except Exception:
+            pass
+    return removed
+
+
 def find_system_roblox():
     if sys.platform != "win32":
         return None, None, None
@@ -1413,6 +1458,13 @@ def download_and_extract_roblox_bundle(splash, app, paths):
         except Exception:
             cached_ver = None
     if have_exe and cached_ver and str(cached_ver) == str(target_version):
+        # Even on cached/up-to-date launches, scrub leftover system Roblox
+        # installs each time so a user who installs official Roblox between
+        # launches doesn't break our multi-instance handling.
+        try:
+            purge_appdata_roblox_versions()
+        except Exception:
+            pass
         if splash:
             splash.set_progress(70, "Roblox files up to date!")
             app.processEvents()
@@ -1584,6 +1636,14 @@ def download_and_extract_roblox_bundle(splash, app, paths):
             splash.set_progress(70, "Bundle missing RobloxPlayerBeta.exe")
             app.processEvents()
         return False
+
+    # Bundle is now installed locally and is the player we'll launch — clean
+    # any leftover system Roblox install so it can't fight our multi-instance
+    # / multi-account flow. Best-effort: never fails the launch.
+    try:
+        purge_appdata_roblox_versions()
+    except Exception:
+        pass
 
     if splash:
         splash.set_progress(70, "Roblox files ready!")
