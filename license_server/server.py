@@ -2216,6 +2216,13 @@ def api_dashboard_data():
             "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
             "suspended_previous_ip": row["suspended_previous_ip"] or "",
             "suspended_new_ip": row["suspended_new_ip"] or "",
+            "strikes_active": _count_active_strikes(
+                row["ip_strikes_json"] if "ip_strikes_json" in row.keys() else "", now
+            ),
+            "strike_limit": IP_STRIKE_LIMIT,
+            "strike_log": _parse_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
+            ),
         })
 
     return jsonify({
@@ -2277,6 +2284,13 @@ def api_history_data():
             "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
             "suspended_previous_ip": row["suspended_previous_ip"] or "",
             "suspended_new_ip": row["suspended_new_ip"] or "",
+            "strikes_active": _count_active_strikes(
+                row["ip_strikes_json"] if "ip_strikes_json" in row.keys() else "", now
+            ),
+            "strike_limit": IP_STRIKE_LIMIT,
+            "strike_log": _parse_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
+            ),
         })
 
     return jsonify({"licenses": licenses})
