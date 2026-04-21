@@ -71,7 +71,10 @@
         .design-tag.current  { color: #888;    border-color: #333; }
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
-        .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
+        .design-tag.console    { color: #8ad8ff; border-color: #1d4566; }
+        .design-tag.checkpoint { color: #6ed1ff; border-color: #1f4f73; }
+        .design-tag.neon       { color: #ff6ed8; border-color: #5a1d4a; }
+        .design-tag.card       { color: #ffd07a; border-color: #5e3f1c; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -1512,6 +1515,706 @@
         .splash-play .chip.on .ic, .splash-play .chip.active .ic { opacity: 1; }
 
 
+        /* ============================================================
+           CHECKPOINT — obby loading screen, kid-friendly Roblox
+           Sky-blue gradient with cartoon clouds, grass strip at the
+           bottom, a horizontal track with checkpoint flags. A blocky
+           Roblox-style character walks across the track as the loader
+           fills. The logo lives on a sign at the start. Friendly,
+           bright, immediately reads "Roblox playground".
+           ============================================================ */
+        .splash-checkpoint {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #6cc7ff 0%, #9bdcff 55%, #b8e8ff 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #1a2640;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.25),
+                0 30px 80px rgba(20,80,140,0.35);
+        }
+        /* Cartoon clouds */
+        .splash-checkpoint .cloud {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50%;
+            opacity: 0.9;
+            box-shadow: 18px 6px 0 -2px #ffffff, -18px 8px 0 -4px #ffffff;
+            filter: drop-shadow(0 4px 8px rgba(20,80,140,0.15));
+        }
+        .splash-checkpoint .cloud.c1 { top: 36px;  left: 60px;  width: 40px; height: 24px; animation: cp-cloud 22s linear infinite; }
+        .splash-checkpoint .cloud.c2 { top: 70px;  right: 90px; width: 32px; height: 20px; animation: cp-cloud 28s linear infinite reverse; }
+        .splash-checkpoint .cloud.c3 { top: 30px;  left: 50%;   width: 36px; height: 22px; animation: cp-cloud 25s linear infinite; animation-delay: -8s; }
+        .splash-checkpoint .cloud.c4 { top: 110px; right: 200px;width: 28px; height: 18px; opacity: 0.65; animation: cp-cloud 32s linear infinite reverse; }
+        @keyframes cp-cloud {
+            0%   { transform: translateX(-30px); }
+            100% { transform: translateX(30px); }
+        }
+        /* Sun in the corner */
+        .splash-checkpoint .sun {
+            position: absolute;
+            top: 24px; right: 32px;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff7c4, #ffd44d 60%, #ffb01a);
+            box-shadow: 0 0 28px rgba(255,200,40,0.55);
+        }
+        /* Grass strip at bottom */
+        .splash-checkpoint .grass {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 80px;
+            background: linear-gradient(180deg, #6dd06a 0%, #4fb35a 50%, #3a9a4d 100%);
+            box-shadow: inset 0 4px 0 rgba(255,255,255,0.18);
+        }
+        .splash-checkpoint .grass::before {
+            content: '';
+            position: absolute;
+            top: -6px; left: 0; right: 0; height: 8px;
+            background-image:
+                radial-gradient(circle at 10px 8px, #6dd06a 4px, transparent 5px),
+                radial-gradient(circle at 30px 6px, #6dd06a 5px, transparent 6px),
+                radial-gradient(circle at 55px 8px, #6dd06a 4px, transparent 5px),
+                radial-gradient(circle at 80px 5px, #6dd06a 6px, transparent 7px);
+            background-size: 100px 8px;
+            background-repeat: repeat-x;
+        }
+        /* Top brand bar */
+        .splash-checkpoint .top {
+            position: absolute;
+            top: 22px; left: 28px;
+            display: flex; align-items: center; gap: 10px;
+            z-index: 4;
+        }
+        .splash-checkpoint .brand-mark {
+            width: 26px; height: 26px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ff8533, #ff6a00);
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 14px;
+            box-shadow: 0 3px 8px rgba(255,123,31,0.45);
+        }
+        .splash-checkpoint .brand {
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+            color: #1a2640;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+        }
+        /* Sign holding the logo at the start of the track */
+        .splash-checkpoint .sign {
+            position: absolute;
+            left: 36px;
+            bottom: 90px;
+            width: 110px;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-checkpoint .sign-board {
+            background: #ffffff;
+            border: 3px solid #1a2640;
+            border-radius: 10px;
+            padding: 10px 8px 8px;
+            box-shadow:
+                inset 0 -3px 0 rgba(0,0,0,0.08),
+                0 4px 0 #1a2640,
+                0 8px 14px rgba(20,80,140,0.3);
+            position: relative;
+        }
+        .splash-checkpoint .sign-board img {
+            max-width: 78px;
+            max-height: 60px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+        .splash-checkpoint .sign-board .label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #1a2640;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .splash-checkpoint .sign-post {
+            width: 8px;
+            height: 28px;
+            background: #6b4a26;
+            margin: 0 auto;
+            border-radius: 0 0 2px 2px;
+            box-shadow: inset -2px 0 0 rgba(0,0,0,0.18);
+        }
+        /* Hero title — top center */
+        .splash-checkpoint .title-wrap {
+            position: absolute;
+            top: 70px; left: 0; right: 0;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-checkpoint .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 32px;
+            letter-spacing: -0.6px;
+            line-height: 1;
+            color: #ffffff;
+            text-shadow:
+                3px 0 0 #1a2640, -3px 0 0 #1a2640,
+                0 3px 0 #1a2640, 0 -3px 0 #1a2640,
+                3px 3px 0 #1a2640, -3px 3px 0 #1a2640,
+                3px -3px 0 #1a2640, -3px -3px 0 #1a2640,
+                0 6px 0 rgba(0,0,0,0.18);
+        }
+        .splash-checkpoint .subtitle {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a2640;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+        }
+        /* Horizontal track */
+        .splash-checkpoint .track {
+            position: absolute;
+            left: 156px; right: 36px;
+            bottom: 110px;
+            height: 6px;
+            background: rgba(26,38,64,0.18);
+            border-radius: 999px;
+            z-index: 3;
+        }
+        .splash-checkpoint .track-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6a00, #ffaa3a);
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(255,123,31,0.55);
+            transition: width 0.3s linear;
+        }
+        /* Checkpoint flags along the track */
+        .splash-checkpoint .flag {
+            position: absolute;
+            bottom: -6px;
+            width: 2px;
+            height: 22px;
+            background: rgba(26,38,64,0.55);
+            transform: translateX(-1px);
+            z-index: 3;
+        }
+        .splash-checkpoint .flag::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 2px;
+            width: 12px;
+            height: 8px;
+            background: #ff6a00;
+            clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%);
+        }
+        .splash-checkpoint .flag.f1 { left: 0%;   }
+        .splash-checkpoint .flag.f2 { left: 25%;  }
+        .splash-checkpoint .flag.f3 { left: 50%;  }
+        .splash-checkpoint .flag.f4 { left: 75%;  }
+        .splash-checkpoint .flag.f5 { left: 100%; }
+        .splash-checkpoint .flag.passed::after { background: #4fb35a; }
+        /* Walking blocky character */
+        .splash-checkpoint .runner {
+            position: absolute;
+            left: 0%;
+            bottom: 6px;
+            width: 22px; height: 32px;
+            transform: translateX(-50%);
+            transition: left 0.3s linear;
+            z-index: 4;
+        }
+        .splash-checkpoint .runner .head {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 14px; height: 12px;
+            background: #ffd44d;
+            border: 1.5px solid #1a2640;
+            border-radius: 2px;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+        }
+        .splash-checkpoint .runner .body {
+            position: absolute;
+            top: 12px; left: 50%;
+            transform: translateX(-50%);
+            width: 16px; height: 12px;
+            background: #2b6fd6;
+            border: 1.5px solid #1a2640;
+            border-radius: 2px;
+        }
+        .splash-checkpoint .runner .legs {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 2px;
+        }
+        .splash-checkpoint .runner .legs span {
+            display: block;
+            width: 6px; height: 8px;
+            background: #4ba24f;
+            border: 1.5px solid #1a2640;
+            border-radius: 1px;
+            animation: cp-step 0.5s ease-in-out infinite alternate;
+        }
+        .splash-checkpoint .runner .legs span:nth-child(2) { animation-delay: 0.25s; }
+        @keyframes cp-step {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(-2px); }
+        }
+        .splash-checkpoint .runner .bob {
+            animation: cp-bob 0.5s ease-in-out infinite alternate;
+            transform-origin: center bottom;
+        }
+        @keyframes cp-bob {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(-1.5px); }
+        }
+        /* Status row inside the grass */
+        .splash-checkpoint .status-row {
+            position: absolute;
+            bottom: 18px; left: 28px; right: 28px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+            z-index: 4;
+        }
+        .splash-checkpoint .status-text { transition: opacity 0.3s; }
+        .splash-checkpoint .pct {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.18);
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ============================================================
+           NEON — arcade / Tower of Hell tournament vibe
+           Dark navy with a subtle hex-grid backdrop, a centered card
+           outlined in glowing magenta and orange neon, big glowing
+           title that looks lit up. Eyebrow "SYSTEM ONLINE" in cyan
+           mono, energy-bar progress with a pulsing edge. Edgier,
+           "esports" Roblox energy without losing polish.
+           ============================================================ */
+        .splash-neon {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 14px;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at center, #131428 0%, #06070d 75%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.06),
+                0 30px 80px rgba(0,0,0,0.6);
+        }
+        /* Hex-grid background */
+        .splash-neon .hex {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(60deg,  rgba(255,123,31,0.07) 1px, transparent 1px),
+                linear-gradient(-60deg, rgba(255,123,31,0.07) 1px, transparent 1px);
+            background-size: 28px 48px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+            pointer-events: none;
+        }
+        /* Scanline */
+        .splash-neon .scan {
+            position: absolute; inset: 0;
+            background: linear-gradient(180deg,
+                transparent 0%, rgba(255,123,31,0.10) 50%, transparent 100%);
+            height: 80px;
+            top: 0;
+            animation: nn-scan 4s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes nn-scan {
+            0%   { transform: translateY(-80px); }
+            100% { transform: translateY(380px); }
+        }
+        /* Top bar */
+        .splash-neon .top {
+            position: absolute;
+            top: 22px; left: 28px; right: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 4;
+        }
+        .splash-neon .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(244,244,246,0.85);
+        }
+        .splash-neon .brand-glyph {
+            width: 8px; height: 8px;
+            background: #ff7b1f;
+            border-radius: 2px;
+            transform: rotate(45deg);
+            box-shadow: 0 0 10px rgba(255,123,31,0.9);
+        }
+        .splash-neon .ver {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #6ed1ff;
+            padding: 4px 10px;
+            border: 1px solid rgba(110,209,255,0.3);
+            border-radius: 4px;
+            background: rgba(110,209,255,0.06);
+            text-shadow: 0 0 8px rgba(110,209,255,0.6);
+        }
+        /* Glowing card */
+        .splash-neon .card {
+            position: absolute;
+            top: 64px; left: 50%;
+            transform: translateX(-50%);
+            width: 130px; height: 130px;
+            border-radius: 18px;
+            background: rgba(20,15,30,0.6);
+            border: 2px solid rgba(255,123,31,0.85);
+            box-shadow:
+                0 0 24px rgba(255,123,31,0.55),
+                inset 0 0 24px rgba(255,123,31,0.12),
+                0 0 48px rgba(255,46,150,0.25);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 3;
+        }
+        .splash-neon .card::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 22px;
+            border: 1px solid rgba(255,46,150,0.5);
+            box-shadow: 0 0 32px rgba(255,46,150,0.3);
+            pointer-events: none;
+            animation: nn-pulse 2s ease-in-out infinite;
+        }
+        @keyframes nn-pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50%      { opacity: 1;   transform: scale(1.04); }
+        }
+        .splash-neon .card img {
+            max-width: 88px; max-height: 88px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 14px rgba(255,123,31,0.7));
+        }
+        /* Title with neon glow */
+        .splash-neon .eyebrow {
+            position: absolute;
+            top: 208px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #6ed1ff;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(110,209,255,0.7);
+            z-index: 3;
+        }
+        .splash-neon .title-wrap {
+            position: absolute;
+            top: 234px; left: 0; right: 0;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-neon .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 36px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            line-height: 1;
+            color: #ffffff;
+            text-shadow:
+                0 0 6px  rgba(255,123,31,0.9),
+                0 0 14px rgba(255,123,31,0.7),
+                0 0 28px rgba(255,46,150,0.6),
+                0 0 48px rgba(255,46,150,0.4);
+            margin-bottom: 6px;
+        }
+        /* Bottom — energy bar */
+        .splash-neon .bottom {
+            position: absolute;
+            bottom: 22px; left: 28px; right: 28px;
+            z-index: 4;
+        }
+        .splash-neon .status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            letter-spacing: 1px;
+        }
+        .splash-neon .status-row .right { color: #ff9d4d; font-weight: 700; }
+        .splash-neon .status-text { transition: opacity 0.3s; }
+        .splash-neon .energy {
+            position: relative;
+            height: 12px;
+            border: 1px solid rgba(255,123,31,0.4);
+            border-radius: 4px;
+            background: rgba(255,123,31,0.05);
+            box-shadow:
+                inset 0 0 8px rgba(255,123,31,0.15),
+                0 0 14px rgba(255,123,31,0.2);
+            overflow: hidden;
+            padding: 1px;
+        }
+        .splash-neon .energy-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #ff6a00 0%, #ff2d92 100%);
+            box-shadow:
+                0 0 12px rgba(255,123,31,0.9),
+                0 0 22px rgba(255,46,150,0.6);
+            transition: width 0.3s linear;
+            position: relative;
+        }
+        .splash-neon .energy-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 4px;
+            background: #ffffff;
+            box-shadow: 0 0 14px rgba(255,255,255,0.9);
+            opacity: 0.85;
+        }
+
+        /* ============================================================
+           CARD — premium collectible / trading-card aesthetic
+           Dark backdrop, a centered "premium card" with foil holographic
+           shine sweeping across it. Logo prominently in the middle of
+           the card, rarity stars + PREMIUM tag at top, title in elegant
+           serif at the bottom of the card. Below the card: status text
+           and a slim progress bar. Feels collectible and luxurious.
+           ============================================================ */
+        .splash-card {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 14px;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at top,    #2a2030 0%, transparent 55%),
+                radial-gradient(ellipse at bottom, #1f1820 0%, transparent 55%),
+                #0c0a0f;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 80px rgba(0,0,0,0.6);
+        }
+        /* Soft sparkle overlay */
+        .splash-card .sparkles {
+            position: absolute; inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1px 1px at 88% 18%, rgba(255,200,120,0.6), transparent),
+                radial-gradient(1.5px 1.5px at 22% 78%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 78% 82%, rgba(255,200,120,0.5), transparent),
+                radial-gradient(1px 1px at 50% 12%, rgba(255,255,255,0.6), transparent);
+            pointer-events: none;
+            animation: cd-twinkle 3s ease-in-out infinite alternate;
+        }
+        @keyframes cd-twinkle {
+            0%   { opacity: 0.5; }
+            100% { opacity: 1.0; }
+        }
+        /* Top brand */
+        .splash-card .top {
+            position: absolute;
+            top: 22px; left: 28px; right: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 5;
+        }
+        .splash-card .brand {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(244,244,246,0.85);
+        }
+        .splash-card .brand .dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: #ffd07a;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 10px rgba(255,208,122,0.8);
+            vertical-align: middle;
+        }
+        .splash-card .ver {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.45);
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
+        }
+        /* Premium card */
+        .splash-card .card-wrap {
+            position: absolute;
+            top: 60px; left: 50%;
+            transform: translateX(-50%);
+            width: 220px; height: 240px;
+            perspective: 800px;
+            z-index: 3;
+        }
+        .splash-card .card-tilt {
+            position: absolute; inset: 0;
+            border-radius: 16px;
+            background:
+                linear-gradient(160deg,
+                    #2a1f10 0%,
+                    #5e3a18 30%,
+                    #ff8c33 60%,
+                    #ffd07a 80%,
+                    #fff3d4 100%);
+            border: 2px solid rgba(255,208,122,0.55);
+            box-shadow:
+                0 18px 40px rgba(0,0,0,0.55),
+                0 0 24px rgba(255,140,40,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.4),
+                inset 0 -3px 0 rgba(0,0,0,0.25);
+            overflow: hidden;
+            animation: cd-tilt 6s ease-in-out infinite alternate;
+            transform-style: preserve-3d;
+        }
+        @keyframes cd-tilt {
+            0%   { transform: rotateY(-4deg) rotateX(2deg); }
+            100% { transform: rotateY(4deg)  rotateX(-2deg); }
+        }
+        /* Holographic shine sweep */
+        .splash-card .card-tilt::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -100%;
+            width: 80%; height: 200%;
+            background: linear-gradient(110deg,
+                transparent 0%,
+                rgba(255,255,255,0.05) 30%,
+                rgba(255,255,255,0.55) 50%,
+                rgba(255,255,255,0.05) 70%,
+                transparent 100%);
+            animation: cd-shine 3s ease-in-out infinite;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+        @keyframes cd-shine {
+            0%   { transform: translateX(0%); }
+            100% { transform: translateX(280%); }
+        }
+        /* Inner card frame */
+        .splash-card .card-inner {
+            position: absolute; inset: 10px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #1c1410 0%, #0e0a08 100%);
+            border: 1px solid rgba(255,208,122,0.35);
+            display: flex; flex-direction: column; align-items: center;
+            padding: 12px 12px 14px;
+            z-index: 2;
+        }
+        .splash-card .rarity {
+            display: flex; align-items: center; gap: 4px;
+            margin-bottom: 8px;
+        }
+        .splash-card .star {
+            color: #ffd07a;
+            font-size: 11px;
+            text-shadow: 0 0 6px rgba(255,208,122,0.7);
+        }
+        .splash-card .rarity-tag {
+            margin-left: 6px;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #ffd07a;
+            padding: 2px 6px;
+            border: 1px solid rgba(255,208,122,0.5);
+            border-radius: 4px;
+            text-shadow: 0 0 6px rgba(255,208,122,0.6);
+        }
+        .splash-card .card-img {
+            flex: 1;
+            width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 4px;
+        }
+        .splash-card .card-img img {
+            max-width: 130px;
+            max-height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 14px rgba(255,140,40,0.55));
+        }
+        .splash-card .card-name {
+            font-family: 'Playfair Display', 'Georgia', serif;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.3px;
+            line-height: 1;
+            color: #ffd07a;
+            text-align: center;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+            margin-top: 8px;
+        }
+        .splash-card .card-sub {
+            font-size: 8.5px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,208,122,0.6);
+            margin-top: 4px;
+        }
+        /* Bottom status + slim progress */
+        .splash-card .bottom {
+            position: absolute;
+            bottom: 22px; left: 28px; right: 28px;
+            z-index: 4;
+        }
+        .splash-card .status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.65);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .splash-card .status-row .pct {
+            color: #ffd07a;
+            font-weight: 700;
+        }
+        .splash-card .status-text { transition: opacity 0.3s; }
+        .splash-card .track {
+            height: 3px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .splash-card .track-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff8c33, #ffd07a);
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(255,208,122,0.6);
+            transition: width 0.3s linear;
+        }
+
+
     </style>
 </head>
 <body>
@@ -1519,7 +2222,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Six designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>.<br>
+            Nine designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Neon</strong>, <strong>Card</strong>.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1846,6 +2549,166 @@
             </div>
         </div>
         <div class="design-meta">660 × 380 &nbsp;|&nbsp; perspective grid · play disc + arc · status chips</div>
+    </section>
+
+
+    <!-- ====================================================
+         CHECKPOINT — obby loading screen
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag checkpoint">NEW · 7</span>
+            <span class="design-name">Checkpoint</span>
+        </div>
+        <div class="design-desc">
+            Pure Roblox playground energy. A bright sky background with cartoon clouds drifting and a sun in the corner; a green grass strip at the bottom holds a horizontal track with checkpoint flags. A blocky yellow-headed Roblox-style character walks across the track as the loader fills, turning each flag green as it passes. The logo lives on a big white sign at the start of the track. Friendly and unmistakably "for kids who play Roblox" without feeling cheap.
+        </div>
+        <div class="design-stage">
+            <div class="splash-checkpoint">
+                <div class="cloud c1"></div>
+                <div class="cloud c2"></div>
+                <div class="cloud c3"></div>
+                <div class="cloud c4"></div>
+                <div class="sun"></div>
+                <div class="grass"></div>
+
+                <div class="top">
+                    <div class="brand-mark">D</div>
+                    <div class="brand">Denfi Launcher</div>
+                </div>
+
+                <div class="title-wrap">
+                    <div class="title" id="checkpoint-title">{{ app_name or 'Roblox' }}</div>
+                    <div class="subtitle">Premium · Portable</div>
+                </div>
+
+                <div class="sign">
+                    <div class="sign-board">
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                        <div class="label">Start</div>
+                    </div>
+                    <div class="sign-post"></div>
+                </div>
+
+                <div class="track">
+                    <div class="track-fill" id="checkpoint-fill"></div>
+                    <div class="flag f1" data-pct="0"></div>
+                    <div class="flag f2" data-pct="25"></div>
+                    <div class="flag f3" data-pct="50"></div>
+                    <div class="flag f4" data-pct="75"></div>
+                    <div class="flag f5" data-pct="100"></div>
+                </div>
+                <div class="runner" id="checkpoint-runner">
+                    <div class="bob">
+                        <div class="head"></div>
+                        <div class="body"></div>
+                    </div>
+                    <div class="legs"><span></span><span></span></div>
+                </div>
+
+                <div class="status-row">
+                    <span class="status-text" id="checkpoint-status">Checking Roblox files…</span>
+                    <span class="pct" id="checkpoint-pct">0%</span>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; sky + grass · obby track · walking character</div>
+    </section>
+
+    <!-- ====================================================
+         NEON — arcade / Tower of Hell vibe
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag neon">NEW · 8</span>
+            <span class="design-name">Neon</span>
+        </div>
+        <div class="design-desc">
+            Esports tournament energy — the look of competitive Roblox games like Tower of Hell or Combat Warriors. Dark navy backdrop with a faint hex-grid and a soft orange scanline sweeping vertically. A centered glowing card holds the logo wrapped in a magenta-and-orange neon glow. Below it, an eyebrow in cyan mono ("// SYSTEM ONLINE"), a big neon-glowing title, then an energy-bar progress with a bright leading edge. Edgy and exciting, still polished.
+        </div>
+        <div class="design-stage">
+            <div class="splash-neon">
+                <div class="hex"></div>
+                <div class="scan"></div>
+
+                <div class="top">
+                    <div class="brand"><span class="brand-glyph"></span><span>Denfi Launcher</span></div>
+                    <div class="ver">v1.0.0</div>
+                </div>
+
+                <div class="card">
+                    {% if splash_file %}
+                    <img src="/splash_logo_file" alt="Logo">
+                    {% endif %}
+                </div>
+
+                <div class="eyebrow">// System Online</div>
+                <div class="title-wrap">
+                    <div class="title" id="neon-title">{{ app_name or 'Roblox' }}</div>
+                </div>
+
+                <div class="bottom">
+                    <div class="status-row">
+                        <span class="status-text" id="neon-status">checking roblox files…</span>
+                        <span class="right"><span id="neon-pct">0</span>%</span>
+                    </div>
+                    <div class="energy"><div class="energy-fill" id="neon-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; hex grid · neon-glow card · energy bar</div>
+    </section>
+
+    <!-- ====================================================
+         CARD — premium collectible card
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag card">NEW · 9</span>
+            <span class="design-name">Card</span>
+        </div>
+        <div class="design-desc">
+            The launcher as a premium collectible card. Dark backdrop with soft sparkles; a centered card with a gold-orange foil border tilts slowly while a holographic shine sweeps across its surface. Inside the card: rarity stars + a "PREMIUM" tag at the top, the logo in the middle, and the app name in elegant gold serif at the bottom — like the name of a legendary Roblox item. A slim status line and progress bar sit underneath. Looks rare. Looks expensive.
+        </div>
+        <div class="design-stage">
+            <div class="splash-card">
+                <div class="sparkles"></div>
+
+                <div class="top">
+                    <div class="brand"><span class="dot"></span>Denfi Launcher</div>
+                    <div class="ver">v1.0.0</div>
+                </div>
+
+                <div class="card-wrap">
+                    <div class="card-tilt">
+                        <div class="card-inner">
+                            <div class="rarity">
+                                <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+                                <span class="rarity-tag">Premium</span>
+                            </div>
+                            <div class="card-img">
+                                {% if splash_file %}
+                                <img src="/splash_logo_file" alt="Logo">
+                                {% endif %}
+                            </div>
+                            <div class="card-name" id="card-title">{{ app_name or 'Roblox' }}</div>
+                            <div class="card-sub">Portable Launcher</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bottom">
+                    <div class="status-row">
+                        <span class="status-text" id="card-status">checking roblox files…</span>
+                        <span class="pct" id="card-pct">0%</span>
+                    </div>
+                    <div class="track"><div class="track-fill" id="card-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; foil holographic card · tilt + shine · gold serif</div>
     </section>
 
     <script>
@@ -2203,6 +3066,191 @@
             var guard = 0;
             while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
                 size -= 2;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+
+        // CHECKPOINT — runner walks across, flags turn green
+        var checkpointStatuses = [
+            'Checking Roblox files…',
+            'Verifying license…',
+            'Fetching latest update…',
+            'Preparing your instance…',
+            'Almost there…'
+        ];
+        var cpStat = document.getElementById('checkpoint-status');
+        var cpPct  = document.getElementById('checkpoint-pct');
+        var cpFill = document.getElementById('checkpoint-fill');
+        var cpRun  = document.getElementById('checkpoint-runner');
+        var cpFlags = document.querySelectorAll('.splash-checkpoint .flag');
+        var cpIdx = 0, cpP = 0;
+        function checkpointTick() {
+            cpP += 1.2 + Math.random() * 1.8;
+            if (cpP >= 100) {
+                cpP = 100;
+                if (cpFill) cpFill.style.width = '100%';
+                if (cpPct)  cpPct.textContent  = '100%';
+                if (cpRun)  cpRun.style.left   = '100%';
+                cpFlags.forEach(function(f) { f.classList.add('passed'); });
+                setTimeout(function() {
+                    cpP = 0;
+                    cpFlags.forEach(function(f) { f.classList.remove('passed'); });
+                    if (cpFill) {
+                        cpFill.style.transition = 'none';
+                        cpFill.style.width = '0%';
+                    }
+                    if (cpRun) {
+                        cpRun.style.transition = 'none';
+                        cpRun.style.left = '0%';
+                    }
+                    setTimeout(function() {
+                        if (cpFill) cpFill.style.transition = 'width 0.3s linear';
+                        if (cpRun)  cpRun.style.transition  = 'left 0.3s linear';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (cpFill) cpFill.style.width = cpP + '%';
+            if (cpPct)  cpPct.textContent  = Math.floor(cpP) + '%';
+            if (cpRun)  cpRun.style.left   = cpP + '%';
+            cpFlags.forEach(function(f) {
+                var t = parseFloat(f.getAttribute('data-pct'));
+                if (cpP >= t) f.classList.add('passed');
+                else          f.classList.remove('passed');
+            });
+        }
+        setInterval(checkpointTick, 200);
+        setInterval(function() {
+            if (!cpStat) return;
+            cpIdx = (cpIdx + 1) % checkpointStatuses.length;
+            cpStat.style.opacity = '0';
+            setTimeout(function() {
+                cpStat.textContent = checkpointStatuses[cpIdx];
+                cpStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit checkpoint title (it has a thick stroke so wraps badly when long)
+        (function() {
+            var t = document.getElementById('checkpoint-title');
+            if (!t) return;
+            var maxW = 580;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 16 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 2;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+        // NEON — energy bar + status + percent
+        var neonStatuses = [
+            'checking roblox files…',
+            'verifying license…',
+            'fetching latest update…',
+            'preparing instance…',
+            'almost ready…'
+        ];
+        var nnStat = document.getElementById('neon-status');
+        var nnPct  = document.getElementById('neon-pct');
+        var nnFill = document.getElementById('neon-fill');
+        var nnIdx = 0, nnP = 0;
+        function neonTick() {
+            nnP += 1.5 + Math.random() * 2.5;
+            if (nnP >= 100) {
+                nnP = 100;
+                if (nnFill) nnFill.style.width = '100%';
+                if (nnPct)  nnPct.textContent  = '100';
+                setTimeout(function() {
+                    nnP = 0;
+                    if (nnFill) {
+                        nnFill.style.transition = 'none';
+                        nnFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (nnFill) nnFill.style.transition = 'width 0.3s linear';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (nnFill) nnFill.style.width = nnP + '%';
+            if (nnPct)  nnPct.textContent  = Math.floor(nnP);
+        }
+        setInterval(neonTick, 220);
+        setInterval(function() {
+            if (!nnStat) return;
+            nnIdx = (nnIdx + 1) % neonStatuses.length;
+            nnStat.style.opacity = '0';
+            setTimeout(function() {
+                nnStat.textContent = neonStatuses[nnIdx];
+                nnStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit neon title (uppercase, glowing)
+        (function() {
+            var t = document.getElementById('neon-title');
+            if (!t) return;
+            var maxW = 580;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 2;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+        // CARD — slim track + status + percent
+        var cardStatuses = [
+            'checking roblox files…',
+            'verifying license…',
+            'fetching latest update…',
+            'preparing instance…',
+            'almost ready…'
+        ];
+        var cdStat = document.getElementById('card-status');
+        var cdPct  = document.getElementById('card-pct');
+        var cdFill = document.getElementById('card-fill');
+        var cdIdx = 0, cdP = 0;
+        function cardTick() {
+            cdP += 1.5 + Math.random() * 2;
+            if (cdP >= 100) {
+                cdP = 100;
+                if (cdFill) cdFill.style.width = '100%';
+                if (cdPct)  cdPct.textContent  = '100%';
+                setTimeout(function() {
+                    cdP = 0;
+                    if (cdFill) {
+                        cdFill.style.transition = 'none';
+                        cdFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (cdFill) cdFill.style.transition = 'width 0.3s linear';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (cdFill) cdFill.style.width = cdP + '%';
+            if (cdPct)  cdPct.textContent  = Math.floor(cdP) + '%';
+        }
+        setInterval(cardTick, 220);
+        setInterval(function() {
+            if (!cdStat) return;
+            cdIdx = (cdIdx + 1) % cardStatuses.length;
+            cdStat.style.opacity = '0';
+            setTimeout(function() {
+                cdStat.textContent = cardStatuses[cdIdx];
+                cdStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit card title (it lives in a 200px-wide card)
+        (function() {
+            var t = document.getElementById('card-title');
+            if (!t) return;
+            var maxW = 180;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 11 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 1;
                 t.style.fontSize = size + 'px';
             }
         })();
