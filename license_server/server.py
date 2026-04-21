@@ -548,6 +548,7 @@ def init_db():
         ("suspended_previous_ip", "ALTER TABLE licenses ADD COLUMN suspended_previous_ip TEXT DEFAULT ''"),
         ("suspended_new_ip", "ALTER TABLE licenses ADD COLUMN suspended_new_ip TEXT DEFAULT ''"),
         ("ip_strikes_json", "ALTER TABLE licenses ADD COLUMN ip_strikes_json TEXT DEFAULT ''"),
+        ("ip_strike_log_json", "ALTER TABLE licenses ADD COLUMN ip_strike_log_json TEXT DEFAULT ''"),
     ):
         try:
             conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
@@ -962,6 +963,69 @@ def _load_strikes(raw, now):
     return out
 
 
+def _append_strike_log(raw, prev_ip, new_ip, now, suspended=False):
+    """Append a strike event to the PERMANENT audit log column. Unlike
+    `ip_strikes_json` (rolling 24h), this log is never auto-pruned by
+    age — it's the permanent record the admin sees on dashboard/history.
+    Capped at 50 most-recent entries to bound DB row size in the case of
+    a chronically-rotating license. Each entry: {ts, from_ip, to_ip,
+    suspended} where `suspended=true` marks the strike that triggered
+    the auto-suspension."""
+    items = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                items = parsed
+        except Exception:
+            items = []
+    items.append({
+        "ts": now,
+        "from_ip": prev_ip or "",
+        "to_ip": new_ip or "",
+        "suspended": bool(suspended),
+    })
+    if len(items) > 50:
+        items = items[-50:]
+    return json.dumps(items, separators=(",", ":"))
+
+
+def _parse_strike_log(raw):
+    """Read the permanent strike log. Returns a list of dicts (newest
+    last). Tolerates corrupt/missing data."""
+    if not raw:
+        return []
+    try:
+        items = json.loads(raw)
+    except Exception:
+        return []
+    if not isinstance(items, list):
+        return []
+    out = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        try:
+            ts = float(it.get("ts", 0))
+        except (TypeError, ValueError):
+            continue
+        out.append({
+            "ts": ts,
+            "ts_text": format_time(ts),
+            "from_ip": str(it.get("from_ip", "")),
+            "to_ip": str(it.get("to_ip", "")),
+            "suspended": bool(it.get("suspended", False)),
+        })
+    return out
+
+
+def _count_active_strikes(raw, now):
+    """Number of strikes still inside the rolling window (i.e. count
+    used by the suspension rule). 0, 1, or higher (never reaches LIMIT
+    in steady state because we suspend on hitting LIMIT)."""
+    return len(_load_strikes(raw, now))
+
+
 def _evaluate_ip_change(row, client_ip, now):
     """Pure-function decision for what to do when a heartbeat / validate
     arrives from `client_ip` for license `row` at time `now`.
@@ -1123,6 +1187,10 @@ def api_validate():
         decision = _evaluate_ip_change(row, client_ip, now)
         if decision[0] == "suspend_strikes":
             _, prev_ip, new_ip, strike_count = decision
+            new_log = _append_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else "",
+                prev_ip, new_ip, now, suspended=True,
+            )
             conn.execute(
                 """UPDATE licenses
                    SET status = 'suspended',
@@ -1130,9 +1198,10 @@ def api_validate():
                        suspended_reason = ?,
                        suspended_previous_ip = ?,
                        suspended_new_ip = ?,
-                       last_ip = ?
+                       last_ip = ?,
+                       ip_strike_log_json = ?
                    WHERE id = ?""",
-                (now, "ip_strikes", prev_ip, new_ip, new_ip, row["id"])
+                (now, "ip_strikes", prev_ip, new_ip, new_ip, new_log, row["id"])
             )
             conn.commit()
             conn.close()
@@ -1142,16 +1211,25 @@ def api_validate():
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
         new_strikes_json = decision[1]  # ("ok", json_or_none)
+        # When a new strike was recorded, also append the same event to
+        # the permanent log so the admin can see it on dashboard/history
+        # even after the rolling-24h window drops it.
+        new_log = None
+        if new_strikes_json is not None:
+            new_log = _append_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else "",
+                row["last_ip"] or "", client_ip, now, suspended=False,
+            )
         launcher_version = data.get("version", "") or ""
         if new_strikes_json is not None and launcher_version:
             conn.execute(
-                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ? WHERE id = ?",
-                (now, client_ip, launcher_version, new_strikes_json, row["id"])
+                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ?, ip_strike_log_json = ? WHERE id = ?",
+                (now, client_ip, launcher_version, new_strikes_json, new_log, row["id"])
             )
         elif new_strikes_json is not None:
             conn.execute(
-                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ? WHERE id = ?",
-                (now, client_ip, new_strikes_json, row["id"])
+                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ?, ip_strike_log_json = ? WHERE id = ?",
+                (now, client_ip, new_strikes_json, new_log, row["id"])
             )
         elif launcher_version:
             conn.execute(
@@ -1247,6 +1325,10 @@ def api_heartbeat():
     decision = _evaluate_ip_change(row, client_ip, now)
     if decision[0] == "suspend_strikes":
         _, prev_ip, new_ip, strike_count = decision
+        new_log = _append_strike_log(
+            row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else "",
+            prev_ip, new_ip, now, suspended=True,
+        )
         conn.execute(
             """UPDATE licenses
                SET status = 'suspended',
@@ -1254,9 +1336,10 @@ def api_heartbeat():
                    suspended_reason = ?,
                    suspended_previous_ip = ?,
                    suspended_new_ip = ?,
-                   last_ip = ?
+                   last_ip = ?,
+                   ip_strike_log_json = ?
                WHERE id = ?""",
-            (now, "ip_strikes", prev_ip, new_ip, new_ip, row["id"])
+            (now, "ip_strikes", prev_ip, new_ip, new_ip, new_log, row["id"])
         )
         conn.commit()
         conn.close()
@@ -1266,16 +1349,22 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     new_strikes_json = decision[1]
+    new_log = None
+    if new_strikes_json is not None:
+        new_log = _append_strike_log(
+            row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else "",
+            row["last_ip"] or "", client_ip, now, suspended=False,
+        )
     launcher_version = data.get("version", "") or ""
     if new_strikes_json is not None and launcher_version:
         conn.execute(
-            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ? WHERE id = ?",
-            (now, client_ip, launcher_version, new_strikes_json, row["id"])
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ?, ip_strike_log_json = ? WHERE id = ?",
+            (now, client_ip, launcher_version, new_strikes_json, new_log, row["id"])
         )
     elif new_strikes_json is not None:
         conn.execute(
-            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ? WHERE id = ?",
-            (now, client_ip, new_strikes_json, row["id"])
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ?, ip_strike_log_json = ? WHERE id = ?",
+            (now, client_ip, new_strikes_json, new_log, row["id"])
         )
     elif launcher_version:
         conn.execute(
@@ -1552,6 +1641,13 @@ def dashboard():
             "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
             "suspended_previous_ip": row["suspended_previous_ip"] or "",
             "suspended_new_ip": row["suspended_new_ip"] or "",
+            "strikes_active": _count_active_strikes(
+                row["ip_strikes_json"] if "ip_strikes_json" in row.keys() else "", now
+            ),
+            "strike_limit": IP_STRIKE_LIMIT,
+            "strike_log": _parse_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
+            ),
         })
 
     kpis = {
@@ -1611,6 +1707,13 @@ def history():
             "suspended_at": format_time(row["suspended_at"]) if row["suspended_at"] else "",
             "suspended_previous_ip": row["suspended_previous_ip"] or "",
             "suspended_new_ip": row["suspended_new_ip"] or "",
+            "strikes_active": _count_active_strikes(
+                row["ip_strikes_json"] if "ip_strikes_json" in row.keys() else "", now
+            ),
+            "strike_limit": IP_STRIKE_LIMIT,
+            "strike_log": _parse_strike_log(
+                row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
+            ),
         })
 
     return render_template("history.html", licenses=licenses)

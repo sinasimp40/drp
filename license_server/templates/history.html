@@ -61,15 +61,34 @@
                         {% if lic.registered_ip != 'N/A' and lic.registered_ip != lic.last_ip %}
                         <div class="ip-info">Reg: {{ lic.registered_ip }}</div>
                         {% endif %}
-                        {% if lic.status == 'suspended' and lic.suspended_reason == 'ip_change' %}
+                        {% if lic.status == 'active' and lic.strikes_active and lic.strikes_active > 0 %}
+                        <div class="ip-strike-badge" title="{{ lic.strikes_active }} of {{ lic.strike_limit }} strikes used in the last 24h. Auto-suspends at {{ lic.strike_limit }}.">
+                            {{ lic.strikes_active }}/{{ lic.strike_limit }} strikes (24h)
+                        </div>
+                        {% endif %}
+                        {% if lic.status == 'suspended' and lic.suspended_reason in ['ip_change', 'ip_strikes'] %}
                         <div class="ip-suspend-card">
-                            <div class="ip-suspend-card__head">IP changed</div>
+                            <div class="ip-suspend-card__head">{% if lic.suspended_reason == 'ip_strikes' %}IP strike limit{% else %}IP changed{% endif %}</div>
                             <div class="ip-suspend-card__row">
                                 <span class="from">{{ lic.suspended_previous_ip or '—' }}</span>
                                 <span class="arrow">&rarr;</span>
                                 <span class="to">{{ lic.suspended_new_ip or '—' }}</span>
                             </div>
                             {% if lic.suspended_at %}<div class="ip-suspend-card__time">{{ lic.suspended_at }}</div>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if lic.strike_log and lic.strike_log|length > 0 %}
+                        <div class="ip-strike-log">
+                            <div class="ip-strike-log__title">IP strike history ({{ lic.strike_log|length }})</div>
+                            {% for entry in lic.strike_log|reverse %}
+                            <div class="ip-strike-entry{% if entry.suspended %} suspended{% endif %}">
+                                <span class="ts">{{ entry.ts_text }}</span>
+                                <span class="from">{{ entry.from_ip or '—' }}</span>
+                                <span class="arrow">&rarr;</span>
+                                <span class="to">{{ entry.to_ip or '—' }}</span>
+                                {% if entry.suspended %}<span class="susp-tag">suspended</span>{% endif %}
+                            </div>
+                            {% endfor %}
                         </div>
                         {% endif %}
                     </td>
@@ -267,10 +286,16 @@
                     if (lic.registered_ip && lic.registered_ip !== 'N/A' && lic.registered_ip !== lic.last_ip) {
                         ipText += '<div class="ip-info">Reg: ' + lic.registered_ip + '</div>';
                     }
-                    if (lic.status === 'suspended' && lic.suspended_reason === 'ip_change') {
-                        var _esc = function(s){return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+                    var _esc = function(s){return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+                    if (lic.status === 'active' && lic.strikes_active && lic.strikes_active > 0) {
+                        ipText += '<div class="ip-strike-badge" title="' +
+                            _esc(lic.strikes_active + ' of ' + lic.strike_limit + ' strikes used in the last 24h. Auto-suspends at ' + lic.strike_limit + '.') +
+                            '">' + _esc(lic.strikes_active) + '/' + _esc(lic.strike_limit) + ' strikes (24h)</div>';
+                    }
+                    if (lic.status === 'suspended' && (lic.suspended_reason === 'ip_change' || lic.suspended_reason === 'ip_strikes')) {
+                        var _head = lic.suspended_reason === 'ip_strikes' ? 'IP strike limit' : 'IP changed';
                         ipText += '<div class="ip-suspend-card">' +
-                            '<div class="ip-suspend-card__head">IP changed</div>' +
+                            '<div class="ip-suspend-card__head">' + _head + '</div>' +
                             '<div class="ip-suspend-card__row">' +
                                 '<span class="from">' + _esc(lic.suspended_previous_ip || '—') + '</span>' +
                                 '<span class="arrow">&rarr;</span>' +
@@ -278,6 +303,22 @@
                             '</div>' +
                             (lic.suspended_at ? '<div class="ip-suspend-card__time">' + _esc(lic.suspended_at) + '</div>' : '') +
                         '</div>';
+                    }
+                    if (lic.strike_log && lic.strike_log.length > 0) {
+                        var logHtml = '<div class="ip-strike-log">' +
+                            '<div class="ip-strike-log__title">IP strike history (' + lic.strike_log.length + ')</div>';
+                        for (var i = lic.strike_log.length - 1; i >= 0; i--) {
+                            var entry = lic.strike_log[i];
+                            logHtml += '<div class="ip-strike-entry' + (entry.suspended ? ' suspended' : '') + '">' +
+                                '<span class="ts">' + _esc(entry.ts_text || '') + '</span>' +
+                                '<span class="from">' + _esc(entry.from_ip || '—') + '</span>' +
+                                '<span class="arrow">&rarr;</span>' +
+                                '<span class="to">' + _esc(entry.to_ip || '—') + '</span>' +
+                                (entry.suspended ? '<span class="susp-tag">suspended</span>' : '') +
+                                '</div>';
+                        }
+                        logHtml += '</div>';
+                        ipText += logHtml;
                     }
                     var verColor = lic.version ? '#ff9d4d' : '#3a3a48';
                     tr.innerHTML =

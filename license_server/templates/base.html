@@ -468,6 +468,74 @@
             font-family: 'SF Mono','Consolas','Menlo',monospace;
         }
 
+        /* Live strike counter badge for ACTIVE licenses that have at
+           least one IP-change strike inside the rolling 24h window.
+           Smaller than the suspension card and orange-tinted to read
+           as a warning, not a failure. */
+        .ip-strike-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 6px;
+            padding: 3px 7px;
+            background: rgba(251,146,60,0.10);
+            border: 1px solid rgba(251,146,60,0.45);
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: #fbbf24;
+            letter-spacing: 0.3px;
+        }
+        .ip-strike-badge::before {
+            content: "⚠";
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        /* Permanent IP-strike audit log. Each row shows when, from-IP
+           and to-IP. The entry that triggered suspension is highlighted. */
+        .ip-strike-log {
+            margin-top: 6px;
+            border-top: 1px dashed rgba(251,191,36,0.25);
+            padding-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .ip-strike-log__title {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: var(--text-mute);
+            margin-bottom: 2px;
+        }
+        .ip-strike-entry {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: 'SF Mono','Consolas','Menlo',monospace;
+            font-size: 10.5px;
+            color: #c9c9d8;
+            white-space: nowrap;
+        }
+        .ip-strike-entry .ts { color: var(--text-mute); }
+        .ip-strike-entry .from { color: #8a8aa0; }
+        .ip-strike-entry .to   { color: #d9d9ea; }
+        .ip-strike-entry .arrow { color: rgba(251,191,36,0.55); }
+        .ip-strike-entry.suspended .to { color: #ffd66e; font-weight: 600; }
+        .ip-strike-entry .susp-tag {
+            margin-left: 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            background: rgba(251,191,36,0.18);
+            color: var(--warn);
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
         .live-indicator {
             display: inline-flex;
             align-items: center;
