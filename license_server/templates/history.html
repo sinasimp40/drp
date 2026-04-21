@@ -3,6 +3,17 @@
 {% block topbar_title %}License History <span class="live-indicator">Live</span>{% endblock %}
 
 {% block topbar_actions %}
+    <select id="history-status-filter" class="filter-input filter-select" onchange="window.applyHistoryFilter && window.applyHistoryFilter()" title="Filter rows by status or trial/premium type">
+        <option value="all">All licenses</option>
+        <option value="trial">Trials only</option>
+        <option value="premium">Premium only</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="suspended">Suspended</option>
+        <option value="expired">Expired</option>
+        <option value="revoked">Revoked</option>
+        <option value="deleted">Deleted</option>
+    </select>
     <input type="search" id="history-search" placeholder="Search history..." class="filter-input" oninput="window.applyHistoryFilter && window.applyHistoryFilter()">
     <form method="POST" action="{{ url_for('purge_all_deleted_licenses') }}" id="purge-all-form" style="display:inline;"
           onsubmit="return confirm('Permanently remove ALL rows currently marked Deleted? This cannot be undone.')">
@@ -31,7 +42,7 @@
             </thead>
             <tbody id="history-tbody">
                 {% for lic in licenses %}
-                <tr data-id="{{ lic.id }}" data-status="{{ lic.status }}" data-expires="{{ lic.expires_at_ts or '' }}" data-duration="{{ lic.duration_seconds or 0 }}" data-key="{{ lic.key }}" data-note="{{ lic.note or '' }}">
+                <tr data-id="{{ lic.id }}" data-status="{{ lic.status }}" data-expires="{{ lic.expires_at_ts or '' }}" data-duration="{{ lic.duration_seconds or 0 }}" data-key="{{ lic.key }}" data-note="{{ lic.note or '' }}" data-is-trial="{{ '1' if lic.is_trial else '0' }}">
                     <td><span class="key-text">{{ lic.key }}</span></td>
                     <td>
                         {% if lic.status == 'pending' %}
@@ -50,6 +61,9 @@
                         <span class="badge badge-revoked">Revoked</span>
                         {% elif lic.status == 'deleted' %}
                         <span class="badge badge-deleted">Deleted</span>
+                        {% endif %}
+                        {% if lic.is_trial %}
+                        <span class="badge badge-trial" title="Issued via the trial system (per-user, time-limited)">TRIAL</span>
                         {% endif %}
                     </td>
                     <td>{{ lic.duration_text }}</td>
@@ -173,6 +187,24 @@
     }
     .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,140,51,0.12); }
     @media (max-width: 560px) { .filter-input { min-width: 0; width: 100%; } }
+    /* Status/type filter dropdown — same shell as the search input but
+       narrower and with the native select arrow kept (cross-browser). */
+    .filter-select {
+        min-width: 150px;
+        cursor: pointer;
+        padding-right: 24px;
+    }
+    /* TRIAL badge — orange to match the launcher accent and visually
+       distinct from the status pills (which use green/red/gray). Sits
+       inline next to the status badge with a small left margin. */
+    .badge-trial {
+        background: rgba(255, 140, 51, 0.18);
+        color: #ff9d4d;
+        border: 1px solid rgba(255, 140, 51, 0.35);
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        margin-left: 4px;
+    }
     .row-actions {
         display: inline-flex;
         gap: 4px;
@@ -212,16 +244,28 @@
     var ICON_EDIT   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
 
     function statusBadge(lic) {
-        if (lic.status === 'pending') return '<span class="badge badge-pending">Pending</span>';
-        if (lic.status === 'suspended') return '<span class="badge badge-suspended">Suspended</span>';
-        if (lic.status === 'active') {
-            return lic.online
+        var html;
+        if (lic.status === 'pending') {
+            html = '<span class="badge badge-pending">Pending</span>';
+        } else if (lic.status === 'suspended') {
+            html = '<span class="badge badge-suspended">Suspended</span>';
+        } else if (lic.status === 'active') {
+            html = lic.online
                 ? '<span class="badge badge-online">Online</span>'
                 : '<span class="badge badge-active">Active</span>';
+        } else {
+            var map = { expired: 'badge-expired', revoked: 'badge-revoked', deleted: 'badge-deleted' };
+            var cls = map[lic.status] || 'badge-offline';
+            html = '<span class="badge ' + cls + '">' + lic.status.charAt(0).toUpperCase() + lic.status.slice(1) + '</span>';
         }
-        var map = { expired: 'badge-expired', revoked: 'badge-revoked', deleted: 'badge-deleted' };
-        var cls = map[lic.status] || 'badge-offline';
-        return '<span class="badge ' + cls + '">' + lic.status.charAt(0).toUpperCase() + lic.status.slice(1) + '</span>';
+        // Trial tag rendered after the status badge so the row keeps a
+        // consistent layout regardless of status. data-is-trial on the
+        // row mirrors this so the type filter can hide/show without
+        // needing to walk into the cell DOM.
+        if (lic.is_trial) {
+            html += ' <span class="badge badge-trial" title="Issued via the trial system (per-user, time-limited)">TRIAL</span>';
+        }
+        return html;
     }
 
     function buildActions(lic) {
@@ -282,6 +326,7 @@
                     tr.setAttribute("data-duration", lic.duration_seconds || 0);
                     tr.setAttribute("data-key", lic.key || "");
                     tr.setAttribute("data-note", lic.note || "");
+                    tr.setAttribute("data-is-trial", lic.is_trial ? "1" : "0");
                     var ipText = lic.last_ip;
                     if (lic.registered_ip && lic.registered_ip !== 'N/A' && lic.registered_ip !== lic.last_ip) {
                         ipText += '<div class="ip-info">Reg: ' + lic.registered_ip + '</div>';
@@ -339,15 +384,34 @@
             .catch(function() {});
     }
 
+    // Filter rows by BOTH the search box and the status/type dropdown.
+    // The two are AND-combined: a row is visible only if it passes both.
+    // The dropdown's "all" value is the no-op default. "trial" / "premium"
+    // filter on the data-is-trial attribute; everything else filters on
+    // data-status. We deliberately do not match on the visible "Online"
+    // sub-badge — it's still status='active' under the hood, so picking
+    // "Active" in the dropdown shows both Online and (offline) Active
+    // rows, which matches the underlying DB state.
     window.applyHistoryFilter = function() {
         var input = document.getElementById("history-search");
+        var select = document.getElementById("history-status-filter");
         var table = document.getElementById("history-licenses-table");
-        if (!input || !table) return;
-        var q = input.value.toLowerCase().trim();
+        if (!table) return;
+        var q = input ? input.value.toLowerCase().trim() : "";
+        var f = select ? select.value : "all";
         var rows = table.querySelectorAll("tbody tr");
         for (var i = 0; i < rows.length; i++) {
-            var text = rows[i].textContent.toLowerCase();
-            rows[i].style.display = (!q || text.indexOf(q) !== -1) ? "" : "none";
+            var row = rows[i];
+            var matchesSearch = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
+            var matchesFilter = true;
+            if (f === "trial") {
+                matchesFilter = row.getAttribute("data-is-trial") === "1";
+            } else if (f === "premium") {
+                matchesFilter = row.getAttribute("data-is-trial") !== "1";
+            } else if (f && f !== "all") {
+                matchesFilter = row.getAttribute("data-status") === f;
+            }
+            row.style.display = (matchesSearch && matchesFilter) ? "" : "none";
         }
     };
 
