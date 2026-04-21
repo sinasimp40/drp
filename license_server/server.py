@@ -47,6 +47,16 @@ _UNLOCK_PBKDF2_ITERATIONS = 5000  # was 60k — 60k took ~200ms PER keystroke,
 # only used to hide the form HTML from casual View-Source snoopers; it isn't
 # protecting a high-value secret, so 5k iterations (~10-20ms) is plenty.
 
+# --- IP-change anti-sharing rules (CGNAT-friendly) ----------------------
+# A "strike" is logged whenever a heartbeat arrives from a /24 different
+# from the previous heartbeat's /24. Strikes roll off after 24h. Once a
+# license accumulates IP_STRIKE_LIMIT strikes inside the rolling window,
+# it gets auto-suspended with reason='ip_strikes'. This catches the
+# A→B→A and A→B→C resale/transfer patterns while leaving heavy mobile
+# / CGNAT users with a one-rotation grace per day before they trip.
+IP_STRIKE_LIMIT = 2
+IP_STRIKE_WINDOW_SECONDS = 24 * 3600
+
 # --- security: brute-force lockout + per-IP rate limiting ----------------
 _security_lock = threading.Lock()
 # IP -> deque of failed-login timestamps (recent window)
@@ -537,6 +547,7 @@ def init_db():
         ("suspended_reason", "ALTER TABLE licenses ADD COLUMN suspended_reason TEXT DEFAULT ''"),
         ("suspended_previous_ip", "ALTER TABLE licenses ADD COLUMN suspended_previous_ip TEXT DEFAULT ''"),
         ("suspended_new_ip", "ALTER TABLE licenses ADD COLUMN suspended_new_ip TEXT DEFAULT ''"),
+        ("ip_strikes_json", "ALTER TABLE licenses ADD COLUMN ip_strikes_json TEXT DEFAULT ''"),
     ):
         try:
             conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
@@ -905,6 +916,118 @@ def _is_same_subnet(ip1, ip2):
         return False
 
 
+def _subnet(ip):
+    """Return the /24 (first 3 octets) of an IPv4 address as a string,
+    or "" if the IP can't be parsed. Used as the comparison unit for
+    IP-change strike accounting."""
+    try:
+        parts = (ip or "").split(".")[:3]
+        if len(parts) == 3 and all(p != "" for p in parts):
+            return ".".join(parts)
+    except Exception:
+        pass
+    return ""
+
+
+def _load_strikes(raw, now):
+    """Parse the JSON strike-history blob and drop entries older than
+    IP_STRIKE_WINDOW_SECONDS. Returns a list of {ts, from_subnet,
+    to_subnet} dicts. Tolerates corrupted or missing JSON by returning
+    an empty list — strikes are an anti-abuse signal, never a
+    correctness-critical primary record."""
+    if not raw:
+        return []
+    try:
+        items = json.loads(raw)
+    except Exception:
+        return []
+    if not isinstance(items, list):
+        return []
+    cutoff = now - IP_STRIKE_WINDOW_SECONDS
+    out = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        try:
+            ts = float(it.get("ts", 0))
+        except (TypeError, ValueError):
+            continue
+        if ts < cutoff:
+            continue
+        out.append({
+            "ts": ts,
+            "from_subnet": str(it.get("from_subnet", "")),
+            "to_subnet": str(it.get("to_subnet", "")),
+        })
+    return out
+
+
+def _evaluate_ip_change(row, client_ip, now):
+    """Pure-function decision for what to do when a heartbeat / validate
+    arrives from `client_ip` for license `row` at time `now`.
+
+    Returns one of:
+      ("ok", None)                              -> no IP transition; proceed.
+      ("ok", strikes_json_str)                  -> recorded a new strike;
+                                                   caller MUST persist this
+                                                   JSON string into
+                                                   licenses.ip_strikes_json.
+      ("suspend_strikes", prev_ip, new_ip,
+                          strike_count)         -> 2nd strike inside the
+                                                   rolling 24h window —
+                                                   caller suspends the
+                                                   license.
+
+    Rules:
+      * "Strike" = the heartbeat's /24 differs from the previous
+        heartbeat's /24 (i.e. an IP transition event). Same-subnet
+        heartbeats never count.
+      * Strikes older than IP_STRIKE_WINDOW_SECONDS are dropped on every
+        evaluation, so the window is rolling, not calendar-day.
+      * Hitting IP_STRIKE_LIMIT triggers suspension and the offending
+        transition is NOT appended (we suspend immediately on detection).
+
+    The function does NOT touch the database — the caller writes both
+    the suspend SQL and the strike-list update inside its own transaction
+    so behavior stays atomic with the rest of the heartbeat work.
+    """
+    last_ip = row["last_ip"] or ""
+    last_subnet = _subnet(last_ip)
+    cli_subnet = _subnet(client_ip)
+
+    # If we can't parse the client IP into a subnet (IPv6, bogus header,
+    # local dev) just allow it. We'd rather miss a strike than suspend
+    # legitimate users on a parsing edge case.
+    if not cli_subnet:
+        return ("ok", None)
+
+    # Same /24 as the previous heartbeat — no transition, no strike work.
+    if last_subnet and last_subnet == cli_subnet:
+        return ("ok", None)
+
+    # First-ever heartbeat (no last_ip yet). Treat as the starting point;
+    # there's no "previous subnet" to compare against, so no strike.
+    if not last_subnet:
+        return ("ok", None)
+
+    # We have a real transition: last_subnet != cli_subnet.
+    strikes = _load_strikes(
+        row["ip_strikes_json"] if "ip_strikes_json" in row.keys() else "",
+        now,
+    )
+    count_after = len(strikes) + 1
+
+    if count_after >= IP_STRIKE_LIMIT:
+        return ("suspend_strikes", last_ip, client_ip, count_after)
+
+    strikes.append({
+        "ts": now,
+        "from_subnet": last_subnet,
+        "to_subnet": cli_subnet,
+    })
+    return ("ok", json.dumps(strikes, separators=(",", ":")))
+
+
 def activate_license(conn, row, client_ip):
     now = time.time()
     expires_at = now + row["duration_seconds"]
@@ -997,7 +1120,9 @@ def api_validate():
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
         client_ip = _get_client_ip()
-        if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
+        decision = _evaluate_ip_change(row, client_ip, now)
+        if decision[0] == "suspend_strikes":
+            _, prev_ip, new_ip, strike_count = decision
             conn.execute(
                 """UPDATE licenses
                    SET status = 'suspended',
@@ -1007,15 +1132,28 @@ def api_validate():
                        suspended_new_ip = ?,
                        last_ip = ?
                    WHERE id = ?""",
-                (now, "ip_change", row["registered_ip"], client_ip, client_ip, row["id"])
+                (now, "ip_strikes", prev_ip, new_ip, new_ip, row["id"])
             )
             conn.commit()
             conn.close()
+            print(f"[ip-strikes] suspended id={row['id']} key={row['license_key']} "
+                  f"strikes={strike_count} prev={prev_ip} new={new_ip}", flush=True)
             resp = {"valid": False, "error": "License suspended. Contact the developer."}
             return jsonify({"data": resp, "signature": sign_response(resp)})
 
+        new_strikes_json = decision[1]  # ("ok", json_or_none)
         launcher_version = data.get("version", "") or ""
-        if launcher_version:
+        if new_strikes_json is not None and launcher_version:
+            conn.execute(
+                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ? WHERE id = ?",
+                (now, client_ip, launcher_version, new_strikes_json, row["id"])
+            )
+        elif new_strikes_json is not None:
+            conn.execute(
+                "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ? WHERE id = ?",
+                (now, client_ip, new_strikes_json, row["id"])
+            )
+        elif launcher_version:
             conn.execute(
                 "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ? WHERE id = ?",
                 (now, client_ip, launcher_version, row["id"])
@@ -1106,7 +1244,9 @@ def api_heartbeat():
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
     client_ip = _get_client_ip()
-    if row["registered_ip"] and not _is_same_subnet(client_ip, row["registered_ip"]):
+    decision = _evaluate_ip_change(row, client_ip, now)
+    if decision[0] == "suspend_strikes":
+        _, prev_ip, new_ip, strike_count = decision
         conn.execute(
             """UPDATE licenses
                SET status = 'suspended',
@@ -1116,15 +1256,28 @@ def api_heartbeat():
                    suspended_new_ip = ?,
                    last_ip = ?
                WHERE id = ?""",
-            (now, "ip_change", row["registered_ip"], client_ip, client_ip, row["id"])
+            (now, "ip_strikes", prev_ip, new_ip, new_ip, row["id"])
         )
         conn.commit()
         conn.close()
+        print(f"[ip-strikes] suspended id={row['id']} key={row['license_key']} "
+              f"strikes={strike_count} prev={prev_ip} new={new_ip}", flush=True)
         resp = {"valid": False, "error": "License suspended. Contact the developer."}
         return jsonify({"data": resp, "signature": sign_response(resp)})
 
+    new_strikes_json = decision[1]
     launcher_version = data.get("version", "") or ""
-    if launcher_version:
+    if new_strikes_json is not None and launcher_version:
+        conn.execute(
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ?, ip_strikes_json = ? WHERE id = ?",
+            (now, client_ip, launcher_version, new_strikes_json, row["id"])
+        )
+    elif new_strikes_json is not None:
+        conn.execute(
+            "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, ip_strikes_json = ? WHERE id = ?",
+            (now, client_ip, new_strikes_json, row["id"])
+        )
+    elif launcher_version:
         conn.execute(
             "UPDATE licenses SET last_heartbeat = ?, last_ip = ?, launcher_version = ? WHERE id = ?",
             (now, client_ip, launcher_version, row["id"])
@@ -1741,13 +1894,13 @@ def unsuspend_all_licenses():
             remaining = max(0, row["expires_at"] - now)
         if remaining > 0:
             conn.execute(
-                "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
+                "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, last_ip = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
                 (int(remaining), row["id"])
             )
             recovered += 1
         else:
             conn.execute(
-                "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
+                "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, last_ip = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
                 (row["id"],)
             )
             expired += 1
@@ -1777,14 +1930,14 @@ def unsuspend_license(license_id):
 
     if remaining > 0:
         conn.execute(
-            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
+            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, last_ip = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
             (int(remaining), license_id)
         )
         remaining_text = format_duration(remaining)
         flash(f"License unsuspended — {remaining_text} remaining. User can re-activate.", "success")
     else:
         conn.execute(
-            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '' WHERE id = ?",
+            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, last_ip = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
             (license_id,)
         )
         flash("License unsuspended but had no time remaining — marked as expired.", "warning")
