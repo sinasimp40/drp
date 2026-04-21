@@ -342,6 +342,377 @@ def purge_appdata_roblox_versions():
     return removed
 
 
+# Names we treat as "Roblox-related" when scanning Add/Remove Programs
+# entries and Program Files folders. We use substring matching on the
+# lowercased DisplayName / folder name. Kept narrow on purpose so we
+# don't accidentally remove unrelated apps that happen to mention
+# Roblox in their description (e.g. "MyGame for Roblox Servers").
+_ROBLOX_UNINSTALL_NAME_HINTS = ("roblox", "bloxstrap")
+
+# Hidden-window flags for any subprocess we spawn, matching the rest of
+# launcher.py. Falls back to 0 (no special flag) on non-Windows so that
+# import-time evaluation never crashes on Linux/macOS dev machines.
+def _hidden_subprocess_flags():
+    return getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _hidden_subprocess_startupinfo():
+    """Build a STARTUPINFO that hides any console window the child
+    might pop. Only meaningful on Windows; safe no-op elsewhere."""
+    if sys.platform != "win32":
+        return None
+    try:
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0  # SW_HIDE
+        return si
+    except Exception:
+        return None
+
+
+def _scan_uninstall_entries():
+    """Walk the three standard Windows Uninstall registry roots and yield
+    (display_name, uninstall_cmd, quiet_uninstall_cmd) tuples for every
+    entry whose DisplayName contains one of our Roblox name hints.
+
+    We deliberately read all three roots (HKLM 64-bit, HKLM 32-bit
+    WOW6432Node, HKCU) because Roblox Player installs into HKCU on
+    modern Windows, while Bloxstrap and older system-wide installers
+    drop entries under HKLM. Yields nothing on non-Windows.
+
+    Each registry handle is opened with KEY_READ only — we never write
+    to the registry from this scan."""
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+    except Exception:
+        return
+
+    # Explicitly request both registry views so a 32-bit launcher running
+    # on 64-bit Windows still sees true 64-bit Uninstall entries (without
+    # KEY_WOW64_64KEY, the WOW64 layer silently redirects HKLM\SOFTWARE
+    # to ...\WOW6432Node and we'd miss native-bitness installs).
+    base_read = winreg.KEY_READ
+    wow64_64 = getattr(winreg, "KEY_WOW64_64KEY", 0)
+    wow64_32 = getattr(winreg, "KEY_WOW64_32KEY", 0)
+
+    hklm_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    hkcu_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    roots = [
+        (winreg.HKEY_LOCAL_MACHINE, hklm_path, base_read | wow64_64),
+        (winreg.HKEY_LOCAL_MACHINE, hklm_path, base_read | wow64_32),
+        # Legacy explicit WOW6432Node path (some entries land here even
+        # under the 32-bit view); harmless duplicate, de-duped below.
+        (winreg.HKEY_LOCAL_MACHINE,
+         r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+         base_read),
+        (winreg.HKEY_CURRENT_USER, hkcu_path, base_read),
+    ]
+
+    seen_cmds = set()  # de-dupe across roots / views
+    for hive, subkey, access in roots:
+        try:
+            root_key = winreg.OpenKey(hive, subkey, 0, access)
+        except OSError:
+            continue
+        try:
+            i = 0
+            while True:
+                try:
+                    child_name = winreg.EnumKey(root_key, i)
+                except OSError:
+                    break
+                i += 1
+                try:
+                    child = winreg.OpenKey(root_key, child_name, 0, winreg.KEY_READ)
+                except OSError:
+                    continue
+                try:
+                    try:
+                        display_name, _ = winreg.QueryValueEx(child, "DisplayName")
+                    except OSError:
+                        continue
+                    if not isinstance(display_name, str):
+                        continue
+                    name_lc = display_name.lower()
+                    if not any(h in name_lc for h in _ROBLOX_UNINSTALL_NAME_HINTS):
+                        continue
+                    # Pull both commands; either may be missing.
+                    uninstall_cmd = None
+                    quiet_cmd = None
+                    try:
+                        v, _ = winreg.QueryValueEx(child, "UninstallString")
+                        if isinstance(v, str) and v.strip():
+                            uninstall_cmd = v.strip()
+                    except OSError:
+                        pass
+                    try:
+                        v, _ = winreg.QueryValueEx(child, "QuietUninstallString")
+                        if isinstance(v, str) and v.strip():
+                            quiet_cmd = v.strip()
+                    except OSError:
+                        pass
+                    cmd_key = (quiet_cmd or uninstall_cmd or "").lower()
+                    if not cmd_key or cmd_key in seen_cmds:
+                        continue
+                    seen_cmds.add(cmd_key)
+                    yield (display_name, uninstall_cmd, quiet_cmd)
+                finally:
+                    try:
+                        winreg.CloseKey(child)
+                    except Exception:
+                        pass
+        finally:
+            try:
+                winreg.CloseKey(root_key)
+            except Exception:
+                pass
+
+
+def uninstall_roblox_via_registry(per_uninstall_timeout_s=60.0):
+    """Run the Add/Remove Programs uninstaller for every Roblox-named
+    entry on this machine. Best-effort: every failure is swallowed.
+
+    For each match we prefer QuietUninstallString (already silent), and
+    if only UninstallString is available we append common silent flags
+    (/S for NSIS — Roblox Player uses NSIS — and /quiet /norestart for
+    MSI). We give each uninstaller up to per_uninstall_timeout_s seconds
+    so a hung uninstaller can't freeze the launcher boot.
+
+    Returns the count of uninstaller commands that exited with code 0.
+    """
+    if sys.platform != "win32":
+        return 0
+
+    flags = _hidden_subprocess_flags()
+    si = _hidden_subprocess_startupinfo()
+    succeeded = 0
+
+    import shlex, re
+
+    def _parse_win_cmdline(s):
+        """Tokenise a Windows command line into argv. shlex with
+        posix=False handles double-quoted paths the way the Win32
+        CommandLineToArgvW parser does for the common cases that
+        appear in registry UninstallString values
+        (e.g. '\"C:\\Program Files\\Roblox\\unins000.exe\" /S').
+
+        shlex(posix=False) preserves the surrounding double-quotes on
+        each token, but subprocess.run(argv, shell=False) on Windows
+        passes those literal quotes through to CreateProcess and the
+        executable lookup will fail (no file is literally named with
+        embedded quotes). We strip a single matching pair of surrounding
+        double-quotes from each token to match what
+        CommandLineToArgvW would produce.
+
+        Returns [] if parsing fails — caller will skip."""
+        try:
+            tokens = shlex.split(s, posix=False)
+        except ValueError:
+            return []
+        cleaned = []
+        for t in tokens:
+            if len(t) >= 2 and t.startswith('"') and t.endswith('"'):
+                t = t[1:-1]
+            cleaned.append(t)
+        return cleaned
+
+    def _patch_msi_args(argv):
+        """Convert an msiexec install invocation to a silent uninstall.
+        We mutate ONLY the install-flag token (/I, /i, -I, -i) into its
+        uninstall counterpart (/X), and append /quiet /norestart if no
+        UI level is already set. This is token-level — we never touch
+        other parts of the command line that might contain literal
+        '/i' substrings (paths, GUIDs, property values)."""
+        out = []
+        install_flag_re = re.compile(r"^[/\-][Ii]$")
+        # Combined form like "/I{GUID}" / "/i{GUID}" with no space.
+        install_inline_re = re.compile(r"^([/\-])[Ii](\{.*\})$")
+        for tok in argv:
+            m = install_inline_re.match(tok)
+            if m:
+                out.append(f"{m.group(1)}X{m.group(2)}")
+            elif install_flag_re.match(tok):
+                out.append(tok[0] + "X")
+            else:
+                out.append(tok)
+        joined_lc = " ".join(out).lower()
+        if "/quiet" not in joined_lc and "/qn" not in joined_lc and "/passive" not in joined_lc:
+            out.extend(["/quiet", "/norestart"])
+        return out
+
+    for display_name, uninstall_cmd, quiet_cmd in _scan_uninstall_entries():
+        raw = quiet_cmd or uninstall_cmd
+        if not raw:
+            continue
+        argv = _parse_win_cmdline(raw)
+        if not argv:
+            continue
+
+        is_msi = os.path.basename(argv[0]).lower().startswith("msiexec")
+
+        if not quiet_cmd:
+            # Loud UninstallString — try to silence it.
+            if is_msi:
+                argv = _patch_msi_args(argv)
+            else:
+                # NSIS (Roblox Player, Bloxstrap) honours /S. Only add it
+                # if no silence flag is already present, so we don't
+                # double-up or fight an installer that uses a different
+                # silence convention.
+                joined_lc = " ".join(argv).lower()
+                if (" /s" not in (" " + joined_lc) and
+                        " --silent" not in (" " + joined_lc) and
+                        " /quiet" not in (" " + joined_lc) and
+                        " /qn" not in (" " + joined_lc)):
+                    argv.append("/S")
+
+        try:
+            r = subprocess.run(
+                argv, shell=False, capture_output=True,
+                timeout=per_uninstall_timeout_s,
+                creationflags=flags, startupinfo=si,
+            )
+            if r.returncode == 0:
+                succeeded += 1
+        except subprocess.TimeoutExpired:
+            # Uninstaller hung — move on. Folder wipe pass below will
+            # still get whatever it left behind.
+            continue
+        except Exception:
+            # File-not-found, permission denied on a system uninstaller,
+            # malformed argv we couldn't parse cleanly — skip and let
+            # the folder-wipe fallback catch leftover state.
+            continue
+
+    return succeeded
+
+
+def remove_microsoft_store_roblox(timeout_s=30.0):
+    """Remove any Microsoft Store / UWP Roblox package for the current
+    user. Best-effort: returns True if PowerShell exited 0, False
+    otherwise. No-op on non-Windows.
+
+    We use Get-AppxPackage piped to Remove-AppxPackage (per-user scope —
+    no admin required). This catches `ROBLOXCORPORATION.ROBLOX` and any
+    similarly-named UWP packages."""
+    if sys.platform != "win32":
+        return False
+    flags = _hidden_subprocess_flags()
+    si = _hidden_subprocess_startupinfo()
+    ps_cmd = (
+        "Get-AppxPackage -Name '*Roblox*' -ErrorAction SilentlyContinue "
+        "| Remove-AppxPackage -ErrorAction SilentlyContinue"
+    )
+    try:
+        r = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive",
+             "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            capture_output=True, timeout=timeout_s,
+            creationflags=flags, startupinfo=si,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def purge_program_files_roblox():
+    """Best-effort wipe of any Roblox-named folder under C:\\Program
+    Files (x86)\\ and C:\\Program Files\\.
+
+    These directories are protected by Windows — without admin rights,
+    deletion will silently fail with PermissionError. That's fine: the
+    Add/Remove Programs uninstall pass above is the proper cleanup
+    path for system-wide installs (it elevates itself), and this is
+    just a fallback for orphaned folders left behind by a broken
+    uninstaller.
+
+    Safety mirrors purge_appdata_roblox_versions:
+      * Top-level scan only — never recurses into unrelated apps.
+      * realpath boundary check so a malicious junction can't escape.
+      * chmod-then-retry for read-only files.
+      * Symlinks/junctions are unlinked, never followed.
+
+    Returns the count of top-level Roblox-named folders successfully
+    deleted across both Program Files roots.
+    """
+    if sys.platform != "win32":
+        return 0
+
+    roots = []
+    for env in ("ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
+        p = os.environ.get(env, "")
+        if p and os.path.isdir(p) and p not in roots:
+            roots.append(p)
+    if not roots:
+        return 0
+
+    total_removed = 0
+    for root in roots:
+        try:
+            root_real = os.path.realpath(root)
+        except OSError:
+            root_real = root
+        try:
+            entries = os.listdir(root)
+        except OSError:
+            continue
+        # Match the same name hints as the registry uninstall scan so
+        # Bloxstrap install folders aren't missed if its uninstaller
+        # failed to run.
+        targets = [
+            e for e in entries
+            if any(h in e.lower() for h in _ROBLOX_UNINSTALL_NAME_HINTS)
+        ]
+        if not targets:
+            continue
+
+        def _safe_inside(path, _root_real=root_real):
+            try:
+                real = os.path.realpath(path)
+                common = os.path.commonpath([real, _root_real])
+                return common == _root_real and real != _root_real
+            except (OSError, ValueError):
+                return False
+
+        def _onerror(func, p, _exc):
+            try:
+                os.chmod(p, 0o777)
+                func(p)
+            except Exception:
+                pass
+
+        for name in targets:
+            target_path = os.path.join(root, name)
+            try:
+                if not _safe_inside(target_path):
+                    if os.path.islink(target_path):
+                        try:
+                            os.unlink(target_path)
+                        except Exception:
+                            pass
+                    continue
+                if os.path.islink(target_path):
+                    os.unlink(target_path)
+                elif os.path.isdir(target_path):
+                    shutil.rmtree(target_path, onerror=_onerror)
+                else:
+                    try:
+                        os.chmod(target_path, 0o777)
+                    except Exception:
+                        pass
+                    os.remove(target_path)
+                if not os.path.exists(target_path):
+                    total_removed += 1
+            except Exception:
+                # Most likely PermissionError because we're not running
+                # elevated. That's the documented fallback behavior.
+                continue
+
+    return total_removed
+
+
 def find_system_roblox():
     if sys.platform != "win32":
         return None, None, None
@@ -1838,9 +2209,35 @@ def download_and_extract_roblox_bundle(splash, app, paths):
 
     # Bundle is now installed locally and is the player we'll launch — clean
     # any leftover system Roblox install so it can't fight our multi-instance
-    # / multi-account flow. Best-effort: never fails the launch.
+    # / multi-account flow. Best-effort: every step is independently wrapped
+    # so one failure can't skip the next, and none of them ever fail the
+    # launch (we'd rather start the bundled Roblox with a stale system copy
+    # still on disk than block the user from playing).
+    #
+    # Order matters:
+    #   1. Add/Remove Programs uninstaller — the proper way to remove a
+    #      system Roblox; lets the official uninstaller deregister itself
+    #      and clean Program Files / shortcuts / registry entries.
+    #   2. Microsoft Store package — separate API; not covered by step 1.
+    #   3. %LocalAppData% folder wipe — catches the per-user install
+    #      (default Roblox Player target) and any leftover state.
+    #   4. Program Files folder wipe — best-effort fallback for orphaned
+    #      folders left behind when an uninstaller is missing or broken.
+    #      Silently skipped if we lack admin rights.
+    try:
+        uninstall_roblox_via_registry()
+    except Exception:
+        pass
+    try:
+        remove_microsoft_store_roblox()
+    except Exception:
+        pass
     try:
         purge_appdata_roblox_versions()
+    except Exception:
+        pass
+    try:
+        purge_program_files_roblox()
     except Exception:
         pass
 
