@@ -72,9 +72,6 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
-        .design-tag.prism    { color: #ff7eb6; border-color: #5e2548; }
-        .design-tag.monolith { color: #f4f4f6; border-color: #444; background: #1a1a22; }
-        .design-tag.aurora   { color: #c5a3ff; border-color: #3a2a5a; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -965,524 +962,555 @@
         }
         .splash-grid .pct b { color: #9affd4; font-weight: 500; }
 
+
         /* ============================================================
-           PRISM — glassmorphism, premium Apple-style
-           Mesh-gradient backdrop, frosted card centered, expanding rings
-           around the logo as the loader. Soft, luxurious, modern.
+           PLAYHOUSE — modern Roblox app dark UI
+           The look of the actual Roblox app loading screen. Deep navy
+           background with a faint stud-grid pattern, a centered rounded
+           "game card" holding the logo as a thumbnail, big chunky white
+           title under it, three bouncing stud-dots as the loader, and
+           a fat rounded pill progress bar. Familiar, clean, premium.
            ============================================================ */
-        .splash-prism {
+        .splash-playhouse {
             position: relative;
-            width: 640px; height: 380px;
+            width: 660px; height: 380px;
             border-radius: 14px;
             overflow: hidden;
-            background: #07060c;
-            font-family: 'Inter', system-ui, sans-serif;
-            color: #f4f4f6;
+            background: radial-gradient(ellipse at top, #1f2630 0%, #0d1117 70%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #ffffff;
             box-shadow:
                 inset 0 0 0 1px rgba(255,255,255,0.06),
                 0 30px 80px rgba(0,0,0,0.55);
         }
-        /* Mesh gradient background — three blurred orbs */
-        .splash-prism .mesh {
-            position: absolute; inset: 0; pointer-events: none;
-            filter: blur(60px);
-            opacity: 0.85;
-        }
-        .splash-prism .mesh::before,
-        .splash-prism .mesh::after,
-        .splash-prism .mesh > .blob3 {
-            content: ''; position: absolute; border-radius: 50%;
-        }
-        .splash-prism .mesh::before {
-            width: 360px; height: 360px;
-            top: -100px; left: -80px;
-            background: radial-gradient(circle, #ff6a00 0%, transparent 70%);
-            animation: prism-drift1 14s ease-in-out infinite;
-        }
-        .splash-prism .mesh::after {
-            width: 380px; height: 380px;
-            bottom: -120px; right: -100px;
-            background: radial-gradient(circle, #ff2d92 0%, transparent 70%);
-            animation: prism-drift2 16s ease-in-out infinite;
-        }
-        .splash-prism .mesh > .blob3 {
-            width: 320px; height: 320px;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: radial-gradient(circle, #6c33ff 0%, transparent 70%);
-            opacity: 0.55;
-            animation: prism-drift3 18s ease-in-out infinite;
-        }
-        @keyframes prism-drift1 {
-            0%,100% { transform: translate(0,0) scale(1); }
-            50%     { transform: translate(60px,40px) scale(1.15); }
-        }
-        @keyframes prism-drift2 {
-            0%,100% { transform: translate(0,0) scale(1); }
-            50%     { transform: translate(-50px,-30px) scale(1.1); }
-        }
-        @keyframes prism-drift3 {
-            0%,100% { transform: translate(-50%,-50%) scale(1); }
-            50%     { transform: translate(-40%,-60%) scale(1.2); }
-        }
-        /* Subtle grain on top */
-        .splash-prism .grain {
+        /* Faint stud-dot grid background */
+        .splash-playhouse .grid {
             position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            opacity: 0.4;
-            mix-blend-mode: overlay;
+            background-image:
+                radial-gradient(circle at center, rgba(255,255,255,0.06) 1.4px, transparent 1.6px);
+            background-size: 22px 22px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
             pointer-events: none;
         }
-        /* Frosted glass card centered */
-        .splash-prism .glass {
+        /* Top brand bar */
+        .splash-playhouse .top {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 440px;
-            padding: 36px 40px 30px;
-            border-radius: 22px;
-            background: rgba(20, 18, 32, 0.45);
-            backdrop-filter: blur(28px) saturate(140%);
-            -webkit-backdrop-filter: blur(28px) saturate(140%);
-            border: 1px solid rgba(255,255,255,0.10);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.10),
-                0 20px 60px rgba(0,0,0,0.4);
-            text-align: center;
+            top: 22px; left: 28px; right: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 3;
         }
-        /* Logo with expanding rings around it */
-        .splash-prism .logo-orb {
-            position: relative;
-            width: 92px; height: 92px;
-            margin: 0 auto 22px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .splash-prism .logo-orb img {
-            max-width: 70px; max-height: 70px; object-fit: contain;
-            filter: drop-shadow(0 0 18px rgba(255,123,31,0.6));
-            position: relative; z-index: 2;
-        }
-        .splash-prism .logo-orb .ring {
-            position: absolute; top: 50%; left: 50%;
-            width: 92px; height: 92px;
-            border: 1.5px solid rgba(255,180,140,0.6);
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 0;
-            animation: prism-ring 3s ease-out infinite;
-        }
-        .splash-prism .logo-orb .ring.r2 { animation-delay: 1s; }
-        .splash-prism .logo-orb .ring.r3 { animation-delay: 2s; }
-        @keyframes prism-ring {
-            0%   { transform: translate(-50%,-50%) scale(0.7); opacity: 0.7; }
-            100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
-        }
-        .splash-prism .title {
-            font-size: 32px;
+        .splash-playhouse .brand {
+            display: flex; align-items: center; gap: 10px;
             font-weight: 700;
-            letter-spacing: -0.8px;
-            color: #ffffff;
-            margin-bottom: 8px;
-        }
-        .splash-prism .subtitle {
             font-size: 12px;
-            color: rgba(244,244,246,0.6);
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            margin-bottom: 24px;
+            color: rgba(255,255,255,0.92);
         }
-        .splash-prism .status {
+        .splash-playhouse .brand-logo {
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #ff8533, #ff6a00);
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(255,123,31,0.5);
+        }
+        .splash-playhouse .ver {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            color: rgba(244,244,246,0.7);
-            margin-bottom: 14px;
-            transition: opacity 0.3s;
+            color: rgba(255,255,255,0.5);
+            padding: 5px 11px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.08);
         }
-        .splash-prism .pill {
-            height: 6px;
-            background: rgba(255,255,255,0.08);
+        /* Centered "game card" thumbnail */
+        .splash-playhouse .card {
+            position: absolute;
+            top: 64px; left: 50%;
+            transform: translateX(-50%);
+            width: 132px; height: 132px;
+            border-radius: 18px;
+            background: linear-gradient(160deg, #ff9e55 0%, #ff6a00 60%, #e85a00 100%);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow:
+                0 12px 36px rgba(255,123,31,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.25),
+                inset 0 -2px 0 rgba(0,0,0,0.18);
+            z-index: 3;
+            overflow: hidden;
+        }
+        .splash-playhouse .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent);
+            pointer-events: none;
+        }
+        .splash-playhouse .card img {
+            max-width: 96px; max-height: 96px;
+            object-fit: contain;
+            position: relative; z-index: 2;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+        }
+        /* Title block */
+        .splash-playhouse .title-wrap {
+            position: absolute;
+            top: 214px; left: 0; right: 0;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-playhouse .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 800;
+            font-size: 30px;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .splash-playhouse .subtitle {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.5px;
+        }
+        .splash-playhouse .subtitle .premium {
+            color: #ff9d4d;
+            font-weight: 700;
+        }
+        /* Bouncing stud-dots loader */
+        .splash-playhouse .dots {
+            position: absolute;
+            bottom: 78px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 9px;
+            z-index: 3;
+        }
+        .splash-playhouse .dots span {
+            width: 9px; height: 9px;
+            border-radius: 3px;
+            background: #ff7b1f;
+            box-shadow:
+                0 0 12px rgba(255,123,31,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.35);
+            animation: ph-bounce 1.2s ease-in-out infinite;
+        }
+        .splash-playhouse .dots span:nth-child(2) { animation-delay: 0.15s; }
+        .splash-playhouse .dots span:nth-child(3) { animation-delay: 0.30s; }
+        @keyframes ph-bounce {
+            0%, 80%, 100% { transform: translateY(0) scale(1); opacity: 0.85; }
+            40%           { transform: translateY(-10px) scale(1.15); opacity: 1; }
+        }
+        /* Bottom progress + status */
+        .splash-playhouse .bottom {
+            position: absolute;
+            bottom: 22px; left: 28px; right: 28px;
+            z-index: 3;
+        }
+        .splash-playhouse .status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+        .splash-playhouse .status-row .pct {
+            font-family: 'JetBrains Mono', monospace;
+            color: #ff9d4d;
+            font-weight: 600;
+        }
+        .splash-playhouse .status-text { transition: opacity 0.3s; }
+        .splash-playhouse .pill {
+            height: 8px;
+            background: rgba(255,255,255,0.07);
             border-radius: 999px;
             overflow: hidden;
             position: relative;
         }
-        .splash-prism .pill-fill {
+        .splash-playhouse .pill-fill {
             position: absolute; top: 0; left: 0; bottom: 0;
             width: 0%;
-            background: linear-gradient(90deg, #ff6a00, #ff2d92, #6c33ff);
-            background-size: 200% 100%;
+            background: linear-gradient(90deg, #ff6a00, #ff9d4d);
             border-radius: 999px;
-            box-shadow: 0 0 14px rgba(255,123,31,0.5);
-            animation: prism-shimmer 3s linear infinite;
+            box-shadow: 0 0 14px rgba(255,123,31,0.6);
             transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
-        }
-        @keyframes prism-shimmer {
-            0%   { background-position: 0% 0%; }
-            100% { background-position: 200% 0%; }
-        }
-        .splash-prism .footnote {
-            position: absolute;
-            bottom: 14px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(244,244,246,0.35);
-            letter-spacing: 2px;
         }
 
         /* ============================================================
-           MONOLITH — brutalist editorial
-           Massive vertical version number on the right as background art.
-           Logo + brand top-left, BIG stacked title left, thick orange bar
-           progress at bottom. Bottega/SSENSE/Linear changelog energy.
+           SANDBOX — light, blocky, friendly Roblox studio vibe
+           Cream-paper background with floating isometric orange "studs"
+           drifting around. Centered rounded card holds logo + title in
+           chunky friendly type. Status pill + a stack of building
+           blocks visualization that grows with progress. Bright,
+           kid-friendly, designed to feel safe and inviting.
            ============================================================ */
-        .splash-monolith {
+        .splash-sandbox {
             position: relative;
             width: 660px; height: 380px;
-            border-radius: 8px;
+            border-radius: 18px;
             overflow: hidden;
-            background: #f4f1ea;
-            color: #0a0a0e;
-            font-family: 'Inter', system-ui, sans-serif;
+            background:
+                radial-gradient(ellipse at top left,  #ffe6cc 0%, transparent 55%),
+                radial-gradient(ellipse at bottom right, #ffd2e8 0%, transparent 55%),
+                #fff7ee;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #1f1814;
             box-shadow:
-                inset 0 0 0 1px rgba(0,0,0,0.06),
-                0 30px 80px rgba(0,0,0,0.45);
+                inset 0 0 0 1px rgba(0,0,0,0.05),
+                0 30px 80px rgba(120,60,20,0.25);
         }
-        /* paper grain */
-        .splash-monolith::before {
-            content: '';
+        /* Floating isometric studs scattered around */
+        .splash-sandbox .floaters {
             position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-            opacity: 0.6;
-            mix-blend-mode: multiply;
             pointer-events: none;
         }
-        /* Big number background art */
-        .splash-monolith .bignum {
+        .splash-sandbox .stud {
             position: absolute;
-            top: -30px;
-            right: -22px;
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 380px;
-            line-height: 0.85;
-            color: #0a0a0e;
-            opacity: 0.07;
-            letter-spacing: -16px;
-            user-select: none;
-            pointer-events: none;
+            width: 44px; height: 44px;
+            transform-style: preserve-3d;
+            animation: sb-float 6s ease-in-out infinite;
         }
-        /* Top-left brand row */
-        .splash-monolith .top {
+        .splash-sandbox .stud .top {
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, #ffaa66 0%, #ff7b1f 100%);
+            border-radius: 6px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.5),
+                inset 0 -3px 0 rgba(0,0,0,0.18),
+                0 6px 14px rgba(255,123,31,0.18);
+        }
+        .splash-sandbox .stud .top::before {
+            content: '';
             position: absolute;
-            top: 26px; left: 30px; right: 30px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 2;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px; height: 18px;
+            background: linear-gradient(135deg, #ffd0a8, #ff9959);
+            border-radius: 50%;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
         }
-        .splash-monolith .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #0a0a0e;
+        .splash-sandbox .stud.s1 { top: 30px;  left: 36px;  transform: rotate(-12deg); animation-delay: 0s;   width: 36px; height: 36px; }
+        .splash-sandbox .stud.s2 { top: 60px;  right: 42px; transform: rotate( 8deg);  animation-delay: 1.5s; }
+        .splash-sandbox .stud.s3 { bottom: 70px; left: 48px;  transform: rotate( 14deg); animation-delay: 2.5s; width: 38px; height: 38px; }
+        .splash-sandbox .stud.s4 { bottom: 36px; right: 64px; transform: rotate(-9deg);  animation-delay: 3.5s; width: 32px; height: 32px; opacity: 0.7; }
+        .splash-sandbox .stud.s5 { top: 130px;   right: 110px; transform: rotate( 22deg); animation-delay: 0.7s; width: 26px; height: 26px; opacity: 0.6; }
+        @keyframes sb-float {
+            0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+            50%      { transform: translateY(-10px) rotate(var(--r, 0deg)); }
         }
-        .splash-monolith .brand-mark {
-            width: 22px; height: 22px;
-            background: #ff6a00;
+        /* Centered rounded card */
+        .splash-sandbox .card {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 460px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: 22px;
+            padding: 28px 34px 24px;
+            text-align: center;
+            box-shadow:
+                0 20px 50px rgba(120,60,20,0.18),
+                inset 0 1px 0 rgba(255,255,255,1);
+            z-index: 3;
+        }
+        .splash-sandbox .logo-row {
             display: flex; align-items: center; justify-content: center;
-            color: #fff;
-            font-size: 12px;
-            font-weight: 900;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-        .splash-monolith .top .meta {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(10,10,14,0.55);
-            letter-spacing: 1.5px;
-        }
-        /* Logo small, top-left under brand */
-        .splash-monolith .logo-line {
-            position: absolute;
-            top: 64px; left: 30px;
-            z-index: 2;
-        }
-        .splash-monolith .logo-line img {
-            max-height: 28px; max-width: 180px;
+        .splash-sandbox .logo-row img {
+            max-height: 44px; max-width: 100px;
             object-fit: contain;
-            opacity: 0.85;
         }
-        /* Hero title — stacked, ENORMOUS */
-        .splash-monolith .hero {
-            position: absolute;
-            left: 30px;
-            bottom: 96px;
-            right: 280px;
-            z-index: 2;
-        }
-        .splash-monolith .hero .eyebrow {
-            font-family: 'JetBrains Mono', monospace;
+        .splash-sandbox .brand-pill {
             font-size: 10px;
-            color: #ff6a00;
-            letter-spacing: 3px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #ff8533, #ff6a00);
+            color: #ffffff;
+            border-radius: 999px;
+            box-shadow: 0 2px 6px rgba(255,123,31,0.35);
+        }
+        .splash-sandbox .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 800;
+            font-size: 32px;
+            letter-spacing: -0.6px;
+            color: #1f1814;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
+        .splash-sandbox .title .accent {
+            color: #ff6a00;
+        }
+        .splash-sandbox .subtitle {
+            font-size: 12px;
+            color: rgba(31,24,20,0.55);
+            letter-spacing: 0.3px;
+            margin-bottom: 18px;
+        }
+        /* Block stacking progress visualization */
+        .splash-sandbox .blocks {
+            display: flex; align-items: flex-end; justify-content: center;
+            gap: 5px;
+            height: 40px;
             margin-bottom: 14px;
         }
-        .splash-monolith .hero .title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: 78px;
-            line-height: 0.88;
-            letter-spacing: -4px;
-            color: #0a0a0e;
+        .splash-sandbox .blocks .b {
+            width: 18px;
+            background: linear-gradient(180deg, #ffaa66, #ff7b1f);
+            border-radius: 4px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.5),
+                inset 0 -2px 0 rgba(0,0,0,0.15),
+                0 2px 6px rgba(255,123,31,0.25);
+            opacity: 0.18;
+            transform: translateY(8px);
+            transition: opacity 0.3s, transform 0.3s;
         }
-        .splash-monolith .hero .title .ital {
-            font-family: 'Playfair Display', serif;
-            font-weight: 900;
-            font-style: italic;
-            color: #ff6a00;
-            letter-spacing: -3px;
+        .splash-sandbox .blocks .b.on {
+            opacity: 1;
+            transform: translateY(0);
         }
-        /* Status row above progress */
-        .splash-monolith .status-row {
-            position: absolute;
-            bottom: 50px; left: 30px; right: 30px;
-            display: flex; justify-content: space-between; align-items: baseline;
-            z-index: 2;
-        }
-        .splash-monolith .status-text {
-            font-family: 'JetBrains Mono', monospace;
+        .splash-sandbox .blocks .b:nth-child(1) { height: 16px; }
+        .splash-sandbox .blocks .b:nth-child(2) { height: 22px; }
+        .splash-sandbox .blocks .b:nth-child(3) { height: 28px; }
+        .splash-sandbox .blocks .b:nth-child(4) { height: 34px; }
+        .splash-sandbox .blocks .b:nth-child(5) { height: 30px; }
+        .splash-sandbox .blocks .b:nth-child(6) { height: 24px; }
+        .splash-sandbox .blocks .b:nth-child(7) { height: 18px; }
+        /* Status row */
+        .splash-sandbox .status-row {
+            display: flex; align-items: center; justify-content: space-between;
             font-size: 11px;
-            color: rgba(10,10,14,0.7);
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            color: rgba(31,24,20,0.65);
+        }
+        .splash-sandbox .status-text {
+            display: flex; align-items: center; gap: 8px;
             transition: opacity 0.3s;
         }
-        .splash-monolith .pct {
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            font-weight: 700;
-            font-size: 22px;
+        .splash-sandbox .status-dot {
+            width: 7px; height: 7px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,123,31,0.7);
+            animation: sb-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes sb-pulse {
+            0%, 100% { transform: scale(1);   opacity: 1; }
+            50%      { transform: scale(1.4); opacity: 0.7; }
+        }
+        .splash-sandbox .pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
             color: #ff6a00;
-            letter-spacing: -0.5px;
-        }
-        /* Thick bar progress */
-        .splash-monolith .bar {
-            position: absolute;
-            bottom: 22px; left: 30px; right: 30px;
-            height: 14px;
-            background: rgba(10,10,14,0.08);
-            overflow: hidden;
-            z-index: 2;
-        }
-        .splash-monolith .bar-fill {
-            height: 100%;
-            width: 0%;
-            background: #0a0a0e;
-            position: relative;
-            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
-        }
-        .splash-monolith .bar-fill::after {
-            content: '';
-            position: absolute;
-            top: 0; right: 0; bottom: 0;
-            width: 40px;
-            background: linear-gradient(90deg, transparent, #ff6a00);
         }
 
         /* ============================================================
-           AURORA — cinematic gaming launcher
-           Animated aurora gradient backdrop, glowing centered logo,
-           rotating orbital ring loader, gradient title text, particle
-           dots. Riot/Epic/PlayStation launcher energy.
+           PLAY — big play-button game-launch screen
+           Dark backdrop with a soft orange spotlight. A LARGE circular
+           "play disc" sits in the center holding the logo, with a
+           rotating arc loader sweeping around its edge. Big chunky
+           title below, eyebrow above, status chips at the bottom that
+           tick on as steps complete. The feeling of "press start".
            ============================================================ */
-        .splash-aurora {
+        .splash-play {
             position: relative;
             width: 660px; height: 380px;
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
-            background: #050308;
-            font-family: 'Inter', system-ui, sans-serif;
+            background: #0a0c12;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             color: #f4f4f6;
             box-shadow:
                 inset 0 0 0 1px rgba(255,255,255,0.05),
-                0 30px 80px rgba(0,0,0,0.6);
+                0 30px 80px rgba(0,0,0,0.55);
         }
-        /* Aurora layered conic + linear */
-        .splash-aurora .aurora-bg {
-            position: absolute; inset: -50%;
-            background:
-                conic-gradient(from 180deg at 50% 50%,
-                    #ff6a00 0deg, #ff2d92 80deg,
-                    #6c33ff 160deg, #1a4dff 240deg,
-                    #ff6a00 360deg);
-            filter: blur(80px);
-            opacity: 0.55;
-            animation: aurora-spin 22s linear infinite;
-            pointer-events: none;
-        }
-        @keyframes aurora-spin {
-            0%   { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Dark vignette overlay */
-        .splash-aurora .vignette {
-            position: absolute; inset: 0;
-            background:
-                radial-gradient(ellipse at center, transparent 30%, rgba(5,3,8,0.85) 90%);
-            pointer-events: none;
-        }
-        /* Particle field — small dots */
-        .splash-aurora .stars {
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7), transparent),
-                radial-gradient(1px 1px at 28% 75%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1.5px 1.5px at 55% 32%, rgba(255,255,255,0.6), transparent),
-                radial-gradient(1px 1px at 78% 60%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1px 1px at 90% 22%, rgba(255,255,255,0.4), transparent),
-                radial-gradient(1px 1px at 42% 88%, rgba(255,255,255,0.6), transparent),
-                radial-gradient(1.5px 1.5px at 8% 58%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1px 1px at 67% 12%, rgba(255,255,255,0.4), transparent);
-            pointer-events: none;
-            animation: aurora-twinkle 4s ease-in-out infinite alternate;
-        }
-        @keyframes aurora-twinkle {
-            0%   { opacity: 0.6; }
-            100% { opacity: 1.0; }
-        }
-        /* Top brand row */
-        .splash-aurora .top {
+        /* Soft orange spotlight from above */
+        .splash-play .spotlight {
             position: absolute;
-            top: 24px; left: 30px; right: 30px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 3;
+            top: -120px; left: 50%;
+            transform: translateX(-50%);
+            width: 540px; height: 380px;
+            background: radial-gradient(ellipse, rgba(255,123,31,0.22) 0%, transparent 65%);
+            pointer-events: none;
         }
-        .splash-aurora .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 11px; font-weight: 600;
-            letter-spacing: 3px; text-transform: uppercase;
+        /* Subtle stud-grid floor */
+        .splash-play .floor {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 200px;
+            background-image:
+                linear-gradient(rgba(255,123,31,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,123,31,0.06) 1px, transparent 1px);
+            background-size: 36px 36px;
+            transform: perspective(400px) rotateX(50deg);
+            transform-origin: bottom;
+            mask-image: linear-gradient(180deg, transparent, black);
+            -webkit-mask-image: linear-gradient(180deg, transparent, black);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        /* Top bar */
+        .splash-play .top {
+            position: absolute;
+            top: 22px; left: 28px; right: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 4;
+        }
+        .splash-play .brand {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
             color: rgba(244,244,246,0.85);
         }
-        .splash-aurora .brand-glyph {
-            width: 6px; height: 6px;
+        .splash-play .brand .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
             background: #ff7b1f;
             border-radius: 50%;
+            margin-right: 8px;
             box-shadow: 0 0 10px rgba(255,123,31,0.8);
+            vertical-align: middle;
         }
-        .splash-aurora .ver {
+        .splash-play .ver {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             color: rgba(244,244,246,0.5);
             padding: 4px 10px;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
             border-radius: 999px;
-            background: rgba(0,0,0,0.3);
-            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.08);
         }
-        /* Centered logo + rotating orbital rings */
-        .splash-aurora .stage {
+        /* Eyebrow */
+        .splash-play .eyebrow {
             position: absolute;
-            top: 38%; left: 50%;
-            transform: translate(-50%, -50%);
+            top: 76px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ff9d4d;
+            letter-spacing: 4px;
+            text-transform: uppercase;
             z-index: 3;
-            width: 130px; height: 130px;
-            display: flex; align-items: center; justify-content: center;
         }
-        .splash-aurora .stage img {
-            max-width: 78px; max-height: 78px; object-fit: contain;
-            filter: drop-shadow(0 0 24px rgba(255,123,31,0.8))
-                    drop-shadow(0 0 40px rgba(255,45,146,0.4));
-            position: relative; z-index: 4;
-        }
-        .splash-aurora .orbit {
-            position: absolute; top: 50%; left: 50%;
-            width: 130px; height: 130px;
-            border-radius: 50%;
-            border: 1.5px solid transparent;
-            border-top-color: rgba(255,123,31,0.85);
-            border-right-color: rgba(255,45,146,0.55);
-            transform: translate(-50%, -50%);
-            animation: aurora-orbit 2.4s linear infinite;
-            box-shadow: 0 0 24px rgba(255,123,31,0.25);
-        }
-        .splash-aurora .orbit.o2 {
-            width: 160px; height: 160px;
-            border-top-color: transparent;
-            border-bottom-color: rgba(108,51,255,0.6);
-            border-left-color: rgba(26,77,255,0.4);
-            animation: aurora-orbit-rev 3.8s linear infinite;
-        }
-        @keyframes aurora-orbit {
-            0%   { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        @keyframes aurora-orbit-rev {
-            0%   { transform: translate(-50%, -50%) rotate(360deg); }
-            100% { transform: translate(-50%, -50%) rotate(0deg); }
-        }
-        /* Title with gradient text */
-        .splash-aurora .title-wrap {
+        /* Central play disc */
+        .splash-play .disc-wrap {
             position: absolute;
-            top: 70%; left: 0; right: 0;
+            top: 110px; left: 50%;
+            transform: translateX(-50%);
+            width: 130px; height: 130px;
+            z-index: 3;
+        }
+        .splash-play .disc {
+            position: absolute; inset: 14px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), transparent 55%),
+                linear-gradient(160deg, #ff8533 0%, #ff6a00 55%, #d54e00 100%);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow:
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -3px 0 rgba(0,0,0,0.25),
+                0 12px 36px rgba(255,123,31,0.45),
+                0 0 60px rgba(255,123,31,0.25);
+        }
+        .splash-play .disc img {
+            max-width: 64px; max-height: 64px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        }
+        .splash-play .disc.no-img::after {
+            content: '';
+            display: block;
+            width: 0; height: 0;
+            border-left: 28px solid #ffffff;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            margin-left: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        /* Rotating arc around disc */
+        .splash-play .arc {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: #ff7b1f;
+            border-right-color: rgba(255,123,31,0.45);
+            box-shadow: 0 0 20px rgba(255,123,31,0.3);
+            animation: pl-spin 1.6s linear infinite;
+        }
+        @keyframes pl-spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Title under the disc */
+        .splash-play .title-wrap {
+            position: absolute;
+            top: 250px; left: 0; right: 0;
             text-align: center;
             z-index: 3;
         }
-        .splash-aurora .title {
-            font-family: 'Playfair Display', serif;
-            font-weight: 800;
-            font-size: 38px;
-            letter-spacing: -0.5px;
+        .splash-play .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 32px;
+            letter-spacing: -0.8px;
             line-height: 1;
-            background: linear-gradient(180deg, #ffffff 0%, #ffd5b4 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            color: transparent;
-            margin-bottom: 6px;
-            text-shadow: 0 4px 30px rgba(255,123,31,0.3);
+            color: #ffffff;
+            text-shadow: 0 4px 20px rgba(255,123,31,0.3);
         }
-        .splash-aurora .subline {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(244,244,246,0.55);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-        /* Bottom status / progress */
-        .splash-aurora .bottom {
+        /* Status chip row at bottom */
+        .splash-play .chips {
             position: absolute;
-            bottom: 26px; left: 30px; right: 30px;
+            bottom: 22px; left: 0; right: 0;
+            display: flex; justify-content: center; gap: 6px;
             z-index: 3;
+            padding: 0 24px;
+            flex-wrap: nowrap;
         }
-        .splash-aurora .bottom-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(244,244,246,0.7);
-            letter-spacing: 1px;
+        .splash-play .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(244,244,246,0.55);
+            transition: all 0.4s ease;
         }
-        .splash-aurora .bottom-row .right { color: rgba(244,244,246,0.5); }
-        .splash-aurora .bottom-row .right b { color: #ff9d4d; font-weight: 600; }
-        .splash-aurora .status-text { transition: opacity 0.3s; }
-        .splash-aurora .track {
-            height: 3px;
-            background: rgba(255,255,255,0.07);
-            border-radius: 2px;
-            overflow: hidden;
-            position: relative;
+        .splash-play .chip.on {
+            background: rgba(255,123,31,0.15);
+            border-color: rgba(255,123,31,0.45);
+            color: #ffd5b4;
         }
-        .splash-aurora .track-fill {
-            position: absolute; top: 0; left: 0; bottom: 0;
-            width: 0%;
-            background: linear-gradient(90deg, #ff6a00, #ff2d92, #6c33ff);
-            background-size: 200% 100%;
-            border-radius: 2px;
-            box-shadow: 0 0 12px rgba(255,123,31,0.6);
-            animation: prism-shimmer 3s linear infinite;
-            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+        .splash-play .chip.active {
+            background: linear-gradient(135deg, #ff8533, #ff6a00);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(255,123,31,0.4);
         }
+        .splash-play .chip .ic {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 3px;
+            background: currentColor;
+            opacity: 0.7;
+        }
+        .splash-play .chip.on .ic, .splash-play .chip.active .ic { opacity: 1; }
+
 
     </style>
 </head>
@@ -1491,7 +1519,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Six designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Prism</strong>, <strong>Monolith</strong>, <strong>Aurora</strong>.<br>
+            Six designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1689,129 +1717,136 @@
     </section>
 
     <!-- ====================================================
-         PRISM — glassmorphism premium
+         PLAYHOUSE — Roblox app dark UI
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag prism">NEW · 4</span>
-            <span class="design-name">Prism</span>
+            <span class="design-tag playhouse">NEW · 4</span>
+            <span class="design-name">Playhouse</span>
         </div>
         <div class="design-desc">
-            Premium glassmorphism — the kind of splash you'd see on a paid macOS app or a high-end design tool. A slowly drifting orange / magenta / violet mesh-gradient backdrop sits behind a frosted glass card. The logo glows in the center with three concentric rings expanding outward as the loader. Title in clean sans, an uppercase tagline beneath, status line in mono, and a shimmering rainbow progress pill at the bottom of the card. Soft, luxurious, modern. Looks expensive without trying.
+            The look of the actual Roblox app loading screen — and the safest pick if you want it to feel familiar to anyone who plays Roblox. Deep navy panel with a faint stud-dot grid, a centered rounded "game card" holding the logo as a thumbnail with a glossy orange wash, big chunky white title under it, three bouncing stud-dots as the active loader, and a fat rounded pill progress bar at the bottom. Familiar, clean, premium.
         </div>
         <div class="design-stage">
-            <div class="splash-prism">
-                <div class="mesh"><div class="blob3"></div></div>
-                <div class="grain"></div>
-
-                <div class="glass">
-                    <div class="logo-orb">
-                        <span class="ring"></span>
-                        <span class="ring r2"></span>
-                        <span class="ring r3"></span>
-                        {% if splash_file %}
-                        <img src="/splash_logo_file" alt="Logo">
-                        {% endif %}
-                    </div>
-                    <div class="title" id="prism-title">{{ app_name or 'Roblox' }}</div>
-                    <div class="subtitle">Premium · Portable Launcher</div>
-                    <div class="status" id="prism-status">checking roblox files</div>
-                    <div class="pill"><div class="pill-fill" id="prism-fill"></div></div>
-                </div>
-
-                <div class="footnote">DENFI · v1.0.0 · LOADING</div>
-            </div>
-        </div>
-        <div class="design-meta">640 × 380 &nbsp;|&nbsp; mesh gradient · frosted glass · expanding rings</div>
-    </section>
-
-    <!-- ====================================================
-         MONOLITH — brutalist editorial
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag monolith">NEW · 5</span>
-            <span class="design-name">Monolith</span>
-        </div>
-        <div class="design-desc">
-            Brutalist / editorial — the look of a Bottega magazine spread or the Linear changelog. Ivory paper background with subtle grain. A massive italic Playfair "01" sits in the corner as background art. Top-left has a small orange brand mark and the logo. The hero is a stacked title in heavy black sans-serif with the last word in italic Playfair orange. Bottom: status in mono caps, percentage in italic serif, thick black progress bar with an orange leading edge. Confident, design-led, unmistakable.
-        </div>
-        <div class="design-stage">
-            <div class="splash-monolith">
-                <div class="bignum">01</div>
+            <div class="splash-playhouse">
+                <div class="grid"></div>
                 <div class="top">
-                    <div class="brand"><span class="brand-mark">D</span><span>Denfi · Premium</span></div>
-                    <div class="meta">// 2026 · v1.0.0</div>
-                </div>
-                {% if splash_file %}
-                <div class="logo-line"><img src="/splash_logo_file" alt="Logo"></div>
-                {% endif %}
-                <div class="hero">
-                    <div class="eyebrow">Now Loading</div>
-                    {% set _mname = (app_name or 'Roblox').split() %}
-                    {% if _mname|length >= 2 %}
-                    <div class="title">{{ _mname[:-1]|join(' ') }}<br><span class="ital">{{ _mname[-1] }}</span></div>
-                    {% else %}
-                    <div class="title"><span class="ital">{{ _mname[0] }}</span></div>
-                    {% endif %}
-                </div>
-                <div class="status-row">
-                    <div class="status-text" id="monolith-status">checking roblox files</div>
-                    <div class="pct" id="monolith-pct">0%</div>
-                </div>
-                <div class="bar"><div class="bar-fill" id="monolith-fill"></div></div>
-            </div>
-        </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; ivory paper · brutalist editorial · serif accent</div>
-    </section>
-
-    <!-- ====================================================
-         AURORA — cinematic gaming launcher
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag aurora">NEW · 6</span>
-            <span class="design-name">Aurora</span>
-        </div>
-        <div class="design-desc">
-            Cinematic gaming launcher — the energy of Riot, Epic, or PlayStation boot screens. A slowly rotating aurora-style conic gradient (orange → magenta → violet → blue) glows behind a dark vignette and a sparse star field. The logo sits in the center wrapped by two counter-rotating orbital arcs. The title is set in italic Playfair with a soft white-to-amber gradient and a warm halo. Bottom-third holds the status line, a percentage counter, and a slim shimmering progress track. Atmospheric, premium, and hard to look away from.
-        </div>
-        <div class="design-stage">
-            <div class="splash-aurora">
-                <div class="aurora-bg"></div>
-                <div class="vignette"></div>
-                <div class="stars"></div>
-
-                <div class="top">
-                    <div class="brand"><span class="brand-glyph"></span><span>Denfi Launcher</span></div>
+                    <div class="brand"><span class="brand-logo">D</span><span>Denfi Launcher</span></div>
                     <div class="ver">v1.0.0</div>
                 </div>
-
-                <div class="stage">
-                    <div class="orbit"></div>
-                    <div class="orbit o2"></div>
+                <div class="card">
                     {% if splash_file %}
                     <img src="/splash_logo_file" alt="Logo">
                     {% endif %}
                 </div>
-
                 <div class="title-wrap">
-                    <div class="title">{{ app_name or 'Roblox' }}</div>
-                    <div class="subline">Premium · Edition</div>
+                    <div class="title" id="playhouse-title">{{ app_name or 'Roblox' }}</div>
+                    <div class="subtitle">Premium <span class="premium">·</span> Portable Edition</div>
                 </div>
-
+                <div class="dots"><span></span><span></span><span></span></div>
                 <div class="bottom">
-                    <div class="bottom-row">
-                        <span class="status-text" id="aurora-status">checking roblox files</span>
-                        <span class="right"><b id="aurora-pct">0</b> / 100</span>
+                    <div class="status-row">
+                        <span class="status-text" id="playhouse-status">Checking Roblox files…</span>
+                        <span class="pct" id="playhouse-pct">0%</span>
                     </div>
-                    <div class="track"><div class="track-fill" id="aurora-fill"></div></div>
+                    <div class="pill"><div class="pill-fill" id="playhouse-fill"></div></div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; aurora gradient · orbital rings · cinematic</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; Roblox app dark · stud-grid · pill progress</div>
     </section>
 
+    <!-- ====================================================
+         SANDBOX — light, blocky, friendly
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag sandbox">NEW · 5</span>
+            <span class="design-name">Sandbox</span>
+        </div>
+        <div class="design-desc">
+            Cream-paper background with floating isometric orange "studs" drifting in the corners — playful but not childish. A clean white frosted card holds the logo, a small orange brand pill, the title in chunky friendly type with one orange word, and a row of seven building blocks that fill in left-to-right as the loader visualization. Bright, kid-friendly, designed to feel safe and inviting — perfect if your audience skews younger.
+        </div>
+        <div class="design-stage">
+            <div class="splash-sandbox">
+                <div class="floaters">
+                    <div class="stud s1"><div class="top"></div></div>
+                    <div class="stud s2"><div class="top"></div></div>
+                    <div class="stud s3"><div class="top"></div></div>
+                    <div class="stud s4"><div class="top"></div></div>
+                    <div class="stud s5"><div class="top"></div></div>
+                </div>
+                <div class="card">
+                    <div class="logo-row">
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                        <span class="brand-pill">Denfi · Premium</span>
+                    </div>
+                    {% set _sname = (app_name or 'Roblox').split() %}
+                    {% if _sname|length >= 2 %}
+                    <div class="title">{{ _sname[:-1]|join(' ') }} <span class="accent">{{ _sname[-1] }}</span></div>
+                    {% else %}
+                    <div class="title"><span class="accent">{{ _sname[0] }}</span></div>
+                    {% endif %}
+                    <div class="subtitle">Loading your portable launcher</div>
+                    <div class="blocks" id="sandbox-blocks">
+                        <div class="b"></div><div class="b"></div><div class="b"></div>
+                        <div class="b"></div><div class="b"></div><div class="b"></div>
+                        <div class="b"></div>
+                    </div>
+                    <div class="status-row">
+                        <div class="status-text"><span class="status-dot"></span><span id="sandbox-status">checking roblox files</span></div>
+                        <div class="pct" id="sandbox-pct">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; cream paper · floating studs · block-stacking loader</div>
+    </section>
+
+    <!-- ====================================================
+         PLAY — big play-button game-launch screen
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag play">NEW · 6</span>
+            <span class="design-name">Play</span>
+        </div>
+        <div class="design-desc">
+            Press-start energy — a perspective stud-grid floor recedes into a soft orange spotlight. A large round orange "play disc" sits in the center holding the logo, with a rotating arc loader sweeping around its edge. Big chunky white title underneath, eyebrow above. Bottom row is a sequence of status chips that tick on one at a time as steps complete (License → Files → Update → Patch → Ready). Feels like the moment right before a game starts.
+        </div>
+        <div class="design-stage">
+            <div class="splash-play">
+                <div class="spotlight"></div>
+                <div class="floor"></div>
+                <div class="top">
+                    <div class="brand"><span class="dot"></span>Denfi Launcher</div>
+                    <div class="ver">v1.0.0</div>
+                </div>
+                <div class="eyebrow">Now Loading Game</div>
+                <div class="disc-wrap">
+                    <div class="arc"></div>
+                    <div class="disc {% if not splash_file %}no-img{% endif %}">
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="title-wrap">
+                    <div class="title" id="play-title">{{ app_name or 'Roblox' }}</div>
+                </div>
+                <div class="chips" id="play-chips">
+                    <div class="chip" data-i="0"><span class="ic"></span>License</div>
+                    <div class="chip" data-i="1"><span class="ic"></span>Files</div>
+                    <div class="chip" data-i="2"><span class="ic"></span>Update</div>
+                    <div class="chip" data-i="3"><span class="ic"></span>Patch</div>
+                    <div class="chip" data-i="4"><span class="ic"></span>Ready</div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; perspective grid · play disc + arc · status chips</div>
+    </section>
 
     <script>
     (function() {
@@ -2041,51 +2076,54 @@
         }
         runConsole();
 
-        // PRISM — cycling status + smooth growing pill
-        var prismStatuses = [
-            'checking roblox files',
-            'verifying license',
-            'fetching latest update',
-            'preparing instance',
-            'almost ready'
+        // PLAYHOUSE — cycling status + percent + pill fill
+        var playhouseStatuses = [
+            'Checking Roblox files…',
+            'Verifying license…',
+            'Fetching latest update…',
+            'Preparing your instance…',
+            'Almost ready…'
         ];
-        var pStat = document.getElementById('prism-status');
-        var pFill = document.getElementById('prism-fill');
-        var pIdx = 0, pPct = 0;
-        function prismTick() {
-            pPct += 1.5 + Math.random() * 2.5;
-            if (pPct >= 100) {
-                pPct = 100;
-                if (pFill) pFill.style.width = '100%';
+        var phStat = document.getElementById('playhouse-status');
+        var phPct  = document.getElementById('playhouse-pct');
+        var phFill = document.getElementById('playhouse-fill');
+        var phIdx = 0, phP = 0;
+        function playhouseTick() {
+            phP += 1.5 + Math.random() * 2.5;
+            if (phP >= 100) {
+                phP = 100;
+                if (phFill) phFill.style.width = '100%';
+                if (phPct)  phPct.textContent  = '100%';
                 setTimeout(function() {
-                    pPct = 0;
-                    if (pFill) {
-                        pFill.style.transition = 'none';
-                        pFill.style.width = '0%';
+                    phP = 0;
+                    if (phFill) {
+                        phFill.style.transition = 'none';
+                        phFill.style.width = '0%';
                     }
                     setTimeout(function() {
-                        if (pFill) pFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
+                        if (phFill) phFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
                     }, 50);
                 }, 1400);
                 return;
             }
-            if (pFill) pFill.style.width = pPct + '%';
+            if (phFill) phFill.style.width = phP + '%';
+            if (phPct)  phPct.textContent  = Math.floor(phP) + '%';
         }
-        setInterval(prismTick, 240);
+        setInterval(playhouseTick, 220);
         setInterval(function() {
-            if (!pStat) return;
-            pIdx = (pIdx + 1) % prismStatuses.length;
-            pStat.style.opacity = '0';
+            if (!phStat) return;
+            phIdx = (phIdx + 1) % playhouseStatuses.length;
+            phStat.style.opacity = '0';
             setTimeout(function() {
-                pStat.textContent = prismStatuses[pIdx];
-                pStat.style.opacity = '1';
+                phStat.textContent = playhouseStatuses[phIdx];
+                phStat.style.opacity = '1';
             }, 250);
         }, 2200);
-        // Auto-fit prism title if too wide for the glass card
+        // auto-fit playhouse title for long names
         (function() {
-            var t = document.getElementById('prism-title');
+            var t = document.getElementById('playhouse-title');
             if (!t) return;
-            var maxW = 360;
+            var maxW = 600;
             var size = parseFloat(getComputedStyle(t).fontSize);
             var guard = 0;
             while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
@@ -2094,118 +2132,81 @@
             }
         })();
 
-        // MONOLITH — cycling status + percent + black bar
-        var monolithStatuses = [
+        // SANDBOX — block-stacking loader + status + percent
+        var sandboxStatuses = [
             'checking roblox files',
             'verifying license',
             'fetching latest update',
             'preparing instance',
             'almost ready'
         ];
-        var mlStat = document.getElementById('monolith-status');
-        var mlPct  = document.getElementById('monolith-pct');
-        var mlFill = document.getElementById('monolith-fill');
-        var mlIdx = 0, mlP = 0;
-        function monolithTick() {
-            mlP += 1.5 + Math.random() * 2;
-            if (mlP >= 100) {
-                mlP = 100;
-                if (mlFill) mlFill.style.width = '100%';
-                if (mlPct)  mlPct.textContent  = '100%';
+        var sbStat   = document.getElementById('sandbox-status');
+        var sbPct    = document.getElementById('sandbox-pct');
+        var sbBlocks = document.getElementById('sandbox-blocks');
+        var sbBlockEls = sbBlocks ? sbBlocks.querySelectorAll('.b') : [];
+        var sbIdx = 0, sbP = 0;
+        function sandboxTick() {
+            sbP += 1.5 + Math.random() * 2;
+            if (sbP >= 100) {
+                sbP = 100;
+                if (sbPct) sbPct.textContent = '100%';
+                sbBlockEls.forEach(function(b) { b.classList.add('on'); });
                 setTimeout(function() {
-                    mlP = 0;
-                    if (mlFill) {
-                        mlFill.style.transition = 'none';
-                        mlFill.style.width = '0%';
-                    }
-                    setTimeout(function() {
-                        if (mlFill) mlFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
-                    }, 50);
+                    sbP = 0;
+                    sbBlockEls.forEach(function(b) { b.classList.remove('on'); });
                 }, 1400);
                 return;
             }
-            if (mlFill) mlFill.style.width = mlP + '%';
-            if (mlPct)  mlPct.textContent  = Math.floor(mlP) + '%';
+            if (sbPct) sbPct.textContent = Math.floor(sbP) + '%';
+            var on = Math.round((sbP / 100) * sbBlockEls.length);
+            sbBlockEls.forEach(function(b, i) {
+                if (i < on) b.classList.add('on');
+                else        b.classList.remove('on');
+            });
         }
-        setInterval(monolithTick, 220);
+        setInterval(sandboxTick, 220);
         setInterval(function() {
-            if (!mlStat) return;
-            mlIdx = (mlIdx + 1) % monolithStatuses.length;
-            mlStat.style.opacity = '0';
+            if (!sbStat) return;
+            sbIdx = (sbIdx + 1) % sandboxStatuses.length;
+            sbStat.style.opacity = '0';
             setTimeout(function() {
-                mlStat.textContent = monolithStatuses[mlIdx];
-                mlStat.style.opacity = '1';
+                sbStat.textContent = sandboxStatuses[sbIdx];
+                sbStat.style.opacity = '1';
             }, 250);
         }, 2200);
-        // Auto-fit monolith hero title (it can grow with long names)
-        (function() {
-            var t = document.querySelector('.splash-monolith .hero .title');
-            if (!t) return;
-            var parent = t.parentElement;
-            var maxW = parent.offsetWidth;
-            var size = parseFloat(getComputedStyle(t).fontSize);
-            var guard = 0;
-            while (size >= 36 && t.scrollWidth > maxW && guard++ < 30) {
-                size -= 3;
-                t.style.fontSize = size + 'px';
-            }
-        })();
 
-        // AURORA — cycling status + percent + shimmer track
-        var auroraStatuses = [
-            'checking roblox files',
-            'verifying license',
-            'fetching latest update',
-            'preparing instance',
-            'almost ready'
-        ];
-        var aStat = document.getElementById('aurora-status');
-        var aPct  = document.getElementById('aurora-pct');
-        var aFill = document.getElementById('aurora-fill');
-        var aIdx = 0, aP = 0;
-        function auroraTick() {
-            aP += 1.5 + Math.random() * 2.5;
-            if (aP >= 100) {
-                aP = 100;
-                if (aFill) aFill.style.width = '100%';
-                if (aPct)  aPct.textContent  = '100';
-                setTimeout(function() {
-                    aP = 0;
-                    if (aFill) {
-                        aFill.style.transition = 'none';
-                        aFill.style.width = '0%';
-                    }
-                    setTimeout(function() {
-                        if (aFill) aFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
-                    }, 50);
-                }, 1400);
-                return;
+        // PLAY — chip-by-chip activation
+        var playChipsEl = document.getElementById('play-chips');
+        var playChips = playChipsEl ? playChipsEl.querySelectorAll('.chip') : [];
+        var playIdx = 0;
+        function playTick() {
+            if (!playChips.length) return;
+            // Reset all
+            playChips.forEach(function(c) { c.classList.remove('on'); c.classList.remove('active'); });
+            // Mark all up to current as 'on', current as 'active'
+            for (var i = 0; i < playIdx; i++) playChips[i].classList.add('on');
+            if (playIdx < playChips.length) playChips[playIdx].classList.add('active');
+            playIdx++;
+            if (playIdx > playChips.length) {
+                // fully done — keep all 'on' for a beat then restart
+                playChips.forEach(function(c) { c.classList.remove('active'); c.classList.add('on'); });
+                setTimeout(function() { playIdx = 0; }, 1400);
             }
-            if (aFill) aFill.style.width = aP + '%';
-            if (aPct)  aPct.textContent  = String(Math.floor(aP)).padStart(2, '0');
         }
-        setInterval(auroraTick, 230);
-        setInterval(function() {
-            if (!aStat) return;
-            aIdx = (aIdx + 1) % auroraStatuses.length;
-            aStat.style.opacity = '0';
-            setTimeout(function() {
-                aStat.textContent = auroraStatuses[aIdx];
-                aStat.style.opacity = '1';
-            }, 250);
-        }, 2200);
-        // Auto-fit aurora title
+        setInterval(playTick, 1200);
+        // auto-fit play title
         (function() {
-            var t = document.querySelector('.splash-aurora .title');
+            var t = document.getElementById('play-title');
             if (!t) return;
-            var maxW = 580;
+            var maxW = 600;
             var size = parseFloat(getComputedStyle(t).fontSize);
             var guard = 0;
-            while (size >= 22 && t.scrollWidth > maxW && guard++ < 30) {
+            while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
                 size -= 2;
                 t.style.fontSize = size + 'px';
             }
         })();
+
 
     })();
     </script>
