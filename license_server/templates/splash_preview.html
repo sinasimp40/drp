@@ -72,6 +72,9 @@
         .design-tag.new      { color: #ff9d4d; border-color: #5a3115; }
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console  { color: #8ad8ff; border-color: #1d4566; }
+        .design-tag.prism    { color: #ff7eb6; border-color: #5e2548; }
+        .design-tag.monolith { color: #f4f4f6; border-color: #444; background: #1a1a22; }
+        .design-tag.aurora   { color: #c5a3ff; border-color: #3a2a5a; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -962,6 +965,525 @@
         }
         .splash-grid .pct b { color: #9affd4; font-weight: 500; }
 
+        /* ============================================================
+           PRISM — glassmorphism, premium Apple-style
+           Mesh-gradient backdrop, frosted card centered, expanding rings
+           around the logo as the loader. Soft, luxurious, modern.
+           ============================================================ */
+        .splash-prism {
+            position: relative;
+            width: 640px; height: 380px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #07060c;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.06),
+                0 30px 80px rgba(0,0,0,0.55);
+        }
+        /* Mesh gradient background — three blurred orbs */
+        .splash-prism .mesh {
+            position: absolute; inset: 0; pointer-events: none;
+            filter: blur(60px);
+            opacity: 0.85;
+        }
+        .splash-prism .mesh::before,
+        .splash-prism .mesh::after,
+        .splash-prism .mesh > .blob3 {
+            content: ''; position: absolute; border-radius: 50%;
+        }
+        .splash-prism .mesh::before {
+            width: 360px; height: 360px;
+            top: -100px; left: -80px;
+            background: radial-gradient(circle, #ff6a00 0%, transparent 70%);
+            animation: prism-drift1 14s ease-in-out infinite;
+        }
+        .splash-prism .mesh::after {
+            width: 380px; height: 380px;
+            bottom: -120px; right: -100px;
+            background: radial-gradient(circle, #ff2d92 0%, transparent 70%);
+            animation: prism-drift2 16s ease-in-out infinite;
+        }
+        .splash-prism .mesh > .blob3 {
+            width: 320px; height: 320px;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, #6c33ff 0%, transparent 70%);
+            opacity: 0.55;
+            animation: prism-drift3 18s ease-in-out infinite;
+        }
+        @keyframes prism-drift1 {
+            0%,100% { transform: translate(0,0) scale(1); }
+            50%     { transform: translate(60px,40px) scale(1.15); }
+        }
+        @keyframes prism-drift2 {
+            0%,100% { transform: translate(0,0) scale(1); }
+            50%     { transform: translate(-50px,-30px) scale(1.1); }
+        }
+        @keyframes prism-drift3 {
+            0%,100% { transform: translate(-50%,-50%) scale(1); }
+            50%     { transform: translate(-40%,-60%) scale(1.2); }
+        }
+        /* Subtle grain on top */
+        .splash-prism .grain {
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.4;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+        /* Frosted glass card centered */
+        .splash-prism .glass {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            padding: 36px 40px 30px;
+            border-radius: 22px;
+            background: rgba(20, 18, 32, 0.45);
+            backdrop-filter: blur(28px) saturate(140%);
+            -webkit-backdrop-filter: blur(28px) saturate(140%);
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.10),
+                0 20px 60px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        /* Logo with expanding rings around it */
+        .splash-prism .logo-orb {
+            position: relative;
+            width: 92px; height: 92px;
+            margin: 0 auto 22px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-prism .logo-orb img {
+            max-width: 70px; max-height: 70px; object-fit: contain;
+            filter: drop-shadow(0 0 18px rgba(255,123,31,0.6));
+            position: relative; z-index: 2;
+        }
+        .splash-prism .logo-orb .ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 92px; height: 92px;
+            border: 1.5px solid rgba(255,180,140,0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0;
+            animation: prism-ring 3s ease-out infinite;
+        }
+        .splash-prism .logo-orb .ring.r2 { animation-delay: 1s; }
+        .splash-prism .logo-orb .ring.r3 { animation-delay: 2s; }
+        @keyframes prism-ring {
+            0%   { transform: translate(-50%,-50%) scale(0.7); opacity: 0.7; }
+            100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
+        }
+        .splash-prism .title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.8px;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .splash-prism .subtitle {
+            font-size: 12px;
+            color: rgba(244,244,246,0.6);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+        .splash-prism .status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            margin-bottom: 14px;
+            transition: opacity 0.3s;
+        }
+        .splash-prism .pill {
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .splash-prism .pill-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6a00, #ff2d92, #6c33ff);
+            background-size: 200% 100%;
+            border-radius: 999px;
+            box-shadow: 0 0 14px rgba(255,123,31,0.5);
+            animation: prism-shimmer 3s linear infinite;
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes prism-shimmer {
+            0%   { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+        .splash-prism .footnote {
+            position: absolute;
+            bottom: 14px; left: 0; right: 0;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(244,244,246,0.35);
+            letter-spacing: 2px;
+        }
+
+        /* ============================================================
+           MONOLITH — brutalist editorial
+           Massive vertical version number on the right as background art.
+           Logo + brand top-left, BIG stacked title left, thick orange bar
+           progress at bottom. Bottega/SSENSE/Linear changelog energy.
+           ============================================================ */
+        .splash-monolith {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f4f1ea;
+            color: #0a0a0e;
+            font-family: 'Inter', system-ui, sans-serif;
+            box-shadow:
+                inset 0 0 0 1px rgba(0,0,0,0.06),
+                0 30px 80px rgba(0,0,0,0.45);
+        }
+        /* paper grain */
+        .splash-monolith::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+        /* Big number background art */
+        .splash-monolith .bignum {
+            position: absolute;
+            top: -30px;
+            right: -22px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            font-style: italic;
+            font-size: 380px;
+            line-height: 0.85;
+            color: #0a0a0e;
+            opacity: 0.07;
+            letter-spacing: -16px;
+            user-select: none;
+            pointer-events: none;
+        }
+        /* Top-left brand row */
+        .splash-monolith .top {
+            position: absolute;
+            top: 26px; left: 30px; right: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 2;
+        }
+        .splash-monolith .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #0a0a0e;
+        }
+        .splash-monolith .brand-mark {
+            width: 22px; height: 22px;
+            background: #ff6a00;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .splash-monolith .top .meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(10,10,14,0.55);
+            letter-spacing: 1.5px;
+        }
+        /* Logo small, top-left under brand */
+        .splash-monolith .logo-line {
+            position: absolute;
+            top: 64px; left: 30px;
+            z-index: 2;
+        }
+        .splash-monolith .logo-line img {
+            max-height: 28px; max-width: 180px;
+            object-fit: contain;
+            opacity: 0.85;
+        }
+        /* Hero title — stacked, ENORMOUS */
+        .splash-monolith .hero {
+            position: absolute;
+            left: 30px;
+            bottom: 96px;
+            right: 280px;
+            z-index: 2;
+        }
+        .splash-monolith .hero .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #ff6a00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .splash-monolith .hero .title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 78px;
+            line-height: 0.88;
+            letter-spacing: -4px;
+            color: #0a0a0e;
+        }
+        .splash-monolith .hero .title .ital {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            font-style: italic;
+            color: #ff6a00;
+            letter-spacing: -3px;
+        }
+        /* Status row above progress */
+        .splash-monolith .status-row {
+            position: absolute;
+            bottom: 50px; left: 30px; right: 30px;
+            display: flex; justify-content: space-between; align-items: baseline;
+            z-index: 2;
+        }
+        .splash-monolith .status-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(10,10,14,0.7);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: opacity 0.3s;
+        }
+        .splash-monolith .pct {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 700;
+            font-size: 22px;
+            color: #ff6a00;
+            letter-spacing: -0.5px;
+        }
+        /* Thick bar progress */
+        .splash-monolith .bar {
+            position: absolute;
+            bottom: 22px; left: 30px; right: 30px;
+            height: 14px;
+            background: rgba(10,10,14,0.08);
+            overflow: hidden;
+            z-index: 2;
+        }
+        .splash-monolith .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #0a0a0e;
+            position: relative;
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .splash-monolith .bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 40px;
+            background: linear-gradient(90deg, transparent, #ff6a00);
+        }
+
+        /* ============================================================
+           AURORA — cinematic gaming launcher
+           Animated aurora gradient backdrop, glowing centered logo,
+           rotating orbital ring loader, gradient title text, particle
+           dots. Riot/Epic/PlayStation launcher energy.
+           ============================================================ */
+        .splash-aurora {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #050308;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 80px rgba(0,0,0,0.6);
+        }
+        /* Aurora layered conic + linear */
+        .splash-aurora .aurora-bg {
+            position: absolute; inset: -50%;
+            background:
+                conic-gradient(from 180deg at 50% 50%,
+                    #ff6a00 0deg, #ff2d92 80deg,
+                    #6c33ff 160deg, #1a4dff 240deg,
+                    #ff6a00 360deg);
+            filter: blur(80px);
+            opacity: 0.55;
+            animation: aurora-spin 22s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes aurora-spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Dark vignette overlay */
+        .splash-aurora .vignette {
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at center, transparent 30%, rgba(5,3,8,0.85) 90%);
+            pointer-events: none;
+        }
+        /* Particle field — small dots */
+        .splash-aurora .stars {
+            position: absolute; inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1px 1px at 28% 75%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1.5px 1.5px at 55% 32%, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 78% 60%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 90% 22%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 42% 88%, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1.5px 1.5px at 8% 58%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 67% 12%, rgba(255,255,255,0.4), transparent);
+            pointer-events: none;
+            animation: aurora-twinkle 4s ease-in-out infinite alternate;
+        }
+        @keyframes aurora-twinkle {
+            0%   { opacity: 0.6; }
+            100% { opacity: 1.0; }
+        }
+        /* Top brand row */
+        .splash-aurora .top {
+            position: absolute;
+            top: 24px; left: 30px; right: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 3;
+        }
+        .splash-aurora .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(244,244,246,0.85);
+        }
+        .splash-aurora .brand-glyph {
+            width: 6px; height: 6px;
+            background: #ff7b1f;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,123,31,0.8);
+        }
+        .splash-aurora .ver {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.5);
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(8px);
+        }
+        /* Centered logo + rotating orbital rings */
+        .splash-aurora .stage {
+            position: absolute;
+            top: 38%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            width: 130px; height: 130px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .splash-aurora .stage img {
+            max-width: 78px; max-height: 78px; object-fit: contain;
+            filter: drop-shadow(0 0 24px rgba(255,123,31,0.8))
+                    drop-shadow(0 0 40px rgba(255,45,146,0.4));
+            position: relative; z-index: 4;
+        }
+        .splash-aurora .orbit {
+            position: absolute; top: 50%; left: 50%;
+            width: 130px; height: 130px;
+            border-radius: 50%;
+            border: 1.5px solid transparent;
+            border-top-color: rgba(255,123,31,0.85);
+            border-right-color: rgba(255,45,146,0.55);
+            transform: translate(-50%, -50%);
+            animation: aurora-orbit 2.4s linear infinite;
+            box-shadow: 0 0 24px rgba(255,123,31,0.25);
+        }
+        .splash-aurora .orbit.o2 {
+            width: 160px; height: 160px;
+            border-top-color: transparent;
+            border-bottom-color: rgba(108,51,255,0.6);
+            border-left-color: rgba(26,77,255,0.4);
+            animation: aurora-orbit-rev 3.8s linear infinite;
+        }
+        @keyframes aurora-orbit {
+            0%   { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes aurora-orbit-rev {
+            0%   { transform: translate(-50%, -50%) rotate(360deg); }
+            100% { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+        /* Title with gradient text */
+        .splash-aurora .title-wrap {
+            position: absolute;
+            top: 70%; left: 0; right: 0;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-aurora .title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            font-size: 38px;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            background: linear-gradient(180deg, #ffffff 0%, #ffd5b4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            margin-bottom: 6px;
+            text-shadow: 0 4px 30px rgba(255,123,31,0.3);
+        }
+        .splash-aurora .subline {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: rgba(244,244,246,0.55);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        /* Bottom status / progress */
+        .splash-aurora .bottom {
+            position: absolute;
+            bottom: 26px; left: 30px; right: 30px;
+            z-index: 3;
+        }
+        .splash-aurora .bottom-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            letter-spacing: 1px;
+        }
+        .splash-aurora .bottom-row .right { color: rgba(244,244,246,0.5); }
+        .splash-aurora .bottom-row .right b { color: #ff9d4d; font-weight: 600; }
+        .splash-aurora .status-text { transition: opacity 0.3s; }
+        .splash-aurora .track {
+            height: 3px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        .splash-aurora .track-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6a00, #ff2d92, #6c33ff);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            box-shadow: 0 0 12px rgba(255,123,31,0.6);
+            animation: prism-shimmer 3s linear infinite;
+            transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+
     </style>
 </head>
 <body>
@@ -969,7 +1491,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Three locked designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>.<br>
+            Six designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Prism</strong>, <strong>Monolith</strong>, <strong>Aurora</strong>.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -1164,6 +1686,130 @@
             </div>
         </div>
         <div class="design-meta">660 × 380 &nbsp;|&nbsp; titlebar + traffic lights + streaming command output</div>
+    </section>
+
+    <!-- ====================================================
+         PRISM — glassmorphism premium
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag prism">NEW · 4</span>
+            <span class="design-name">Prism</span>
+        </div>
+        <div class="design-desc">
+            Premium glassmorphism — the kind of splash you'd see on a paid macOS app or a high-end design tool. A slowly drifting orange / magenta / violet mesh-gradient backdrop sits behind a frosted glass card. The logo glows in the center with three concentric rings expanding outward as the loader. Title in clean sans, an uppercase tagline beneath, status line in mono, and a shimmering rainbow progress pill at the bottom of the card. Soft, luxurious, modern. Looks expensive without trying.
+        </div>
+        <div class="design-stage">
+            <div class="splash-prism">
+                <div class="mesh"><div class="blob3"></div></div>
+                <div class="grain"></div>
+
+                <div class="glass">
+                    <div class="logo-orb">
+                        <span class="ring"></span>
+                        <span class="ring r2"></span>
+                        <span class="ring r3"></span>
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                    </div>
+                    <div class="title" id="prism-title">{{ app_name or 'Roblox' }}</div>
+                    <div class="subtitle">Premium · Portable Launcher</div>
+                    <div class="status" id="prism-status">checking roblox files</div>
+                    <div class="pill"><div class="pill-fill" id="prism-fill"></div></div>
+                </div>
+
+                <div class="footnote">DENFI · v1.0.0 · LOADING</div>
+            </div>
+        </div>
+        <div class="design-meta">640 × 380 &nbsp;|&nbsp; mesh gradient · frosted glass · expanding rings</div>
+    </section>
+
+    <!-- ====================================================
+         MONOLITH — brutalist editorial
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag monolith">NEW · 5</span>
+            <span class="design-name">Monolith</span>
+        </div>
+        <div class="design-desc">
+            Brutalist / editorial — the look of a Bottega magazine spread or the Linear changelog. Ivory paper background with subtle grain. A massive italic Playfair "01" sits in the corner as background art. Top-left has a small orange brand mark and the logo. The hero is a stacked title in heavy black sans-serif with the last word in italic Playfair orange. Bottom: status in mono caps, percentage in italic serif, thick black progress bar with an orange leading edge. Confident, design-led, unmistakable.
+        </div>
+        <div class="design-stage">
+            <div class="splash-monolith">
+                <div class="bignum">01</div>
+                <div class="top">
+                    <div class="brand"><span class="brand-mark">D</span><span>Denfi · Premium</span></div>
+                    <div class="meta">// 2026 · v1.0.0</div>
+                </div>
+                {% if splash_file %}
+                <div class="logo-line"><img src="/splash_logo_file" alt="Logo"></div>
+                {% endif %}
+                <div class="hero">
+                    <div class="eyebrow">Now Loading</div>
+                    {% set _mname = (app_name or 'Roblox').split() %}
+                    {% if _mname|length >= 2 %}
+                    <div class="title">{{ _mname[:-1]|join(' ') }}<br><span class="ital">{{ _mname[-1] }}</span></div>
+                    {% else %}
+                    <div class="title"><span class="ital">{{ _mname[0] }}</span></div>
+                    {% endif %}
+                </div>
+                <div class="status-row">
+                    <div class="status-text" id="monolith-status">checking roblox files</div>
+                    <div class="pct" id="monolith-pct">0%</div>
+                </div>
+                <div class="bar"><div class="bar-fill" id="monolith-fill"></div></div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; ivory paper · brutalist editorial · serif accent</div>
+    </section>
+
+    <!-- ====================================================
+         AURORA — cinematic gaming launcher
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag aurora">NEW · 6</span>
+            <span class="design-name">Aurora</span>
+        </div>
+        <div class="design-desc">
+            Cinematic gaming launcher — the energy of Riot, Epic, or PlayStation boot screens. A slowly rotating aurora-style conic gradient (orange → magenta → violet → blue) glows behind a dark vignette and a sparse star field. The logo sits in the center wrapped by two counter-rotating orbital arcs. The title is set in italic Playfair with a soft white-to-amber gradient and a warm halo. Bottom-third holds the status line, a percentage counter, and a slim shimmering progress track. Atmospheric, premium, and hard to look away from.
+        </div>
+        <div class="design-stage">
+            <div class="splash-aurora">
+                <div class="aurora-bg"></div>
+                <div class="vignette"></div>
+                <div class="stars"></div>
+
+                <div class="top">
+                    <div class="brand"><span class="brand-glyph"></span><span>Denfi Launcher</span></div>
+                    <div class="ver">v1.0.0</div>
+                </div>
+
+                <div class="stage">
+                    <div class="orbit"></div>
+                    <div class="orbit o2"></div>
+                    {% if splash_file %}
+                    <img src="/splash_logo_file" alt="Logo">
+                    {% endif %}
+                </div>
+
+                <div class="title-wrap">
+                    <div class="title">{{ app_name or 'Roblox' }}</div>
+                    <div class="subline">Premium · Edition</div>
+                </div>
+
+                <div class="bottom">
+                    <div class="bottom-row">
+                        <span class="status-text" id="aurora-status">checking roblox files</span>
+                        <span class="right"><b id="aurora-pct">0</b> / 100</span>
+                    </div>
+                    <div class="track"><div class="track-fill" id="aurora-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; aurora gradient · orbital rings · cinematic</div>
     </section>
 
 
@@ -1395,4 +2041,173 @@
         }
         runConsole();
 
+        // PRISM — cycling status + smooth growing pill
+        var prismStatuses = [
+            'checking roblox files',
+            'verifying license',
+            'fetching latest update',
+            'preparing instance',
+            'almost ready'
+        ];
+        var pStat = document.getElementById('prism-status');
+        var pFill = document.getElementById('prism-fill');
+        var pIdx = 0, pPct = 0;
+        function prismTick() {
+            pPct += 1.5 + Math.random() * 2.5;
+            if (pPct >= 100) {
+                pPct = 100;
+                if (pFill) pFill.style.width = '100%';
+                setTimeout(function() {
+                    pPct = 0;
+                    if (pFill) {
+                        pFill.style.transition = 'none';
+                        pFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (pFill) pFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (pFill) pFill.style.width = pPct + '%';
+        }
+        setInterval(prismTick, 240);
+        setInterval(function() {
+            if (!pStat) return;
+            pIdx = (pIdx + 1) % prismStatuses.length;
+            pStat.style.opacity = '0';
+            setTimeout(function() {
+                pStat.textContent = prismStatuses[pIdx];
+                pStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit prism title if too wide for the glass card
+        (function() {
+            var t = document.getElementById('prism-title');
+            if (!t) return;
+            var maxW = 360;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 2;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+        // MONOLITH — cycling status + percent + black bar
+        var monolithStatuses = [
+            'checking roblox files',
+            'verifying license',
+            'fetching latest update',
+            'preparing instance',
+            'almost ready'
+        ];
+        var mlStat = document.getElementById('monolith-status');
+        var mlPct  = document.getElementById('monolith-pct');
+        var mlFill = document.getElementById('monolith-fill');
+        var mlIdx = 0, mlP = 0;
+        function monolithTick() {
+            mlP += 1.5 + Math.random() * 2;
+            if (mlP >= 100) {
+                mlP = 100;
+                if (mlFill) mlFill.style.width = '100%';
+                if (mlPct)  mlPct.textContent  = '100%';
+                setTimeout(function() {
+                    mlP = 0;
+                    if (mlFill) {
+                        mlFill.style.transition = 'none';
+                        mlFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (mlFill) mlFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (mlFill) mlFill.style.width = mlP + '%';
+            if (mlPct)  mlPct.textContent  = Math.floor(mlP) + '%';
+        }
+        setInterval(monolithTick, 220);
+        setInterval(function() {
+            if (!mlStat) return;
+            mlIdx = (mlIdx + 1) % monolithStatuses.length;
+            mlStat.style.opacity = '0';
+            setTimeout(function() {
+                mlStat.textContent = monolithStatuses[mlIdx];
+                mlStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit monolith hero title (it can grow with long names)
+        (function() {
+            var t = document.querySelector('.splash-monolith .hero .title');
+            if (!t) return;
+            var parent = t.parentElement;
+            var maxW = parent.offsetWidth;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 36 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 3;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+        // AURORA — cycling status + percent + shimmer track
+        var auroraStatuses = [
+            'checking roblox files',
+            'verifying license',
+            'fetching latest update',
+            'preparing instance',
+            'almost ready'
+        ];
+        var aStat = document.getElementById('aurora-status');
+        var aPct  = document.getElementById('aurora-pct');
+        var aFill = document.getElementById('aurora-fill');
+        var aIdx = 0, aP = 0;
+        function auroraTick() {
+            aP += 1.5 + Math.random() * 2.5;
+            if (aP >= 100) {
+                aP = 100;
+                if (aFill) aFill.style.width = '100%';
+                if (aPct)  aPct.textContent  = '100';
+                setTimeout(function() {
+                    aP = 0;
+                    if (aFill) {
+                        aFill.style.transition = 'none';
+                        aFill.style.width = '0%';
+                    }
+                    setTimeout(function() {
+                        if (aFill) aFill.style.transition = 'width 0.4s cubic-bezier(0.4,0,0.2,1)';
+                    }, 50);
+                }, 1400);
+                return;
+            }
+            if (aFill) aFill.style.width = aP + '%';
+            if (aPct)  aPct.textContent  = String(Math.floor(aP)).padStart(2, '0');
+        }
+        setInterval(auroraTick, 230);
+        setInterval(function() {
+            if (!aStat) return;
+            aIdx = (aIdx + 1) % auroraStatuses.length;
+            aStat.style.opacity = '0';
+            setTimeout(function() {
+                aStat.textContent = auroraStatuses[aIdx];
+                aStat.style.opacity = '1';
+            }, 250);
+        }, 2200);
+        // Auto-fit aurora title
+        (function() {
+            var t = document.querySelector('.splash-aurora .title');
+            if (!t) return;
+            var maxW = 580;
+            var size = parseFloat(getComputedStyle(t).fontSize);
+            var guard = 0;
+            while (size >= 22 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 2;
+                t.style.fontSize = size + 'px';
+            }
+        })();
+
+    })();
+    </script>
+</body>
 </html>
