@@ -314,7 +314,7 @@ body {
     // skip when the event came from the hidden input itself, because that
     // path is already handled by the 'input' listener below — without this
     // guard every keystroke would be counted twice (once via keydown
-    // bubbling and once via input), turning "zxc1" into "zzxxcc11".
+    // bubbling and once via input), doubling each character.
     document.addEventListener('keydown', function(e){
         if (revealed) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;

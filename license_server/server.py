@@ -1284,7 +1284,7 @@ def _serve_disguise_login():
 
 
 def login_unlock_direct():
-    """Direct-access login form behind a secret URL (e.g. /zxc1). The URL
+    """Direct-access login form behind a secret URL. The URL
     path itself is the unlock secret, so anyone hitting this route has
     already proven they know it — render the real form straight away.
     Primarily for mobile, where the keystroke unlock on /login is awkward
@@ -1296,7 +1296,7 @@ def login_unlock_direct():
 
 
 def _register_unlock_shortcut_route():
-    """Mount login_unlock_direct at /<ADMIN_UNLOCK_SECRET> (e.g. /zxc1).
+    """Mount login_unlock_direct at /<ADMIN_UNLOCK_SECRET>.
     Skipped silently if the secret isn't a clean URL slug — admins who
     use weird characters lose only the mobile shortcut, not access (the
     /login disguise still works)."""
