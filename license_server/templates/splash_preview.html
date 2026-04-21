@@ -73,8 +73,8 @@
         .design-tag.horizon  { color: #ffb060; border-color: #6a3a18; }
         .design-tag.console    { color: #8ad8ff; border-color: #1d4566; }
         .design-tag.checkpoint { color: #6ed1ff; border-color: #1f4f73; }
-        .design-tag.neon       { color: #ff6ed8; border-color: #5a1d4a; }
-        .design-tag.card       { color: #ffd07a; border-color: #5e3f1c; }
+        .design-tag.ticket     { color: #ffd97a; border-color: #6b4f1c; }
+        .design-tag.crate      { color: #ffaa6e; border-color: #6b3a1c; }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -1800,417 +1800,479 @@
             border: 1px solid rgba(255,255,255,0.3);
         }
 
-        /* ============================================================
-           NEON — arcade / Tower of Hell tournament vibe
-           Dark navy with a subtle hex-grid backdrop, a centered card
-           outlined in glowing magenta and orange neon, big glowing
-           title that looks lit up. Eyebrow "SYSTEM ONLINE" in cyan
-           mono, energy-bar progress with a pulsing edge. Edgier,
-           "esports" Roblox energy without losing polish.
-           ============================================================ */
-        .splash-neon {
-            position: relative;
-            width: 660px; height: 380px;
-            border-radius: 14px;
-            overflow: hidden;
-            background:
-                radial-gradient(ellipse at center, #131428 0%, #06070d 75%);
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            color: #f4f4f6;
-            box-shadow:
-                inset 0 0 0 1px rgba(255,255,255,0.06),
-                0 30px 80px rgba(0,0,0,0.6);
-        }
-        /* Hex-grid background */
-        .splash-neon .hex {
-            position: absolute; inset: 0;
-            background-image:
-                linear-gradient(60deg,  rgba(255,123,31,0.07) 1px, transparent 1px),
-                linear-gradient(-60deg, rgba(255,123,31,0.07) 1px, transparent 1px);
-            background-size: 28px 48px;
-            mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-            pointer-events: none;
-        }
-        /* Scanline */
-        .splash-neon .scan {
-            position: absolute; inset: 0;
-            background: linear-gradient(180deg,
-                transparent 0%, rgba(255,123,31,0.10) 50%, transparent 100%);
-            height: 80px;
-            top: 0;
-            animation: nn-scan 4s linear infinite;
-            pointer-events: none;
-        }
-        @keyframes nn-scan {
-            0%   { transform: translateY(-80px); }
-            100% { transform: translateY(380px); }
-        }
-        /* Top bar */
-        .splash-neon .top {
-            position: absolute;
-            top: 22px; left: 28px; right: 28px;
-            display: flex; align-items: center; justify-content: space-between;
-            z-index: 4;
-        }
-        .splash-neon .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 11px; font-weight: 700;
-            letter-spacing: 3px; text-transform: uppercase;
-            color: rgba(244,244,246,0.85);
-        }
-        .splash-neon .brand-glyph {
-            width: 8px; height: 8px;
-            background: #ff7b1f;
-            border-radius: 2px;
-            transform: rotate(45deg);
-            box-shadow: 0 0 10px rgba(255,123,31,0.9);
-        }
-        .splash-neon .ver {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #6ed1ff;
-            padding: 4px 10px;
-            border: 1px solid rgba(110,209,255,0.3);
-            border-radius: 4px;
-            background: rgba(110,209,255,0.06);
-            text-shadow: 0 0 8px rgba(110,209,255,0.6);
-        }
-        /* Glowing card */
-        .splash-neon .card {
-            position: absolute;
-            top: 64px; left: 50%;
-            transform: translateX(-50%);
-            width: 130px; height: 130px;
-            border-radius: 18px;
-            background: rgba(20,15,30,0.6);
-            border: 2px solid rgba(255,123,31,0.85);
-            box-shadow:
-                0 0 24px rgba(255,123,31,0.55),
-                inset 0 0 24px rgba(255,123,31,0.12),
-                0 0 48px rgba(255,46,150,0.25);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 3;
-        }
-        .splash-neon .card::before {
-            content: '';
-            position: absolute;
-            inset: -8px;
-            border-radius: 22px;
-            border: 1px solid rgba(255,46,150,0.5);
-            box-shadow: 0 0 32px rgba(255,46,150,0.3);
-            pointer-events: none;
-            animation: nn-pulse 2s ease-in-out infinite;
-        }
-        @keyframes nn-pulse {
-            0%, 100% { opacity: 0.6; transform: scale(1); }
-            50%      { opacity: 1;   transform: scale(1.04); }
-        }
-        .splash-neon .card img {
-            max-width: 88px; max-height: 88px;
-            object-fit: contain;
-            filter: drop-shadow(0 0 14px rgba(255,123,31,0.7));
-        }
-        /* Title with neon glow */
-        .splash-neon .eyebrow {
-            position: absolute;
-            top: 208px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: #6ed1ff;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(110,209,255,0.7);
-            z-index: 3;
-        }
-        .splash-neon .title-wrap {
-            position: absolute;
-            top: 234px; left: 0; right: 0;
-            text-align: center;
-            z-index: 3;
-        }
-        .splash-neon .title {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            font-weight: 900;
-            font-size: 36px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            line-height: 1;
-            color: #ffffff;
-            text-shadow:
-                0 0 6px  rgba(255,123,31,0.9),
-                0 0 14px rgba(255,123,31,0.7),
-                0 0 28px rgba(255,46,150,0.6),
-                0 0 48px rgba(255,46,150,0.4);
-            margin-bottom: 6px;
-        }
-        /* Bottom — energy bar */
-        .splash-neon .bottom {
-            position: absolute;
-            bottom: 22px; left: 28px; right: 28px;
-            z-index: 4;
-        }
-        .splash-neon .status-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(244,244,246,0.7);
-            letter-spacing: 1px;
-        }
-        .splash-neon .status-row .right { color: #ff9d4d; font-weight: 700; }
-        .splash-neon .status-text { transition: opacity 0.3s; }
-        .splash-neon .energy {
-            position: relative;
-            height: 12px;
-            border: 1px solid rgba(255,123,31,0.4);
-            border-radius: 4px;
-            background: rgba(255,123,31,0.05);
-            box-shadow:
-                inset 0 0 8px rgba(255,123,31,0.15),
-                0 0 14px rgba(255,123,31,0.2);
-            overflow: hidden;
-            padding: 1px;
-        }
-        .splash-neon .energy-fill {
-            height: 100%;
-            width: 0%;
-            border-radius: 3px;
-            background: linear-gradient(90deg, #ff6a00 0%, #ff2d92 100%);
-            box-shadow:
-                0 0 12px rgba(255,123,31,0.9),
-                0 0 22px rgba(255,46,150,0.6);
-            transition: width 0.3s linear;
-            position: relative;
-        }
-        .splash-neon .energy-fill::after {
-            content: '';
-            position: absolute;
-            top: 0; right: 0; bottom: 0;
-            width: 4px;
-            background: #ffffff;
-            box-shadow: 0 0 14px rgba(255,255,255,0.9);
-            opacity: 0.85;
-        }
 
         /* ============================================================
-           CARD — premium collectible / trading-card aesthetic
-           Dark backdrop, a centered "premium card" with foil holographic
-           shine sweeping across it. Logo prominently in the middle of
-           the card, rarity stars + PREMIUM tag at top, title in elegant
-           serif at the bottom of the card. Below the card: status text
-           and a slim progress bar. Feels collectible and luxurious.
+           TICKET — premium event pass / game pass
+           A horizontal perforated ticket sits centered on a dark
+           cinema-red backdrop. Left stub holds the logo + "ADMIT ONE";
+           right main panel shows "GAME PASS", the title in chunky
+           black, "PREMIUM ACCESS · 2026" and a barcode. A dotted
+           perforation line with notches separates the two halves. A
+           gold ribbon at the bottom acts as the activation bar.
            ============================================================ */
-        .splash-card {
+        .splash-ticket {
             position: relative;
             width: 660px; height: 380px;
             border-radius: 14px;
             overflow: hidden;
             background:
-                radial-gradient(ellipse at top,    #2a2030 0%, transparent 55%),
-                radial-gradient(ellipse at bottom, #1f1820 0%, transparent 55%),
-                #0c0a0f;
+                radial-gradient(ellipse at center, #6e1818 0%, #2a0808 70%, #160404 100%);
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             color: #f4f4f6;
             box-shadow:
                 inset 0 0 0 1px rgba(255,255,255,0.05),
                 0 30px 80px rgba(0,0,0,0.6);
         }
-        /* Soft sparkle overlay */
-        .splash-card .sparkles {
+        /* Subtle radial spotlight texture */
+        .splash-ticket .glow {
             position: absolute; inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,0.7), transparent),
-                radial-gradient(1px 1px at 88% 18%, rgba(255,200,120,0.6), transparent),
-                radial-gradient(1.5px 1.5px at 22% 78%, rgba(255,255,255,0.5), transparent),
-                radial-gradient(1px 1px at 78% 82%, rgba(255,200,120,0.5), transparent),
-                radial-gradient(1px 1px at 50% 12%, rgba(255,255,255,0.6), transparent);
+            background: radial-gradient(circle at 50% 40%, rgba(255,180,80,0.18) 0%, transparent 50%);
             pointer-events: none;
-            animation: cd-twinkle 3s ease-in-out infinite alternate;
-        }
-        @keyframes cd-twinkle {
-            0%   { opacity: 0.5; }
-            100% { opacity: 1.0; }
         }
         /* Top brand */
-        .splash-card .top {
+        .splash-ticket .top {
             position: absolute;
             top: 22px; left: 28px; right: 28px;
             display: flex; align-items: center; justify-content: space-between;
             z-index: 5;
         }
-        .splash-card .brand {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(244,244,246,0.85);
+        .splash-ticket .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(255,236,200,0.85);
         }
-        .splash-card .brand .dot {
-            display: inline-block;
-            width: 6px; height: 6px;
-            background: #ffd07a;
-            border-radius: 50%;
-            margin-right: 8px;
-            box-shadow: 0 0 10px rgba(255,208,122,0.8);
-            vertical-align: middle;
+        .splash-ticket .brand-mark {
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #ffd97a, #ff8c33);
+            display: flex; align-items: center; justify-content: center;
+            color: #2a0808; font-weight: 900; font-size: 12px;
         }
-        .splash-card .ver {
+        .splash-ticket .ver {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(244,244,246,0.45);
-            padding: 4px 10px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 999px;
+            font-size: 10px;
+            color: rgba(255,236,200,0.55);
+            letter-spacing: 1px;
         }
-        /* Premium card */
-        .splash-card .card-wrap {
+        /* The ticket itself */
+        .splash-ticket .ticket {
             position: absolute;
-            top: 60px; left: 50%;
-            transform: translateX(-50%);
-            width: 220px; height: 240px;
-            perspective: 800px;
-            z-index: 3;
-        }
-        .splash-card .card-tilt {
-            position: absolute; inset: 0;
-            border-radius: 16px;
-            background:
-                linear-gradient(160deg,
-                    #2a1f10 0%,
-                    #5e3a18 30%,
-                    #ff8c33 60%,
-                    #ffd07a 80%,
-                    #fff3d4 100%);
-            border: 2px solid rgba(255,208,122,0.55);
+            top: 80px; left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            width: 540px; height: 200px;
+            background: linear-gradient(180deg, #fff5dc 0%, #ffe9b5 100%);
+            border-radius: 8px;
             box-shadow:
-                0 18px 40px rgba(0,0,0,0.55),
-                0 0 24px rgba(255,140,40,0.25),
-                inset 0 1px 0 rgba(255,255,255,0.4),
-                inset 0 -3px 0 rgba(0,0,0,0.25);
+                0 18px 50px rgba(0,0,0,0.55),
+                inset 0 0 0 2px rgba(0,0,0,0.85),
+                inset 0 -3px 0 rgba(0,0,0,0.18);
+            display: flex;
+            color: #1a0d04;
             overflow: hidden;
-            animation: cd-tilt 6s ease-in-out infinite alternate;
-            transform-style: preserve-3d;
         }
-        @keyframes cd-tilt {
-            0%   { transform: rotateY(-4deg) rotateX(2deg); }
-            100% { transform: rotateY(4deg)  rotateX(-2deg); }
-        }
-        /* Holographic shine sweep */
-        .splash-card .card-tilt::before {
+        /* Notches at the perforation */
+        .splash-ticket .ticket::before,
+        .splash-ticket .ticket::after {
             content: '';
             position: absolute;
-            top: -50%; left: -100%;
-            width: 80%; height: 200%;
-            background: linear-gradient(110deg,
-                transparent 0%,
-                rgba(255,255,255,0.05) 30%,
-                rgba(255,255,255,0.55) 50%,
-                rgba(255,255,255,0.05) 70%,
-                transparent 100%);
-            animation: cd-shine 3s ease-in-out infinite;
-            pointer-events: none;
-            mix-blend-mode: overlay;
+            left: 160px;
+            transform: translateX(-50%);
+            width: 18px; height: 18px;
+            background: #2a0808;
+            border-radius: 50%;
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.85);
         }
-        @keyframes cd-shine {
-            0%   { transform: translateX(0%); }
-            100% { transform: translateX(280%); }
+        .splash-ticket .ticket::before { top: -9px; }
+        .splash-ticket .ticket::after  { bottom: -9px; }
+        /* Stub (left) */
+        .splash-ticket .stub {
+            width: 160px;
+            padding: 14px 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            border-right: 2px dashed rgba(0,0,0,0.55);
+            text-align: center;
         }
-        /* Inner card frame */
-        .splash-card .card-inner {
-            position: absolute; inset: 10px;
-            border-radius: 10px;
-            background: linear-gradient(180deg, #1c1410 0%, #0e0a08 100%);
-            border: 1px solid rgba(255,208,122,0.35);
-            display: flex; flex-direction: column; align-items: center;
-            padding: 12px 12px 14px;
-            z-index: 2;
-        }
-        .splash-card .rarity {
-            display: flex; align-items: center; gap: 4px;
-            margin-bottom: 8px;
-        }
-        .splash-card .star {
-            color: #ffd07a;
-            font-size: 11px;
-            text-shadow: 0 0 6px rgba(255,208,122,0.7);
-        }
-        .splash-card .rarity-tag {
-            margin-left: 6px;
+        .splash-ticket .stub .admit {
             font-size: 9px;
             font-weight: 800;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #ffd07a;
-            padding: 2px 6px;
-            border: 1px solid rgba(255,208,122,0.5);
-            border-radius: 4px;
-            text-shadow: 0 0 6px rgba(255,208,122,0.6);
+            letter-spacing: 3px;
+            color: #6b1818;
         }
-        .splash-card .card-img {
+        .splash-ticket .stub .logo {
             flex: 1;
-            width: 100%;
             display: flex; align-items: center; justify-content: center;
-            padding: 4px;
+            width: 100%;
+            padding: 6px 0;
         }
-        .splash-card .card-img img {
-            max-width: 130px;
-            max-height: 100px;
+        .splash-ticket .stub .logo img {
+            max-width: 100px; max-height: 70px;
             object-fit: contain;
-            filter: drop-shadow(0 4px 14px rgba(255,140,40,0.55));
         }
-        .splash-card .card-name {
-            font-family: 'Playfair Display', 'Georgia', serif;
-            font-weight: 800;
-            font-size: 18px;
-            letter-spacing: -0.3px;
-            line-height: 1;
-            color: #ffd07a;
-            text-align: center;
-            text-shadow: 0 1px 0 rgba(0,0,0,0.6);
-            margin-top: 8px;
+        .splash-ticket .stub .num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a0d04;
+            letter-spacing: 1px;
         }
-        .splash-card .card-sub {
-            font-size: 8.5px;
-            font-weight: 600;
-            letter-spacing: 2px;
+        /* Main panel (right) */
+        .splash-ticket .main {
+            flex: 1;
+            padding: 16px 18px 14px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .splash-ticket .main .header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .splash-ticket .main .pass-tag {
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: #fff5dc;
+            background: #6b1818;
+            padding: 4px 9px;
+            border-radius: 3px;
             text-transform: uppercase;
-            color: rgba(255,208,122,0.6);
-            margin-top: 4px;
         }
-        /* Bottom status + slim progress */
-        .splash-card .bottom {
+        .splash-ticket .main .seat {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #6b1818;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .splash-ticket .main .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 36px;
+            letter-spacing: -1px;
+            line-height: 1;
+            color: #1a0d04;
+            text-transform: uppercase;
+            margin: 4px 0;
+        }
+        .splash-ticket .main .sub {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #6b1818;
+        }
+        /* Barcode */
+        .splash-ticket .barcode {
+            display: flex; align-items: flex-end; gap: 1px;
+            height: 26px;
+            margin-top: 6px;
+        }
+        .splash-ticket .barcode span {
+            display: block;
+            width: 2px;
+            height: 100%;
+            background: #1a0d04;
+        }
+        .splash-ticket .barcode span:nth-child(2n)  { width: 1px; opacity: 0.85; }
+        .splash-ticket .barcode span:nth-child(3n)  { width: 3px; }
+        .splash-ticket .barcode span:nth-child(5n)  { width: 1px; }
+        .splash-ticket .barcode span:nth-child(7n)  { width: 4px; }
+        .splash-ticket .barcode span:nth-child(11n) { width: 2px; }
+        /* Bottom — gold ribbon activation bar */
+        .splash-ticket .bottom {
             position: absolute;
             bottom: 22px; left: 28px; right: 28px;
             z-index: 4;
         }
-        .splash-card .status-row {
+        .splash-ticket .status-row {
             display: flex; justify-content: space-between; align-items: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            color: rgba(244,244,246,0.65);
+            color: rgba(255,236,200,0.75);
             margin-bottom: 8px;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
-        .splash-card .status-row .pct {
-            color: #ffd07a;
+        .splash-ticket .status-row .pct {
+            color: #ffd97a;
             font-weight: 700;
         }
-        .splash-card .status-text { transition: opacity 0.3s; }
-        .splash-card .track {
-            height: 3px;
-            background: rgba(255,255,255,0.06);
+        .splash-ticket .status-text { transition: opacity 0.3s; }
+        .splash-ticket .ribbon {
+            position: relative;
+            height: 8px;
+            background: rgba(255,217,122,0.12);
             border-radius: 999px;
             overflow: hidden;
-            position: relative;
+            border: 1px solid rgba(255,217,122,0.25);
         }
-        .splash-card .track-fill {
+        .splash-ticket .ribbon-fill {
             position: absolute; top: 0; left: 0; bottom: 0;
             width: 0%;
-            background: linear-gradient(90deg, #ff8c33, #ffd07a);
+            background: linear-gradient(90deg, #c9881a, #ffd97a, #fff5dc);
             border-radius: 999px;
-            box-shadow: 0 0 12px rgba(255,208,122,0.6);
+            box-shadow: 0 0 12px rgba(255,217,122,0.6);
+            transition: width 0.3s linear;
+        }
+
+        /* ============================================================
+           CRATE — mystery loot crate / unboxing
+           Roblox-loved unboxing aesthetic. A wooden crate sits centered
+           on a glowing platform with magical sparkles bursting out. The
+           crate gently rocks while loading; at 100% the lid pops up and
+           the logo bursts out before the cycle resets. Big chunky title
+           below, plus a stardust progress bar across the bottom. Reads
+           instantly as "loot box / mystery egg" — pure Roblox kid energy.
+           ============================================================ */
+        .splash-crate {
+            position: relative;
+            width: 660px; height: 380px;
+            border-radius: 14px;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at 50% 60%, #3a2a5a 0%, #1a1230 60%, #0a0618 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #f4f4f6;
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 80px rgba(0,0,0,0.6);
+        }
+        /* Sparkle particles */
+        .splash-crate .sparks {
+            position: absolute; inset: 0;
+            background-image:
+                radial-gradient(2px 2px at 18% 28%, rgba(255,200,120,0.9), transparent),
+                radial-gradient(1.5px 1.5px at 82% 22%, rgba(180,200,255,0.85), transparent),
+                radial-gradient(2.5px 2.5px at 28% 70%, rgba(255,160,90,0.85), transparent),
+                radial-gradient(1.5px 1.5px at 75% 65%, rgba(255,255,255,0.85), transparent),
+                radial-gradient(2px 2px at 50% 18%, rgba(255,210,140,0.8), transparent),
+                radial-gradient(1.5px 1.5px at 12% 50%, rgba(200,170,255,0.8), transparent),
+                radial-gradient(2px 2px at 88% 50%, rgba(255,200,160,0.8), transparent);
+            pointer-events: none;
+            animation: cr-sparkle 1.6s ease-in-out infinite alternate;
+        }
+        @keyframes cr-sparkle {
+            0%   { opacity: 0.5; transform: translateY(0); }
+            100% { opacity: 1.0; transform: translateY(-3px); }
+        }
+        /* Glowing platform under crate */
+        .splash-crate .platform {
+            position: absolute;
+            top: 230px; left: 50%;
+            transform: translateX(-50%);
+            width: 240px; height: 30px;
+            background: radial-gradient(ellipse at center, rgba(255,170,80,0.7) 0%, rgba(255,170,80,0) 70%);
+            filter: blur(2px);
+            pointer-events: none;
+        }
+        /* Top brand */
+        .splash-crate .top {
+            position: absolute;
+            top: 22px; left: 28px; right: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 5;
+        }
+        .splash-crate .brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 3px; text-transform: uppercase;
+            color: rgba(244,244,246,0.85);
+        }
+        .splash-crate .brand-mark {
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #ffaa6e, #ff6a00);
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff; font-weight: 900; font-size: 12px;
+            box-shadow: 0 3px 8px rgba(255,123,31,0.4);
+        }
+        .splash-crate .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ffaa6e;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        /* The crate */
+        .splash-crate .crate {
+            position: absolute;
+            top: 80px; left: 50%;
+            width: 160px; height: 150px;
+            transform: translateX(-50%);
+            transform-origin: center bottom;
+            animation: cr-rock 1.4s ease-in-out infinite;
+            z-index: 3;
+        }
+        @keyframes cr-rock {
+            0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+            50%      { transform: translateX(-50%) rotate(2deg); }
+        }
+        .splash-crate .crate-body {
+            position: absolute;
+            top: 32px; left: 0; right: 0; bottom: 0;
+            background:
+                linear-gradient(180deg, #8a5a2a 0%, #6b4220 100%);
+            border: 3px solid #2a1808;
+            border-radius: 6px;
+            box-shadow:
+                inset 0 -4px 0 rgba(0,0,0,0.25),
+                inset 0 0 0 1px rgba(255,200,120,0.15),
+                0 12px 24px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        /* Plank lines on the body */
+        .splash-crate .crate-body::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(90deg, transparent 32px, rgba(0,0,0,0.35) 32px, rgba(0,0,0,0.35) 33px, transparent 33px),
+                linear-gradient(90deg, transparent 65px, rgba(0,0,0,0.35) 65px, rgba(0,0,0,0.35) 66px, transparent 66px),
+                linear-gradient(90deg, transparent 98px, rgba(0,0,0,0.35) 98px, rgba(0,0,0,0.35) 99px, transparent 99px),
+                linear-gradient(90deg, transparent 131px, rgba(0,0,0,0.35) 131px, rgba(0,0,0,0.35) 132px, transparent 132px);
+        }
+        /* Iron bands & rivets on the body */
+        .splash-crate .crate-body::after {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(180deg, transparent 18px, rgba(0,0,0,0.55) 18px, rgba(0,0,0,0.55) 24px, transparent 24px),
+                linear-gradient(180deg, transparent 82px, rgba(0,0,0,0.55) 82px, rgba(0,0,0,0.55) 88px, transparent 88px);
+            pointer-events: none;
+        }
+        /* The lid */
+        .splash-crate .crate-lid {
+            position: absolute;
+            top: 0; left: -6px; right: -6px;
+            height: 40px;
+            background: linear-gradient(180deg, #9b6a35 0%, #7a4d22 100%);
+            border: 3px solid #2a1808;
+            border-radius: 6px;
+            box-shadow:
+                inset 0 -3px 0 rgba(0,0,0,0.25),
+                inset 0 1px 0 rgba(255,200,120,0.2);
+            transform-origin: center bottom;
+            animation: cr-lid 4s ease-in-out infinite;
+            z-index: 4;
+        }
+        @keyframes cr-lid {
+            0%, 80% { transform: translateY(0) rotate(0deg); }
+            85%     { transform: translateY(-12px) rotate(-8deg); }
+            90%     { transform: translateY(-6px) rotate(2deg); }
+            100%    { transform: translateY(0) rotate(0deg); }
+        }
+        /* Lock plate on the front */
+        .splash-crate .crate-lock {
+            position: absolute;
+            top: 60px; left: 50%;
+            transform: translateX(-50%);
+            width: 38px; height: 32px;
+            background: linear-gradient(180deg, #ffd180, #c98030);
+            border: 2px solid #2a1808;
+            border-radius: 4px;
+            box-shadow:
+                inset 0 -2px 0 rgba(0,0,0,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+            z-index: 5;
+        }
+        .splash-crate .crate-lock::before {
+            content: '';
+            position: absolute;
+            top: 7px; left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 4px;
+            background: #2a1808;
+            border-radius: 50%;
+        }
+        .splash-crate .crate-lock::after {
+            content: '';
+            position: absolute;
+            top: 14px; left: 50%;
+            transform: translateX(-50%);
+            width: 2px; height: 8px;
+            background: #2a1808;
+        }
+        /* Logo that pops out the top */
+        .splash-crate .pop {
+            position: absolute;
+            top: -10px; left: 50%;
+            transform: translateX(-50%) translateY(20px) scale(0.4);
+            opacity: 0;
+            width: 96px; height: 96px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,200,120,0.12);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(255,170,80,0.7);
+            animation: cr-pop 4s ease-in-out infinite;
+            z-index: 6;
+        }
+        @keyframes cr-pop {
+            0%, 80% { transform: translateX(-50%) translateY(20px) scale(0.4); opacity: 0; }
+            85%     { transform: translateX(-50%) translateY(-30px) scale(1.1); opacity: 1; }
+            92%     { transform: translateX(-50%) translateY(-22px) scale(1.0); opacity: 1; }
+            98%     { transform: translateX(-50%) translateY(-10px) scale(0.85); opacity: 0.6; }
+            100%    { transform: translateX(-50%) translateY(20px) scale(0.4); opacity: 0; }
+        }
+        .splash-crate .pop img {
+            max-width: 84px; max-height: 84px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 14px rgba(255,200,120,0.9));
+        }
+        /* Title below crate */
+        .splash-crate .title-wrap {
+            position: absolute;
+            top: 252px; left: 0; right: 0;
+            text-align: center;
+            z-index: 3;
+        }
+        .splash-crate .title {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-weight: 900;
+            font-size: 32px;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            color: #ffffff;
+            text-shadow:
+                0 2px 0 rgba(0,0,0,0.4),
+                0 0 20px rgba(255,170,80,0.45);
+        }
+        .splash-crate .title-wrap .sub {
+            margin-top: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255,200,140,0.7);
+        }
+        /* Bottom — stardust bar */
+        .splash-crate .bottom {
+            position: absolute;
+            bottom: 22px; left: 28px; right: 28px;
+            z-index: 4;
+        }
+        .splash-crate .status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(244,244,246,0.7);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .splash-crate .status-row .pct {
+            color: #ffaa6e;
+            font-weight: 700;
+        }
+        .splash-crate .status-text { transition: opacity 0.3s; }
+        .splash-crate .stardust {
+            position: relative;
+            height: 6px;
+            background: rgba(255,170,80,0.1);
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid rgba(255,170,80,0.18);
+        }
+        .splash-crate .stardust-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6a00, #ffaa6e, #ffe9b5);
+            border-radius: 999px;
+            box-shadow: 0 0 14px rgba(255,170,80,0.65);
             transition: width 0.3s linear;
         }
 
@@ -2222,7 +2284,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Nine designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Neon</strong>, <strong>Card</strong>.<br>
+            Nine designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Ticket</strong>, <strong>Crate</strong>.<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -2617,98 +2679,113 @@
         <div class="design-meta">660 × 380 &nbsp;|&nbsp; sky + grass · obby track · walking character</div>
     </section>
 
+
     <!-- ====================================================
-         NEON — arcade / Tower of Hell vibe
+         TICKET — premium event pass / game pass
          ==================================================== -->
     <section class="design-section">
         <div class="design-head">
-            <span class="design-tag neon">NEW · 8</span>
-            <span class="design-name">Neon</span>
+            <span class="design-tag ticket">NEW · 8</span>
+            <span class="design-name">Ticket</span>
         </div>
         <div class="design-desc">
-            Esports tournament energy — the look of competitive Roblox games like Tower of Hell or Combat Warriors. Dark navy backdrop with a faint hex-grid and a soft orange scanline sweeping vertically. A centered glowing card holds the logo wrapped in a magenta-and-orange neon glow. Below it, an eyebrow in cyan mono ("// SYSTEM ONLINE"), a big neon-glowing title, then an energy-bar progress with a bright leading edge. Edgy and exciting, still polished.
+            The launcher as a premium event pass. A horizontal cream-and-gold ticket sits centered on a deep cinema-red backdrop, slightly tilted. The left stub holds the logo with "ADMIT ONE" above and a serial number below; a perforated dashed line with notches separates it from the main panel. On the right: a red "GAME PASS" tag, the title in chunky black uppercase, "PREMIUM ACCESS · 2026" and a barcode at the bottom. A gold ribbon underneath fills as the ticket activates. Structurally unique — nothing else in the lineup uses a horizontal "object" layout like this.
         </div>
         <div class="design-stage">
-            <div class="splash-neon">
-                <div class="hex"></div>
-                <div class="scan"></div>
+            <div class="splash-ticket">
+                <div class="glow"></div>
 
                 <div class="top">
-                    <div class="brand"><span class="brand-glyph"></span><span>Denfi Launcher</span></div>
-                    <div class="ver">v1.0.0</div>
+                    <div class="brand"><div class="brand-mark">D</div><span>Denfi Launcher</span></div>
+                    <div class="ver">v1.0.0 · 2026</div>
                 </div>
 
-                <div class="card">
-                    {% if splash_file %}
-                    <img src="/splash_logo_file" alt="Logo">
-                    {% endif %}
-                </div>
-
-                <div class="eyebrow">// System Online</div>
-                <div class="title-wrap">
-                    <div class="title" id="neon-title">{{ app_name or 'Roblox' }}</div>
-                </div>
-
-                <div class="bottom">
-                    <div class="status-row">
-                        <span class="status-text" id="neon-status">checking roblox files…</span>
-                        <span class="right"><span id="neon-pct">0</span>%</span>
+                <div class="ticket">
+                    <div class="stub">
+                        <div class="admit">ADMIT ONE</div>
+                        <div class="logo">
+                            {% if splash_file %}
+                            <img src="/splash_logo_file" alt="Logo">
+                            {% endif %}
+                        </div>
+                        <div class="num">№ 0001</div>
                     </div>
-                    <div class="energy"><div class="energy-fill" id="neon-fill"></div></div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; hex grid · neon-glow card · energy bar</div>
-    </section>
-
-    <!-- ====================================================
-         CARD — premium collectible card
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag card">NEW · 9</span>
-            <span class="design-name">Card</span>
-        </div>
-        <div class="design-desc">
-            The launcher as a premium collectible card. Dark backdrop with soft sparkles; a centered card with a gold-orange foil border tilts slowly while a holographic shine sweeps across its surface. Inside the card: rarity stars + a "PREMIUM" tag at the top, the logo in the middle, and the app name in elegant gold serif at the bottom — like the name of a legendary Roblox item. A slim status line and progress bar sit underneath. Looks rare. Looks expensive.
-        </div>
-        <div class="design-stage">
-            <div class="splash-card">
-                <div class="sparkles"></div>
-
-                <div class="top">
-                    <div class="brand"><span class="dot"></span>Denfi Launcher</div>
-                    <div class="ver">v1.0.0</div>
-                </div>
-
-                <div class="card-wrap">
-                    <div class="card-tilt">
-                        <div class="card-inner">
-                            <div class="rarity">
-                                <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-                                <span class="rarity-tag">Premium</span>
-                            </div>
-                            <div class="card-img">
-                                {% if splash_file %}
-                                <img src="/splash_logo_file" alt="Logo">
-                                {% endif %}
-                            </div>
-                            <div class="card-name" id="card-title">{{ app_name or 'Roblox' }}</div>
-                            <div class="card-sub">Portable Launcher</div>
+                    <div class="main">
+                        <div class="header">
+                            <div class="pass-tag">Game Pass</div>
+                            <div class="seat">SEAT · A1</div>
+                        </div>
+                        <div class="title" id="ticket-title">{{ app_name or 'Roblox' }}</div>
+                        <div class="sub">Premium Access · 2026</div>
+                        <div class="barcode">
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="bottom">
                     <div class="status-row">
-                        <span class="status-text" id="card-status">checking roblox files…</span>
-                        <span class="pct" id="card-pct">0%</span>
+                        <span class="status-text" id="ticket-status">activating ticket…</span>
+                        <span class="pct" id="ticket-pct">0%</span>
                     </div>
-                    <div class="track"><div class="track-fill" id="card-fill"></div></div>
+                    <div class="ribbon"><div class="ribbon-fill" id="ticket-fill"></div></div>
                 </div>
             </div>
         </div>
-        <div class="design-meta">660 × 380 &nbsp;|&nbsp; foil holographic card · tilt + shine · gold serif</div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; perforated stub · barcode · gold ribbon</div>
+    </section>
+
+    <!-- ====================================================
+         CRATE — mystery loot crate / unboxing
+         ==================================================== -->
+    <section class="design-section">
+        <div class="design-head">
+            <span class="design-tag crate">NEW · 9</span>
+            <span class="design-name">Crate</span>
+        </div>
+        <div class="design-desc">
+            Pure Roblox unboxing energy. A wooden loot crate with iron bands and a gold padlock sits centered on a glowing platform, gently rocking back and forth as it loads. Magical sparkles drift around the screen. Every few seconds the lid pops off and the logo bursts out in a halo of light before the box closes again — like opening a mystery egg in Adopt Me or a chest in a Roblox tycoon. Big white title underneath with a soft warm glow, plus a stardust progress bar at the bottom.
+        </div>
+        <div class="design-stage">
+            <div class="splash-crate">
+                <div class="sparks"></div>
+                <div class="platform"></div>
+
+                <div class="top">
+                    <div class="brand"><div class="brand-mark">D</div><span>Denfi Launcher</span></div>
+                    <div class="eyebrow">// Unboxing</div>
+                </div>
+
+                <div class="crate">
+                    <div class="pop">
+                        {% if splash_file %}
+                        <img src="/splash_logo_file" alt="Logo">
+                        {% endif %}
+                    </div>
+                    <div class="crate-lid"></div>
+                    <div class="crate-body"></div>
+                    <div class="crate-lock"></div>
+                </div>
+
+                <div class="title-wrap">
+                    <div class="title" id="crate-title">{{ app_name or 'Roblox' }}</div>
+                    <div class="sub">Premium · Portable</div>
+                </div>
+
+                <div class="bottom">
+                    <div class="status-row">
+                        <span class="status-text" id="crate-status">unlocking your launcher…</span>
+                        <span class="pct" id="crate-pct">0%</span>
+                    </div>
+                    <div class="stardust"><div class="stardust-fill" id="crate-fill"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">660 × 380 &nbsp;|&nbsp; rocking wooden crate · pop-out logo · stardust bar</div>
     </section>
 
     <script>
@@ -3143,54 +3220,55 @@
             }
         })();
 
-        // NEON — energy bar + status + percent
-        var neonStatuses = [
-            'checking roblox files…',
+
+        // TICKET — gold ribbon + status + percent
+        var ticketStatuses = [
+            'activating ticket…',
             'verifying license…',
             'fetching latest update…',
-            'preparing instance…',
+            'preparing your seat…',
             'almost ready…'
         ];
-        var nnStat = document.getElementById('neon-status');
-        var nnPct  = document.getElementById('neon-pct');
-        var nnFill = document.getElementById('neon-fill');
-        var nnIdx = 0, nnP = 0;
-        function neonTick() {
-            nnP += 1.5 + Math.random() * 2.5;
-            if (nnP >= 100) {
-                nnP = 100;
-                if (nnFill) nnFill.style.width = '100%';
-                if (nnPct)  nnPct.textContent  = '100';
+        var tkStat = document.getElementById('ticket-status');
+        var tkPct  = document.getElementById('ticket-pct');
+        var tkFill = document.getElementById('ticket-fill');
+        var tkIdx = 0, tkP = 0;
+        function ticketTick() {
+            tkP += 1.4 + Math.random() * 2;
+            if (tkP >= 100) {
+                tkP = 100;
+                if (tkFill) tkFill.style.width = '100%';
+                if (tkPct)  tkPct.textContent  = '100%';
                 setTimeout(function() {
-                    nnP = 0;
-                    if (nnFill) {
-                        nnFill.style.transition = 'none';
-                        nnFill.style.width = '0%';
+                    tkP = 0;
+                    if (tkFill) {
+                        tkFill.style.transition = 'none';
+                        tkFill.style.width = '0%';
                     }
                     setTimeout(function() {
-                        if (nnFill) nnFill.style.transition = 'width 0.3s linear';
+                        if (tkFill) tkFill.style.transition = 'width 0.3s linear';
                     }, 50);
                 }, 1400);
                 return;
             }
-            if (nnFill) nnFill.style.width = nnP + '%';
-            if (nnPct)  nnPct.textContent  = Math.floor(nnP);
+            if (tkFill) tkFill.style.width = tkP + '%';
+            if (tkPct)  tkPct.textContent  = Math.floor(tkP) + '%';
         }
-        setInterval(neonTick, 220);
+        setInterval(ticketTick, 220);
         setInterval(function() {
-            if (!nnStat) return;
-            nnIdx = (nnIdx + 1) % neonStatuses.length;
-            nnStat.style.opacity = '0';
+            if (!tkStat) return;
+            tkIdx = (tkIdx + 1) % ticketStatuses.length;
+            tkStat.style.opacity = '0';
             setTimeout(function() {
-                nnStat.textContent = neonStatuses[nnIdx];
-                nnStat.style.opacity = '1';
+                tkStat.textContent = ticketStatuses[tkIdx];
+                tkStat.style.opacity = '1';
             }, 250);
         }, 2200);
-        // Auto-fit neon title (uppercase, glowing)
+        // Auto-fit ticket title (lives in the right panel of the ticket)
         (function() {
-            var t = document.getElementById('neon-title');
+            var t = document.getElementById('ticket-title');
             if (!t) return;
-            var maxW = 580;
+            var maxW = 340;
             var size = parseFloat(getComputedStyle(t).fontSize);
             var guard = 0;
             while (size >= 18 && t.scrollWidth > maxW && guard++ < 30) {
@@ -3199,58 +3277,58 @@
             }
         })();
 
-        // CARD — slim track + status + percent
-        var cardStatuses = [
-            'checking roblox files…',
+        // CRATE — stardust bar + status + percent
+        var crateStatuses = [
+            'unlocking your launcher…',
             'verifying license…',
             'fetching latest update…',
-            'preparing instance…',
+            'preparing rewards…',
             'almost ready…'
         ];
-        var cdStat = document.getElementById('card-status');
-        var cdPct  = document.getElementById('card-pct');
-        var cdFill = document.getElementById('card-fill');
-        var cdIdx = 0, cdP = 0;
-        function cardTick() {
-            cdP += 1.5 + Math.random() * 2;
-            if (cdP >= 100) {
-                cdP = 100;
-                if (cdFill) cdFill.style.width = '100%';
-                if (cdPct)  cdPct.textContent  = '100%';
+        var crStat = document.getElementById('crate-status');
+        var crPct  = document.getElementById('crate-pct');
+        var crFill = document.getElementById('crate-fill');
+        var crIdx = 0, crP = 0;
+        function crateTick() {
+            crP += 1.4 + Math.random() * 2;
+            if (crP >= 100) {
+                crP = 100;
+                if (crFill) crFill.style.width = '100%';
+                if (crPct)  crPct.textContent  = '100%';
                 setTimeout(function() {
-                    cdP = 0;
-                    if (cdFill) {
-                        cdFill.style.transition = 'none';
-                        cdFill.style.width = '0%';
+                    crP = 0;
+                    if (crFill) {
+                        crFill.style.transition = 'none';
+                        crFill.style.width = '0%';
                     }
                     setTimeout(function() {
-                        if (cdFill) cdFill.style.transition = 'width 0.3s linear';
+                        if (crFill) crFill.style.transition = 'width 0.3s linear';
                     }, 50);
                 }, 1400);
                 return;
             }
-            if (cdFill) cdFill.style.width = cdP + '%';
-            if (cdPct)  cdPct.textContent  = Math.floor(cdP) + '%';
+            if (crFill) crFill.style.width = crP + '%';
+            if (crPct)  crPct.textContent  = Math.floor(crP) + '%';
         }
-        setInterval(cardTick, 220);
+        setInterval(crateTick, 220);
         setInterval(function() {
-            if (!cdStat) return;
-            cdIdx = (cdIdx + 1) % cardStatuses.length;
-            cdStat.style.opacity = '0';
+            if (!crStat) return;
+            crIdx = (crIdx + 1) % crateStatuses.length;
+            crStat.style.opacity = '0';
             setTimeout(function() {
-                cdStat.textContent = cardStatuses[cdIdx];
-                cdStat.style.opacity = '1';
+                crStat.textContent = crateStatuses[crIdx];
+                crStat.style.opacity = '1';
             }, 250);
         }, 2200);
-        // Auto-fit card title (it lives in a 200px-wide card)
+        // Auto-fit crate title
         (function() {
-            var t = document.getElementById('card-title');
+            var t = document.getElementById('crate-title');
             if (!t) return;
-            var maxW = 180;
+            var maxW = 580;
             var size = parseFloat(getComputedStyle(t).fontSize);
             var guard = 0;
-            while (size >= 11 && t.scrollWidth > maxW && guard++ < 30) {
-                size -= 1;
+            while (size >= 16 && t.scrollWidth > maxW && guard++ < 30) {
+                size -= 2;
                 t.style.fontSize = size + 'px';
             }
         })();
