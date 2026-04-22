@@ -3303,8 +3303,62 @@ def main():
                     log_lines.append(f"Synced {count} files, cleaned {removed} old files")
                     if failed:
                         log_lines.append(f"Failed to sync: {', '.join(failed)}")
-                    splash.set_progress(70, f"Synced {count} files!")
+                    splash.set_progress(65, f"Synced {count} files!")
                     app.processEvents()
+
+                    # Sync just pulled the latest Roblox into our portable folder,
+                    # so the system Roblox install is no longer needed and would
+                    # only fight our multi-instance / multi-account flow. Run the
+                    # same destructive cleanup we use after a fresh bundle install
+                    # (see download_and_extract_roblox_bundle ~line 2210):
+                    #   1. Add/Remove Programs uninstaller — the official path.
+                    #   2. Microsoft Store package — separate API.
+                    #   3. %LocalAppData% Roblox-named folders — per-user install.
+                    #   4. Program Files Roblox-named folders — admin-only fallback.
+                    # Order matters and each call is wrapped so one failure
+                    # cannot skip the next, and none can fail the launch.
+                    #
+                    # SAFETY GATES (both must hold or we skip the wipe):
+                    #   a) sync_files() returned without raising — already true
+                    #      here because exceptions jump to the except blocks
+                    #      below, so source-mid-copy can never be wiped.
+                    #   b) `failed` is empty — i.e. every file copied cleanly.
+                    #      If even one non-EXE file failed, we keep the system
+                    #      Roblox alive so the next launch can retry the sync.
+                    #      sync_files() already raises if RobloxPlayerBeta.exe
+                    #      itself is missing (~line 806-810), so reaching this
+                    #      point with `not failed` means a fully clean copy.
+                    if failed:
+                        log_lines.append(
+                            "System Roblox kept (sync had failed files; cleanup skipped)"
+                        )
+                        splash.set_progress(70, "Sync done (partial)")
+                        app.processEvents()
+                    else:
+                        splash.set_progress(67, "Cleaning up system Roblox...")
+                        app.processEvents()
+                        try:
+                            n_unin = uninstall_roblox_via_registry()
+                            log_lines.append(f"Uninstalled {n_unin} Roblox registry entries")
+                        except Exception as _e:
+                            log_lines.append(f"Registry uninstall skipped: {_e}")
+                        try:
+                            ok_store = remove_microsoft_store_roblox()
+                            log_lines.append(f"Microsoft Store Roblox removed: {ok_store}")
+                        except Exception as _e:
+                            log_lines.append(f"Store remove skipped: {_e}")
+                        try:
+                            n_local = purge_appdata_roblox_versions()
+                            log_lines.append(f"Wiped {n_local} %LocalAppData% Roblox folders")
+                        except Exception as _e:
+                            log_lines.append(f"LocalAppData wipe skipped: {_e}")
+                        try:
+                            n_pf = purge_program_files_roblox()
+                            log_lines.append(f"Wiped {n_pf} Program Files Roblox folders")
+                        except Exception as _e:
+                            log_lines.append(f"Program Files wipe skipped: {_e}")
+                        splash.set_progress(70, "Sync complete!")
+                        app.processEvents()
                 except PermissionError as e:
                     log_lines.append(f"Sync blocked: {e}")
                     splash.set_progress(70, "Close Roblox and try again!")
