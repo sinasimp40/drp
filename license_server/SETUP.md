@@ -72,27 +72,15 @@ You should see "Ok."
 
 ## Step 5: Set your passwords
 
-Type each line below ONE AT A TIME. Press Enter after each line:
+Copy this whole line, paste it into the Command Prompt, then press Enter:
 
 ```
-set LICENSE_ADMIN_PASSWORD=admin
+set LICENSE_ADMIN_PASSWORD=admin && set LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024 && set LICENSE_PORT=3842 && set BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026
 ```
-(press Enter)
 
-```
-set LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024
-```
-(press Enter)
+That sets all four at once.
 
-```
-set LICENSE_PORT=3842
-```
-(press Enter)
-
-```
-set BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026
-```
-(press Enter)
+(If you'd rather do them one at a time, that also works — type each `set ...` line on its own and press Enter.)
 
 IMPORTANT: The shared secret must match what you entered when building the launcher .exe
 
