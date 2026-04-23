@@ -3359,9 +3359,16 @@ def api_roblox_bundle_info():
             if _bundle_tokens[k]["expires"] < now:
                 del _bundle_tokens[k]
 
+    # Prefer the Roblox version string (e.g. 'version-2e64...') as the
+    # identifier the launcher caches. The launcher does a plain string
+    # equality check (str(cached) == str(target)), so any stable token
+    # works. Falling back to the integer keeps older bundles uploaded
+    # without a Roblox-version note still functional.
+    note_clean = (bundle["note"] or "").strip()
+    wire_version = note_clean if _ROBLOX_VERSION_RE.match(note_clean) else bundle["version"]
     resp = {
         "valid": True,
-        "version": bundle["version"],
+        "version": wire_version,
         "file_size": bundle["file_size"],
         "sha256": bundle["sha256"],
         "download_token": token,
@@ -3423,6 +3430,35 @@ def download_trial_public():
 _ROBLOX_VERSION_RE = re.compile(r"^version-[a-f0-9]{8,}$")
 
 
+def _prune_to_retention(conn, retention_count: int) -> list:
+    """Delete oldest bundle rows beyond `retention_count` and remove their
+    files from disk — but only delete a file if no other surviving row
+    still references it. Same-named files happen when the same Roblox
+    version is uploaded twice (filename derived from the note); the
+    newer row replaced the file via os.replace, so the older row's
+    DELETE must NOT touch that file. Returns list of pruned filenames."""
+    pruned = []
+    rows = conn.execute(
+        "SELECT id, filename FROM roblox_bundles ORDER BY version DESC, id DESC"
+    ).fetchall()
+    for old in rows[retention_count:]:
+        # Drop the row first so the COUNT below ignores it.
+        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (old["id"],))
+        still_referenced = conn.execute(
+            "SELECT 1 FROM roblox_bundles WHERE filename = ? LIMIT 1",
+            (old["filename"],),
+        ).fetchone()
+        if not still_referenced:
+            fp = os.path.join(BUNDLES_DIR, old["filename"])
+            if os.path.isfile(fp):
+                try: os.remove(fp)
+                except OSError: pass
+        pruned.append(old["filename"])
+    if pruned:
+        conn.commit()
+    return pruned
+
+
 def _build_bundle_filename(version: int, note: str) -> str:
     """Filename for a stored bundle.
 
@@ -3444,13 +3480,14 @@ def roblox_bundles_page():
     conn = get_db()
     if request.method == "POST":
         f = request.files.get("bundle")
-        try:
-            version = int(request.form.get("version", "0"))
-        except ValueError:
-            version = 0
+        # Operator no longer picks the integer version. We auto-assign
+        # max+1 internally just to keep the DB's UNIQUE INDEX happy and
+        # preserve "newest" ordering. The Roblox version string in
+        # `note` is what the launcher actually compares against.
         note = request.form.get("note", "").strip()
-        if not f or not f.filename or version <= 0:
-            flash("Bundle file and a positive version number are required", "error")
+        version = (conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0) + 1
+        if not f or not f.filename:
+            flash("Choose a .zip bundle to upload", "error")
         elif not f.filename.lower().endswith(".zip"):
             flash("Bundle must be a .zip", "error")
         else:
@@ -3468,16 +3505,14 @@ def roblox_bundles_page():
                     (version, fname, size, sha.hexdigest(), time.time(), note),
                 )
                 conn.commit()
+                # Keep only BUNDLE_RETENTION_COUNT newest — manual
+                # uploads now behave like the automated path so the
+                # operator never has to clean up old files by hand.
+                _prune_to_retention(conn, BUNDLE_RETENTION_COUNT)
             except sqlite3.IntegrityError:
-                # Duplicate version int. The UNIQUE INDEX exists to make
-                # the unattended uploader race-safe; here it just means
-                # the operator picked a version that already exists.
-                # Roll back the file we just wrote, show a friendly
-                # error, and don't 500.
                 try: os.remove(dest)
                 except OSError: pass
-                flash(f"A bundle with version {version} already exists. "
-                      f"Pick a higher version number.", "error")
+                flash("Could not save bundle (version conflict). Try again.", "error")
                 conn.close()
                 return redirect(url_for("roblox_bundles_page"))
             flash(f"Uploaded bundle v{version} ({size/1048576:.1f} MB)", "success")
@@ -3859,7 +3894,10 @@ def _ingest_bundle_from_stream(declared_len, version, note, raw_stream, default_
     fname = _build_bundle_filename(version, note)
     dest = os.path.join(BUNDLES_DIR, fname)
     try:
-        os.rename(tmp_path, dest)
+        # os.replace is atomic on POSIX AND Windows, and it overwrites
+        # any existing file at `dest`. This matters because the same
+        # Roblox version uploaded twice produces the same filename.
+        os.replace(tmp_path, dest)
     except OSError as e:
         try: os.remove(tmp_path)
         except OSError: pass
@@ -3883,21 +3921,7 @@ def _ingest_bundle_from_stream(declared_len, version, note, raw_stream, default_
     bundle_id = cur.lastrowid
     conn.commit()
 
-    pruned = []
-    rows = conn.execute(
-        "SELECT id, filename FROM roblox_bundles ORDER BY version DESC, id DESC"
-    ).fetchall()
-    for old in rows[BUNDLE_RETENTION_COUNT:]:
-        fp = os.path.join(BUNDLES_DIR, old["filename"])
-        if os.path.isfile(fp):
-            try:
-                os.remove(fp)
-            except OSError:
-                pass
-        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (old["id"],))
-        pruned.append(old["filename"])
-    if pruned:
-        conn.commit()
+    pruned = _prune_to_retention(conn, BUNDLE_RETENTION_COUNT)
     conn.close()
 
     return 200, {
@@ -3925,19 +3949,29 @@ def roblox_bundles_upload_raw():
     in headers, and the body is streamed straight off wsgi.input so the
     16 MiB cap never fires.
     """
-    try:
-        version = int(request.headers.get("X-Bundle-Version", "0"))
-    except ValueError:
-        version = 0
     note = (request.headers.get("X-Bundle-Note", "") or "").strip()[:200]
     try:
         declared_len = int(request.headers.get("Content-Length", "0"))
     except ValueError:
         declared_len = 0
+    # Operator-driven uploads no longer require a version header — the
+    # server picks the next int automatically. The X-Bundle-Version
+    # header is still honoured if provided (for backwards compatibility
+    # with any scripts), but a missing/zero header is fine.
+    try:
+        forced_version = int(request.headers.get("X-Bundle-Version", "0"))
+    except ValueError:
+        forced_version = 0
+    if forced_version <= 0:
+        conn = get_db()
+        forced_version = (conn.execute(
+            "SELECT MAX(version) AS v FROM roblox_bundles"
+        ).fetchone()["v"] or 0) + 1
+        conn.close()
     raw_stream = request.environ.get("wsgi.input")
 
     status, payload = _ingest_bundle_from_stream(
-        declared_len, version, note, raw_stream, default_note=""
+        declared_len, forced_version, note, raw_stream, default_note=""
     )
     return jsonify(payload), status
 
@@ -4063,7 +4097,9 @@ def api_admin_upload_bundle():
     fname = _build_bundle_filename(version, note)
     dest = os.path.join(BUNDLES_DIR, fname)
     try:
-        os.rename(tmp_path, dest)
+        # os.replace is atomic and overwrites on both POSIX and Windows;
+        # required because identical Roblox versions share filenames.
+        os.replace(tmp_path, dest)
     except OSError as e:
         try: os.remove(tmp_path)
         except OSError: pass
@@ -4090,21 +4126,7 @@ def api_admin_upload_bundle():
     conn.commit()
 
     # Prune: keep newest BUNDLE_RETENTION_COUNT, delete older rows + files.
-    pruned = []
-    rows = conn.execute(
-        "SELECT id, filename FROM roblox_bundles ORDER BY version DESC, id DESC"
-    ).fetchall()
-    for old in rows[BUNDLE_RETENTION_COUNT:]:
-        fp = os.path.join(BUNDLES_DIR, old["filename"])
-        if os.path.isfile(fp):
-            try:
-                os.remove(fp)
-            except OSError:
-                pass
-        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (old["id"],))
-        pruned.append(old["filename"])
-    if pruned:
-        conn.commit()
+    pruned = _prune_to_retention(conn, BUNDLE_RETENTION_COUNT)
     conn.close()
 
     return jsonify({

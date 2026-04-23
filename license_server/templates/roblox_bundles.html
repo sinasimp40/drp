@@ -102,20 +102,18 @@
             <strong style="color:var(--text);">Tip:</strong> for big files you can also drop the .zip directly on the server at
             <code style="color:#ff8c33;">license_server/roblox_bundles/</code> (via SFTP / scp), then click
             <strong>Scan folder</strong> below and it will be picked up automatically.
-            Use the filename pattern <code>roblox_bundle_v&lt;N&gt;_anything.zip</code> to set the version explicitly.
+            Uploading a new bundle automatically removes the old one — only the latest is kept.
             <form method="POST" action="{{ url_for('roblox_bundles_scan') }}" style="display:inline; margin-left:8px;">
                 <button type="submit" class="btn btn-secondary btn-sm">Scan folder</button>
             </form>
         </div>
         <form id="bundle-upload-form" method="POST" enctype="multipart/form-data" autocomplete="off">
-            <div class="form-row" style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1;">
-                    <label>Version (integer, higher = newer)</label>
-                    <input type="number" name="version" min="1" value="{{ (bundles|length and bundles[0].version + 1) or 1 }}" required>
-                </div>
-                <div class="form-group" style="flex:2;">
-                    <label>Note (optional)</label>
-                    <input type="text" name="note" placeholder="e.g. Roblox 0.700 release">
+            <div class="form-group">
+                <label>Roblox version (e.g. <code>version-2e6461290a3541f5</code>)</label>
+                <input type="text" name="note" placeholder="version-xxxxxxxxxxxxxxxx">
+                <div style="font-size:11px; color:var(--text-mute); margin-top:4px;">
+                    Use the exact version string Roblox reports. Launchers compare this to know if they need to update.
+                    Leave blank only if you don't know it — a timestamp will be used instead.
                 </div>
             </div>
             <div class="form-group">
@@ -149,25 +147,20 @@
                 var label = document.getElementById('bundle-upload-label');
                 var msg = document.getElementById('bundle-upload-msg');
                 var fileInput = form.querySelector('input[type=file][name=bundle]');
-                var versionInput = form.querySelector('input[name=version]');
                 var noteInput = form.querySelector('input[name=note]');
                 var file = fileInput && fileInput.files && fileInput.files[0];
                 if (!file) {
                     alert('Choose a .zip bundle first.');
                     return;
                 }
-                var versionNum = parseInt((versionInput && versionInput.value) || '0', 10);
-                if (!versionNum || versionNum <= 0) {
-                    alert('Enter a positive version number.');
-                    return;
-                }
                 // Send raw bytes (not multipart) to bypass the global
                 // 16 MiB MAX_CONTENT_LENGTH cap. Real Roblox bundles
                 // are ~150-200 MB, so multipart upload would 413.
+                // No X-Bundle-Version header — server auto-assigns the
+                // next int. The Roblox version goes in X-Bundle-Note.
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', '{{ url_for("roblox_bundles_upload_raw") }}');
                 xhr.setRequestHeader('Content-Type', 'application/zip');
-                xhr.setRequestHeader('X-Bundle-Version', String(versionNum));
                 // Note may contain non-ASCII; keep it ASCII-safe in the
                 // header by URL-encoding. Server doesn't decode this --
                 // it's stored verbatim -- so we just strip to ASCII.
@@ -224,7 +217,7 @@
             <div style="flex:1; min-width:280px;">
                 <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
                             color:var(--text-mute); margin-bottom:6px;">
-                    Update Roblox bundle
+                    Update bundles
                 </div>
                 <div style="font-size:13px; color:var(--text); margin-bottom:6px;">
                     Click the button. The server will download the latest Roblox
@@ -246,7 +239,7 @@
                   style="margin:0;">
                 <button id="update-btn" type="submit" class="btn btn-primary"
                         {% if update_status.is_running %}disabled{% endif %}>
-                    {% if update_status.is_running %}Update running&hellip;{% else %}Update Roblox bundle now{% endif %}
+                    {% if update_status.is_running %}Update running&hellip;{% else %}Update bundles{% endif %}
                 </button>
             </form>
         </div>
@@ -300,7 +293,7 @@
           }
           panel.innerHTML = html;
         } else {
-          if (btn) { btn.disabled = false; btn.textContent = "Update Roblox bundle now"; }
+          if (btn) { btn.disabled = false; btn.textContent = "Update bundles"; }
           var html = "";
           if (d.finished_at && d.finished_at > 0) {
             html += "Last update finished " + escapeHtml(fmtAgo(d.finished_at))
