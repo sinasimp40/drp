@@ -3606,9 +3606,9 @@ def roblox_bundles_build_now():
     now = time.time()
     _set_setting("bundle_build_requested_at", str(now))
     flash(
-        f"Build request queued (at {format_time(now)}). The RDP "
-        f"builder will pick it up on its next poll and run a fresh "
-        f"install/zip/upload cycle.",
+        f"Update request queued (at {format_time(now)}). The Windows "
+        f"helper will pick it up on its next check and run a fresh "
+        f"download / install / copy / upload / uninstall cycle.",
         "success",
     )
     return redirect(url_for("roblox_bundles_page"))
