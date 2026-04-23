@@ -70,18 +70,23 @@ netsh advfirewall firewall add rule name="License Server" dir=in action=allow pr
 You should see "Ok."
 
 
-## Step 5: Set your passwords
+## Step 5: Set your passwords AND start the server (one line)
 
-Type the value you want ONCE, then everything is set in one line.
 Replace the word `admin` below with whatever you want to use, then
-copy the whole line, paste it into the Command Prompt, and press Enter:
+copy the whole line, paste it into the Command Prompt (after you have
+`cd`'d into the license_server folder — see Step 6), and press Enter:
 
 ```
-set X=admin && set LICENSE_ADMIN_PASSWORD=%X% && set LICENSE_SHARED_SECRET=%X% && set BUNDLE_AUTOMATION_TOKEN=%X% && set LICENSE_PORT=3842
+cmd /v:on /c "set "X=admin" && set "LICENSE_ADMIN_PASSWORD=!X!" && set "LICENSE_SHARED_SECRET=!X!" && set "BUNDLE_AUTOMATION_TOKEN=!X!" && set "LICENSE_PORT=3842" && python server.py"
 ```
 
 That uses `admin` for all three (admin password, shared secret, and
-bundle token) and sets the port to 3842.
+bundle token), sets the port to 3842, and starts the server — all in
+one shot.
+
+NOTE: The `cmd /v:on /c` prefix and the `!X!` (instead of `%X%`) are
+required. Without them, Windows expands `%X%` BEFORE `set X=admin`
+runs, so the password ends up empty and login fails.
 
 IMPORTANT: Whatever value you pick for the shared secret must match
 what you entered when building the launcher .exe — otherwise the
@@ -96,22 +101,15 @@ string (the example above works fine). You only need to remember it
 if you ever run bundle_automation\build_and_upload.py by hand.
 
 
-## Step 6: Go to the folder
+## Step 6: Go to the folder and start the server
 
+First go to the folder:
 ```
 cd C:\LicenseServer
 ```
 (press Enter)
 
-
-## Step 7: Start the server
-
-```
-python server.py
-```
-(press Enter)
-
-You should see:
+Then paste the one-liner from Step 5 and press Enter. You should see:
 ```
 License server starting on port 3842
 Dashboard: http://0.0.0.0:3842/
