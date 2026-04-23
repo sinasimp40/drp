@@ -66,6 +66,23 @@ import urllib.parse
 import urllib.request
 import zipfile
 
+# Python's bundled SSL doesn't trust anything by default on a fresh Windows
+# install, so urlopen() against roblox.com fails with
+# "CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate".
+# truststore makes Python use Windows' system CA store instead, which is
+# what the OS uses everywhere else and is always up to date. Falls back to
+# certifi if truststore isn't installed; falls back to the default context
+# if neither is available so the script never crashes at import time.
+try:
+    import truststore  # type: ignore
+    truststore.inject_into_ssl()
+except ImportError:
+    try:
+        import certifi  # type: ignore
+        ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())  # type: ignore[attr-defined]
+    except ImportError:
+        pass
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
