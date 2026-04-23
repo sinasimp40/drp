@@ -95,10 +95,50 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.environ.get("BUNDLE_BUILD_LOG_DIR", "").strip() or os.path.join(SCRIPT_DIR, "logs")
 
 # Roblox endpoints. The deployment endpoint returns the current
-# WindowsPlayer version string ("version-abc123def..."). The bootstrapper
-# at /download/client always serves the matching latest installer.
+# WindowsPlayer version string ("version-abc123def..."). The setup CDN
+# serves the raw package zips for that version — no bootstrapper, no
+# player executable is ever run, so Hyperion's VM detection never fires.
 ROBLOX_VERSION_URL = "https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer"
-ROBLOX_INSTALLER_URL = "https://www.roblox.com/download/client?os=win"
+ROBLOX_SETUP_CDN = "https://setup.rbxcdn.com"
+
+# Where each package gets extracted inside the version folder. This mapping
+# is the same one the Roblox bootstrapper (and open-source clones like
+# Bloxstrap) use internally. Packages not in this table are skipped —
+# that's how we avoid pulling Studio / WebView2 installer junk.
+ROBLOX_PACKAGE_DIRS = {
+    "RobloxApp.zip": "",
+    "WebView2.zip": "",
+    "WebView2RuntimeInstaller.zip": "WebView2RuntimeInstaller",
+    "shaders.zip": "shaders",
+    "ssl.zip": "ssl",
+    "content-avatar.zip": "content/avatar",
+    "content-configs.zip": "content/configs",
+    "content-fonts.zip": "content/fonts",
+    "content-sky.zip": "content/sky",
+    "content-sounds.zip": "content/sounds",
+    "content-textures2.zip": "content/textures",
+    "content-textures3.zip": "PlatformContent/pc/textures",
+    "content-models.zip": "content/models",
+    "content-platform-fonts.zip": "PlatformContent/pc/fonts",
+    "content-platform-dictionaries.zip": "PlatformContent/pc/shared_compression_dictionaries",
+    "content-terrain.zip": "PlatformContent/pc/terrain",
+    "extracontent-luapackages.zip": "ExtraContent/LuaPackages",
+    "extracontent-translations.zip": "ExtraContent/translations",
+    "extracontent-models.zip": "ExtraContent/models",
+    "extracontent-textures.zip": "ExtraContent/textures",
+    "extracontent-places.zip": "ExtraContent/places",
+}
+
+# AppSettings.xml tells RobloxPlayerBeta.exe where the content folder is.
+# The bootstrapper writes this at the end of install; since we skip the
+# bootstrapper we write it ourselves.
+ROBLOX_APP_SETTINGS_XML = (
+    '<?xml version="1.0" encoding="UTF-8"?>\r\n'
+    '<Settings>\r\n'
+    '\t<ContentFolder>content</ContentFolder>\r\n'
+    '\t<BaseUrl>http://www.roblox.com</BaseUrl>\r\n'
+    '</Settings>\r\n'
+)
 
 HTTP_TIMEOUT = 120  # seconds
 INSTALL_TIMEOUT = 600  # bootstrapper can take a while on a slow link
@@ -350,98 +390,127 @@ def wipe_roblox_state(label: str) -> None:
                     time.sleep(0.5 * (attempt + 1))
 
 
-def install_roblox(work_dir: str) -> None:
-    """Download the Roblox bootstrapper and run it. The bootstrapper
-    unpacks the player into %LOCALAPPDATA%\\Roblox\\Versions\\version-XXXX
-    without requiring a Roblox account login."""
-    installer = os.path.join(work_dir, "RobloxPlayerLauncher.exe")
-    log(f"Downloading Roblox bootstrapper -> {installer}")
-    _http_download(ROBLOX_INSTALLER_URL, installer, timeout=HTTP_TIMEOUT)
-    size = os.path.getsize(installer)
-    log(f"  downloaded {size/1048576:.1f} MB")
+def _parse_pkg_manifest(text: str) -> list[str]:
+    """rbxPkgManifest.txt format:
+        line 0: "v0" (format version)
+        then repeating groups of 4 lines:
+            <package name>
+            <md5>
+            <compressed size>
+            <uncompressed size>
+    We only care about the package names."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return []
+    # Skip leading format-version line if present (v0 / v1 / ...).
+    start = 1 if lines[0].lower().startswith("v") and not lines[0].endswith(".zip") else 0
+    names: list[str] = []
+    for i in range(start, len(lines), 4):
+        name = lines[i]
+        if name.endswith(".zip"):
+            names.append(name)
+    return names
 
-    log("Running bootstrapper (no console window)...")
-    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-    proc = subprocess.Popen([installer], creationflags=flags)
 
-    # On a VPS / VM, Roblox's Hyperion anti-cheat pops a blocking
-    # "Virtual Machine detected" modal when the player starts, which:
-    #   - interrupts the install before AppSettings.xml is written, and
-    #   - can leave the bootstrapper hanging forever on a headless run.
-    # So we can't rely on either the bootstrapper exiting OR AppSettings
-    # being written. Instead we treat extraction as "done" when the
-    # version folder's total file count + size stops changing for a few
-    # seconds AND RobloxPlayerBeta.exe is present. That works whether the
-    # bootstrapper finishes cleanly or gets interrupted by the VM dialog.
-    STABLE_FOR = 6.0          # seconds of no file-change activity
-    MIN_VERSION_BYTES = 50 * 1024 * 1024  # sanity floor: >50 MB
-    deadline = time.time() + INSTALL_TIMEOUT
-    detected = None
-    install_complete = False
-    last_snapshot = (0, 0)    # (file_count, total_bytes)
-    stable_since = None
-    last_log_t = 0.0
-    while time.time() < deadline:
-        detected = detected or find_installed_version_folder()
-        if detected:
-            file_count = 0
-            total_bytes = 0
-            try:
-                for root, _dirs, files in os.walk(detected):
-                    for n in files:
-                        try:
-                            total_bytes += os.path.getsize(os.path.join(root, n))
-                            file_count += 1
-                        except OSError:
-                            pass
-            except OSError:
-                pass
+def install_roblox(work_dir: str, version: str) -> None:
+    """Fetch Roblox player files directly from setup.rbxcdn.com and
+    assemble them into %LOCALAPPDATA%\\Roblox\\Versions\\<version>\\.
 
-            snapshot = (file_count, total_bytes)
-            if snapshot == last_snapshot and snapshot != (0, 0):
-                if stable_since is None:
-                    stable_since = time.time()
-                elif (time.time() - stable_since) >= STABLE_FOR:
-                    exe_ok = os.path.isfile(os.path.join(detected, "RobloxPlayerBeta.exe"))
-                    if exe_ok and total_bytes >= MIN_VERSION_BYTES:
-                        install_complete = True
-                        break
-            else:
-                stable_since = None
-            last_snapshot = snapshot
+    This skips the RobloxPlayerLauncher bootstrapper entirely, which is
+    the ONLY component that launches RobloxPlayerBeta.exe (and therefore
+    the only thing that trips Hyperion's 'Virtual Machine detected'
+    dialog). Since we never execute any Roblox binary on the VPS, the
+    anti-cheat has nothing to block."""
+    local = os.environ.get("LOCALAPPDATA", "")
+    if not local:
+        raise RuntimeError("LOCALAPPDATA env var not set — can't place version folder")
+    dest_root = os.path.join(local, "Roblox", "Versions", version)
+    os.makedirs(dest_root, exist_ok=True)
 
-            # periodic progress log so the user can see it isn't stuck
-            if time.time() - last_log_t > 5:
-                log(f"  extracting... {file_count} files, {total_bytes/1048576:.1f} MB")
-                last_log_t = time.time()
+    # 1. Grab the manifest that lists every package for this version.
+    manifest_url = f"{ROBLOX_SETUP_CDN}/{version}-rbxPkgManifest.txt"
+    log(f"Fetching package manifest -> {manifest_url}")
+    req = urllib.request.Request(manifest_url, headers={"User-Agent": "DenfiBundleBuilder/1.0"})
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+        manifest_text = resp.read().decode("utf-8", "replace")
+    all_pkgs = _parse_pkg_manifest(manifest_text)
+    log(f"  manifest lists {len(all_pkgs)} packages")
 
-        time.sleep(0.5)
+    # 2. Figure out which ones we actually need (player-only; skip Studio).
+    wanted = [p for p in all_pkgs if p in ROBLOX_PACKAGE_DIRS]
+    missing_map = [p for p in all_pkgs if p not in ROBLOX_PACKAGE_DIRS
+                   and not p.startswith("Roblox") and "Studio" not in p]
+    if missing_map:
+        # Harmless — just means Roblox added a new package since this
+        # mapping was written. Log it so we can update the table later.
+        log(f"  note: {len(missing_map)} manifest entries have no known extract dir "
+            f"(first few: {missing_map[:3]}) — skipping them")
 
-    if install_complete:
-        log(f"Install finished ({last_snapshot[0]} files, {last_snapshot[1]/1048576:.1f} MB) — killing Roblox before anti-cheat can block")
-    else:
-        log("Install deadline reached without a stable version folder")
+    # 3. Download + extract each package. Parallelised because we have
+    #    ~22 small zips and serial downloads waste time on high-latency
+    #    links. zipfile is thread-safe when each worker uses its own
+    #    ZipFile object, which we do.
+    total_files = 0
+    total_bytes = 0
 
-    # Kill the bootstrapper tree first (it spawns the player as a child on
-    # Windows, so taskkill /T ensures the player never gets to display the
-    # VM-detection dialog).
-    if proc.poll() is None:
+    def _fetch_pkg(pkg: str) -> tuple[str, int, int]:
+        url = f"{ROBLOX_SETUP_CDN}/{version}-{pkg}"
+        local_zip = os.path.join(work_dir, pkg)
+        req2 = urllib.request.Request(url, headers={"User-Agent": "DenfiBundleBuilder/1.0"})
+        with urllib.request.urlopen(req2, timeout=HTTP_TIMEOUT) as r, open(local_zip, "wb") as out:
+            shutil.copyfileobj(r, out, length=1024 * 1024)
+        subdir = ROBLOX_PACKAGE_DIRS[pkg]
+        target = os.path.join(dest_root, subdir) if subdir else dest_root
+        os.makedirs(target, exist_ok=True)
+        fcount = 0
+        fbytes = 0
+        with zipfile.ZipFile(local_zip, "r") as zf:
+            zf.extractall(target)
+            for info in zf.infolist():
+                if not info.is_dir():
+                    fcount += 1
+                    fbytes += info.file_size
         try:
-            subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                capture_output=True, timeout=10,
-                creationflags=flags,
-            )
-        except Exception:
+            os.remove(local_zip)
+        except OSError:
             pass
-        try:
-            proc.wait(timeout=5)
-        except Exception:
+        return (pkg, fcount, fbytes)
+
+    log(f"Downloading + extracting {len(wanted)} packages from {ROBLOX_SETUP_CDN}...")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    errors: list[str] = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {pool.submit(_fetch_pkg, p): p for p in wanted}
+        done = 0
+        for fut in as_completed(futures):
+            pkg = futures[fut]
             try:
-                proc.kill()
-            except Exception:
-                pass
-    kill_roblox_processes()
+                name, fc, fb = fut.result()
+                total_files += fc
+                total_bytes += fb
+                done += 1
+                log(f"  [{done}/{len(wanted)}] {name}: {fc} files, {fb/1048576:.1f} MB")
+            except Exception as e:
+                errors.append(f"{pkg}: {e}")
+                log(f"  FAILED {pkg}: {e}")
+
+    if errors:
+        raise RuntimeError(f"{len(errors)} package(s) failed to download: {errors[0]}")
+
+    # 4. Write AppSettings.xml (the bootstrapper's final step — Roblox
+    #    refuses to start without it).
+    settings_path = os.path.join(dest_root, "AppSettings.xml")
+    with open(settings_path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(ROBLOX_APP_SETTINGS_XML)
+
+    # 5. Sanity check the result — the player exe MUST be there.
+    if not os.path.isfile(os.path.join(dest_root, "RobloxPlayerBeta.exe")):
+        raise RuntimeError(
+            f"install finished but RobloxPlayerBeta.exe is missing from {dest_root} — "
+            f"Roblox may have changed their CDN layout"
+        )
+
+    log(f"Install complete: {total_files} files, {total_bytes/1048576:.1f} MB in {dest_root}")
 
 
 # ---------------------------------------------------------------------------
@@ -517,7 +586,7 @@ def main() -> int:
     work_dir = tempfile.mkdtemp(prefix="denfi_bundle_")
     log(f"Workdir: {work_dir}")
     try:
-        install_roblox(work_dir)
+        install_roblox(work_dir, latest_ver)
         version_folder = find_installed_version_folder()
         if not version_folder:
             die(2, "install finished but no Roblox/Versions/version-* folder appeared")
