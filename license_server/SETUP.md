@@ -72,17 +72,21 @@ You should see "Ok."
 
 ## Step 5: Set your passwords
 
-Copy this whole line, paste it into the Command Prompt, then press Enter:
+Type the value you want ONCE, then everything is set in one line.
+Replace the word `admin` below with whatever you want to use, then
+copy the whole line, paste it into the Command Prompt, and press Enter:
 
 ```
-set LICENSE_ADMIN_PASSWORD=admin && set LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024 && set LICENSE_PORT=3842 && set BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026
+set X=admin && set LICENSE_ADMIN_PASSWORD=%X% && set LICENSE_SHARED_SECRET=%X% && set BUNDLE_AUTOMATION_TOKEN=%X% && set LICENSE_PORT=3842
 ```
 
-That sets all four at once.
+That uses `admin` for all three (admin password, shared secret, and
+bundle token) and sets the port to 3842.
 
-(If you'd rather do them one at a time, that also works — type each `set ...` line on its own and press Enter.)
-
-IMPORTANT: The shared secret must match what you entered when building the launcher .exe
+IMPORTANT: Whatever value you pick for the shared secret must match
+what you entered when building the launcher .exe — otherwise the
+launchers will be rejected. So either keep `admin` here AND when
+you build the launcher, or change both to the same value.
 
 WHAT IS BUNDLE_AUTOMATION_TOKEN?
 It is the password the server uses to talk to itself when you click
