@@ -148,9 +148,31 @@
                 var stats = document.getElementById('bundle-upload-stats');
                 var label = document.getElementById('bundle-upload-label');
                 var msg = document.getElementById('bundle-upload-msg');
-                var fd = new FormData(form);
+                var fileInput = form.querySelector('input[type=file][name=bundle]');
+                var versionInput = form.querySelector('input[name=version]');
+                var noteInput = form.querySelector('input[name=note]');
+                var file = fileInput && fileInput.files && fileInput.files[0];
+                if (!file) {
+                    alert('Choose a .zip bundle first.');
+                    return;
+                }
+                var versionNum = parseInt((versionInput && versionInput.value) || '0', 10);
+                if (!versionNum || versionNum <= 0) {
+                    alert('Enter a positive version number.');
+                    return;
+                }
+                // Send raw bytes (not multipart) to bypass the global
+                // 16 MiB MAX_CONTENT_LENGTH cap. Real Roblox bundles
+                // are ~150-200 MB, so multipart upload would 413.
                 var xhr = new XMLHttpRequest();
-                xhr.open('POST', form.action || window.location.pathname);
+                xhr.open('POST', '{{ url_for("roblox_bundles_upload_raw") }}');
+                xhr.setRequestHeader('Content-Type', 'application/zip');
+                xhr.setRequestHeader('X-Bundle-Version', String(versionNum));
+                // Note may contain non-ASCII; keep it ASCII-safe in the
+                // header by URL-encoding. Server doesn't decode this --
+                // it's stored verbatim -- so we just strip to ASCII.
+                var noteVal = (noteInput && noteInput.value) || '';
+                xhr.setRequestHeader('X-Bundle-Note', noteVal.replace(/[^\x20-\x7E]/g, ''));
                 box.style.display = 'block';
                 btn.disabled = true;
                 btn.textContent = 'Uploading…';
@@ -188,7 +210,7 @@
                     btn.disabled = false;
                     btn.textContent = 'Upload Bundle';
                 });
-                xhr.send(fd);
+                xhr.send(file);
             });
         })();
         </script>

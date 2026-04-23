@@ -3658,6 +3658,172 @@ def api_admin_bundle_status():
     })
 
 
+def _ingest_bundle_from_stream(declared_len, version, note, raw_stream, default_note):
+    """Stream a raw .zip body to disk, hash it, and insert a roblox_bundles row.
+
+    Used by both the unattended /api/admin/upload_bundle endpoint and the
+    admin-browser /roblox_bundles/upload_raw endpoint, so the size cap,
+    streaming, hashing, version-uniqueness, atomic rename, and retention
+    pruning all behave identically regardless of who is uploading.
+
+    Returns (status_code:int, payload:dict). On success payload is the
+    canonical JSON shape returned by /api/admin/upload_bundle. On failure
+    payload is {"ok": False, "error": "..."}.
+    """
+    if version <= 0:
+        return 400, {"ok": False, "error": "version must be a positive integer"}
+    if declared_len <= 0:
+        return 400, {"ok": False, "error": "Content-Length header is required"}
+    if declared_len > BUNDLE_UPLOAD_MAX_BYTES:
+        return 413, {
+            "ok": False,
+            "error": f"bundle too large: {declared_len} bytes > {BUNDLE_UPLOAD_MAX_BYTES} byte cap",
+        }
+    if raw_stream is None:
+        return 500, {"ok": False, "error": "no request body stream available"}
+
+    os.makedirs(BUNDLES_DIR, exist_ok=True)
+
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".upload_", suffix=".zip", dir=BUNDLES_DIR)
+    sha = hashlib.sha256()
+    size = 0
+    remaining = declared_len
+    try:
+        with os.fdopen(tmp_fd, "wb") as out:
+            while remaining > 0:
+                want = min(1024 * 1024, remaining)
+                chunk = raw_stream.read(want)
+                if not chunk:
+                    break
+                out.write(chunk)
+                sha.update(chunk)
+                size += len(chunk)
+                remaining -= len(chunk)
+    except Exception as e:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return 500, {"ok": False, "error": f"failed to receive bundle: {e}"}
+
+    if size != declared_len:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return 400, {
+            "ok": False,
+            "error": f"received {size} bytes but Content-Length said {declared_len}",
+        }
+
+    if size == 0:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return 400, {"ok": False, "error": "empty body"}
+
+    try:
+        with open(tmp_path, "rb") as fh:
+            magic = fh.read(4)
+    except OSError:
+        magic = b""
+    if magic[:2] != b"PK":
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return 400, {"ok": False, "error": "body is not a zip file"}
+
+    conn = get_db()
+    max_v = conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0
+    if version <= max_v:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        conn.close()
+        return 409, {
+            "ok": False,
+            "error": f"version {version} is not greater than current max {max_v}",
+        }
+
+    fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+    dest = os.path.join(BUNDLES_DIR, fname)
+    try:
+        os.rename(tmp_path, dest)
+    except OSError as e:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        conn.close()
+        return 500, {"ok": False, "error": f"failed to commit bundle file: {e}"}
+
+    try:
+        cur = conn.execute(
+            "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (version, fname, size, sha.hexdigest(), time.time(), note or default_note),
+        )
+    except sqlite3.IntegrityError:
+        try: os.remove(dest)
+        except OSError: pass
+        conn.close()
+        return 409, {
+            "ok": False,
+            "error": f"version {version} was just uploaded by another runner",
+        }
+    bundle_id = cur.lastrowid
+    conn.commit()
+
+    pruned = []
+    rows = conn.execute(
+        "SELECT id, filename FROM roblox_bundles ORDER BY version DESC, id DESC"
+    ).fetchall()
+    for old in rows[BUNDLE_RETENTION_COUNT:]:
+        fp = os.path.join(BUNDLES_DIR, old["filename"])
+        if os.path.isfile(fp):
+            try:
+                os.remove(fp)
+            except OSError:
+                pass
+        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (old["id"],))
+        pruned.append(old["filename"])
+    if pruned:
+        conn.commit()
+    conn.close()
+
+    return 200, {
+        "ok": True,
+        "bundle_id": bundle_id,
+        "version": version,
+        "filename": fname,
+        "file_size": size,
+        "sha256": sha.hexdigest(),
+        "pruned": pruned,
+        "retention_keep": BUNDLE_RETENTION_COUNT,
+    }
+
+
+@app.route("/roblox_bundles/upload_raw", methods=["POST"])
+@require_admin
+def roblox_bundles_upload_raw():
+    """Admin-session raw-binary bundle upload (browser form).
+
+    The original /roblox_bundles POST handler accepts multipart/form-data,
+    which is gated by the global MAX_CONTENT_LENGTH cap (16 MiB). For
+    real Roblox bundles (~150-200 MB) the multipart parser raises 413
+    before the view runs. This route mirrors the unattended uploader's
+    raw-binary pattern: the body is the .zip bytes, version + note come
+    in headers, and the body is streamed straight off wsgi.input so the
+    16 MiB cap never fires.
+    """
+    try:
+        version = int(request.headers.get("X-Bundle-Version", "0"))
+    except ValueError:
+        version = 0
+    note = (request.headers.get("X-Bundle-Note", "") or "").strip()[:200]
+    try:
+        declared_len = int(request.headers.get("Content-Length", "0"))
+    except ValueError:
+        declared_len = 0
+    raw_stream = request.environ.get("wsgi.input")
+
+    status, payload = _ingest_bundle_from_stream(
+        declared_len, version, note, raw_stream, default_note=""
+    )
+    return jsonify(payload), status
+
+
 @app.route("/api/admin/upload_bundle", methods=["POST"])
 @require_bundle_token
 def api_admin_upload_bundle():
