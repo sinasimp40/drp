@@ -1,0 +1,25 @@
+[12:27:14] === DENFI bundle builder starting (log: /home/runner/workspace/bundle_automation/logs/build_20260423_122714.log) ===
+[12:27:14] WARNING: not running on Windows; install/uninstall steps will no-op
+[12:27:14] Querying Roblox: https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer
+[12:27:14] Roblox latest WindowsPlayer: version-2e6461290a3541f5
+[12:27:14] Server status: http://127.0.0.1:5000/api/admin/bundle_status
+[12:27:14] Server current bundle: vNone note=''; next_version=1
+[12:27:14] Workdir: /tmp/denfi_bundle_wd369sds
+[12:27:14] Downloading Roblox bootstrapper -> /tmp/denfi_bundle_wd369sds/RobloxPlayerLauncher.exe
+[12:27:14]   downloaded 9.4 MB
+[12:27:14] Running bootstrapper (no console window)...
+[12:27:14] UNCAUGHT EXCEPTION:
+[12:27:14]   Traceback (most recent call last):
+[12:27:14]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 493, in <module>
+[12:27:14]       sys.exit(main())
+[12:27:14]                ^^^^^^
+[12:27:14]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 448, in main
+[12:27:14]       install_roblox(work_dir)
+[12:27:14]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 351, in install_roblox
+[12:27:14]       proc = subprocess.Popen([installer], creationflags=flags)
+[12:27:14]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[12:27:14]     File "/nix/store/6334pjf6w2q623rgvwi499qaiym1p6yv-python3-3.11.14/lib/python3.11/subprocess.py", line 1026, in __init__
+[12:27:14]       self._execute_child(args, executable, preexec_fn, close_fds,
+[12:27:14]     File "/nix/store/6334pjf6w2q623rgvwi499qaiym1p6yv-python3-3.11.14/lib/python3.11/subprocess.py", line 1955, in _execute_child
+[12:27:14]       raise child_exception_type(errno_num, err_msg, err_filename)
+[12:27:14]   PermissionError: [Errno 13] Permission denied: '/tmp/denfi_bundle_wd369sds/RobloxPlayerLauncher.exe'

@@ -1,0 +1,25 @@
+[11:41:56] === DENFI bundle builder starting (log: /home/runner/workspace/bundle_automation/logs/build_20260423_114156.log) ===
+[11:41:56] WARNING: not running on Windows; install/uninstall steps will no-op
+[11:41:56] Querying Roblox: https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer
+[11:41:56] Roblox latest WindowsPlayer: version-2e6461290a3541f5
+[11:41:56] Server status: http://127.0.0.1:5000/api/admin/bundle_status
+[11:41:56] Server current bundle: vNone note=''; next_version=1
+[11:41:56] Workdir: /tmp/denfi_bundle_spycji70
+[11:41:56] Downloading Roblox bootstrapper -> /tmp/denfi_bundle_spycji70/RobloxPlayerLauncher.exe
+[11:41:57]   downloaded 9.4 MB
+[11:41:57] Running bootstrapper (no console window)...
+[11:41:57] UNCAUGHT EXCEPTION:
+[11:41:57]   Traceback (most recent call last):
+[11:41:57]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 493, in <module>
+[11:41:57]       sys.exit(main())
+[11:41:57]                ^^^^^^
+[11:41:57]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 448, in main
+[11:41:57]       install_roblox(work_dir)
+[11:41:57]     File "/home/runner/workspace/bundle_automation/build_and_upload.py", line 351, in install_roblox
+[11:41:57]       proc = subprocess.Popen([installer], creationflags=flags)
+[11:41:57]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[11:41:57]     File "/nix/store/6334pjf6w2q623rgvwi499qaiym1p6yv-python3-3.11.14/lib/python3.11/subprocess.py", line 1026, in __init__
+[11:41:57]       self._execute_child(args, executable, preexec_fn, close_fds,
+[11:41:57]     File "/nix/store/6334pjf6w2q623rgvwi499qaiym1p6yv-python3-3.11.14/lib/python3.11/subprocess.py", line 1955, in _execute_child
+[11:41:57]       raise child_exception_type(errno_num, err_msg, err_filename)
+[11:41:57]   PermissionError: [Errno 13] Permission denied: '/tmp/denfi_bundle_spycji70/RobloxPlayerLauncher.exe'

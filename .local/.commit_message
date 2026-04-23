@@ -1,0 +1,61 @@
+Use Roblox version string as bundle identifier; auto-replace old bundles
+
+User asked to drop the integer version field from manual uploads, use
+the Roblox version name (e.g. "version-2e6461290a3541f5") as the
+bundle identity, and have any new upload (manual or automated) replace
+the previous bundle so only one is ever kept.
+
+Changes:
+- /api/roblox_bundle/info now returns the Roblox version string from
+  the bundle's note field as `version` when it matches
+  ^version-[a-f0-9]{8,}$, falling back to the integer otherwise. The
+  launcher already does string equality on this value, so existing
+  clients re-download once and then cache the new identifier.
+- Manual upload form (/roblox_bundles): removed the "Version (integer)"
+  input. Now there is just one text field labelled "Roblox version"
+  (the existing note column) plus the file picker. Server auto-assigns
+  MAX(version)+1 internally to keep the UNIQUE INDEX happy.
+- Manual upload paths (/roblox_bundles POST and /roblox_bundles/upload_raw)
+  now prune to BUNDLE_RETENTION_COUNT after every upload, matching the
+  automated /api/admin/upload_bundle behaviour. Previously manual
+  uploads were exempt from pruning. With BUNDLE_RETENTION_COUNT default
+  of 1, every new upload replaces the existing bundle.
+- Renamed the "Update Roblox bundle now" button + section header to
+  "Update bundles".
+
+Architect review uncovered a real bug: when the same Roblox version is
+uploaded twice the filename collides (filename derived from note), so
+naive prune would delete the file shared by the surviving DB row.
+Fixed by:
+- Switching os.rename -> os.replace so the second upload atomically
+  overwrites the in-place file on both POSIX and Windows.
+- Extracting prune logic into _prune_to_retention(conn, n) which
+  deletes the row first, then only removes the file if no surviving
+  row still references that filename.
+
+Verified end-to-end:
+- Different-version uploads: old file removed cleanly.
+- Same-version uploaded twice: file overwritten in place, older DB row
+  pruned, file remains on disk for the active row.
+
+Bundle update + history hardening (architect review fixes)
+- Race-safe collision rollback: when INSERT hits IntegrityError after
+  os.replace, only delete dest if no surviving DB row still references
+  that filename. Same-version uploads share a path; blind os.remove(dest)
+  could orphan the winning row's download. Applied to both
+  _ingest_bundle_from_stream and /api/admin/upload_bundle.
+- /api/admin/bundle_status now calls _reconcile_bundles_dir first so the
+  unattended builder sees an accurate "current" bundle even if a .zip
+  vanished from disk.
+- _reconcile_bundles_dir auto-import is now strict: skips .upload_* and
+  hidden files, requires the canonical roblox_bundle_v<int>... name, and
+  zipfile-validates the archive + checks for RobloxPlayerBeta.exe before
+  registering. Prevents bad/junk zips dropped in BUNDLES_DIR from being
+  served as the live bundle.
+
+Verified:
+- History page (/history and /api/history_data) shows revoked AND deleted
+  licenses for both trial and premium with correct badges and trial tag.
+- bundle_status self-heals ghost rows whose .zip file is missing.
+- Junk .zip placed in bundles dir is NOT auto-imported.
+- A correctly-named bundle containing RobloxPlayerBeta.exe IS imported.
