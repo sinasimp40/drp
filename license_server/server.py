@@ -3420,6 +3420,22 @@ def download_trial_public():
     return send_file(fp, as_attachment=True, download_name=art["exe_filename"])
 
 
+_ROBLOX_VERSION_RE = re.compile(r"^version-[a-f0-9]{8,}$")
+
+
+def _build_bundle_filename(version: int, note: str) -> str:
+    """Filename for a stored bundle.
+
+    If `note` matches the Roblox version pattern (e.g. 'version-2e64...'),
+    embed it so admins can tell at a glance which Roblox release each
+    file holds. Otherwise fall back to a timestamp suffix to keep the
+    name unique."""
+    note_clean = (note or "").strip()
+    if _ROBLOX_VERSION_RE.match(note_clean):
+        return f"roblox_bundle_v{version}_{note_clean}.zip"
+    return f"roblox_bundle_v{version}_{int(time.time())}.zip"
+
+
 @app.route("/roblox_bundles", methods=["GET", "POST"])
 @require_admin
 def roblox_bundles_page():
@@ -3437,7 +3453,7 @@ def roblox_bundles_page():
         elif not f.filename.lower().endswith(".zip"):
             flash("Bundle must be a .zip", "error")
         else:
-            fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+            fname = _build_bundle_filename(version, note)
             dest = os.path.join(BUNDLES_DIR, fname)
             f.save(dest)
             sha = hashlib.sha256()
@@ -3839,7 +3855,7 @@ def _ingest_bundle_from_stream(declared_len, version, note, raw_stream, default_
             "error": f"version {version} is not greater than current max {max_v}",
         }
 
-    fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+    fname = _build_bundle_filename(version, note)
     dest = os.path.join(BUNDLES_DIR, fname)
     try:
         os.rename(tmp_path, dest)
@@ -4043,7 +4059,7 @@ def api_admin_upload_bundle():
             "error": f"version {version} is not greater than current max {max_v}",
         }), 409
 
-    fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+    fname = _build_bundle_filename(version, note)
     dest = os.path.join(BUNDLES_DIR, fname)
     try:
         os.rename(tmp_path, dest)
