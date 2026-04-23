@@ -89,7 +89,19 @@ set LICENSE_PORT=3842
 ```
 (press Enter)
 
+```
+set BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026
+```
+(press Enter)
+
 IMPORTANT: The shared secret must match what you entered when building the launcher .exe
+
+WHAT IS BUNDLE_AUTOMATION_TOKEN?
+It is the password the server uses to talk to itself when you click
+the "Update Roblox bundle now" button on the admin page. Without it,
+the button will fail with "Builder config error". Pick any long random
+string (the example above works fine). You only need to remember it
+if you ever run bundle_automation\build_and_upload.py by hand.
 
 
 ## Step 6: Go to the folder
@@ -148,7 +160,7 @@ C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppDirectory "C:\LicenseServe
 (press Enter)
 
 ```
-C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=admin" "LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024" "LICENSE_PORT=3842"
+C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=admin" "LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024" "LICENSE_PORT=3842" "BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026"
 ```
 (press Enter)
 
