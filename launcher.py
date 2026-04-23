@@ -151,8 +151,12 @@ def write_log(logs_dir, message):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(logs_dir, exist_ok=True)
     log_file = os.path.join(logs_dir, f"launch_{timestamp}.log")
-    with open(log_file, "w") as f:
-        f.write(message)
+    try:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(message)
+        return log_file
+    except Exception:
+        return None
 
 
 def get_folder_fingerprint(folder):
@@ -3716,14 +3720,66 @@ def main():
                         f"Roblox exited immediately (code {_early_exit}) — "
                         f"likely missing files, antivirus block, or corrupt install"
                     )
-                    write_log(paths["logs"], "\n".join(log_lines))
+                    # Snapshot the install folder so the user (or whoever
+                    # reads the log) can see at a glance what's actually
+                    # there vs. what should be there. Roblox itself never
+                    # tells us which file it was looking for, so this is
+                    # the best diagnostic we can offer.
+                    try:
+                        log_lines.append("--- Roblox folder contents ---")
+                        log_lines.append(f"Path: {roblox_dir}")
+                        entries = sorted(os.listdir(roblox_dir))
+                        files_at_root = []
+                        dirs_at_root = []
+                        for e in entries:
+                            full = os.path.join(roblox_dir, e)
+                            if os.path.isdir(full):
+                                try:
+                                    n = len(os.listdir(full))
+                                except Exception:
+                                    n = -1
+                                dirs_at_root.append(f"{e}/ ({n} items)")
+                            else:
+                                try:
+                                    sz = os.path.getsize(full)
+                                except Exception:
+                                    sz = -1
+                                files_at_root.append(f"{e} ({sz} bytes)")
+                        log_lines.append(f"Folders ({len(dirs_at_root)}):")
+                        for d in dirs_at_root:
+                            log_lines.append(f"  {d}")
+                        log_lines.append(f"Files ({len(files_at_root)}):")
+                        for f in files_at_root:
+                            log_lines.append(f"  {f}")
+                        # Quick sanity expectations for a healthy player install
+                        expected = [
+                            "RobloxPlayerBeta.exe", "AppSettings.xml",
+                            "content", "shaders", "ssl", "ClientSettings",
+                            "ExtraContent", "Plugins",
+                        ]
+                        present_lower = {e.lower() for e in entries}
+                        missing = [x for x in expected if x.lower() not in present_lower]
+                        if missing:
+                            log_lines.append("Expected but NOT FOUND: " + ", ".join(missing))
+                    except Exception as _diag_e:
+                        log_lines.append(f"(could not snapshot folder: {_diag_e})")
+
+                    log_path = write_log(paths["logs"], "\n".join(log_lines))
+                    # Show the user a hint about WHERE the log lives so they
+                    # don't have to hunt for it. Splash only renders one
+                    # line, so cram the most useful info into ~80 chars.
+                    log_hint = ""
+                    try:
+                        if log_path:
+                            log_hint = f" Log: {os.path.basename(log_path)}"
+                    except Exception:
+                        pass
                     splash.show_error(
-                        f"Roblox closed right after launch (exit {_early_exit}).\n"
-                        f"Likely a missing file, antivirus block, or corrupt install.\n"
-                        f"Delete the Roblox files folder and relaunch."
+                        f"Roblox closed right after launch (exit {_early_exit})."
+                        f"{log_hint}"
                     )
                     app.processEvents()
-                    QTimer.singleShot(8000, app.quit)
+                    QTimer.singleShot(10000, app.quit)
                     return
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
