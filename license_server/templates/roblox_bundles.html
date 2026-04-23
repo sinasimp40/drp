@@ -216,6 +216,63 @@
         </script>
     </div>
 
+    {# Always show the remote-build card, even with zero bundles -- this is
+       how the admin seeds the very first bundle without manual upload. #}
+    <div class="card" style="padding: 18px 22px; margin-bottom: 16px;
+                             border-left: 4px solid #4dd17a;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:280px;">
+                <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+                            color:var(--text-mute); margin-bottom:6px;">
+                    Build new bundle on demand
+                </div>
+                <div style="font-size:13px; color:var(--text); margin-bottom:6px;">
+                    Tell the Windows builder to install the latest Roblox right now,
+                    zip it, and upload it as a new active bundle. Same pipeline as
+                    the daily scheduled run &mdash; only triggered manually.
+                </div>
+                <div style="font-size:12px; color:var(--text-mute); line-height:1.6;">
+                    {% if build_status.pending %}
+                        <span style="color:#ffd84d;">&bull; Pending &mdash;</span>
+                        the builder will pick this up on its next poll.
+                        Requested: <strong>{{ build_status.requested_when }}</strong>.<br>
+                    {% elif build_status.requested_when %}
+                        Last request: <strong>{{ build_status.requested_when }}</strong>.<br>
+                    {% endif %}
+                    {% if build_status.completed_when %}
+                        Last completed: <strong>{{ build_status.completed_when }}</strong>
+                        {% if build_status.last_status %}
+                            &mdash; status:
+                            <code style="color:{% if build_status.last_status == 'ok' %}#4dd17a{% elif build_status.last_status == 'no-update-needed' %}#ff9d4d{% else %}#ff6a6a{% endif %};">
+                                {{ build_status.last_status }}</code>{% if build_status.last_message %}
+                            &mdash; <span style="color:var(--text-mute);">{{ build_status.last_message }}</span>
+                            {% endif %}
+                        {% endif %}<br>
+                    {% endif %}
+                    {% if build_status.runner_never_seen %}
+                        <span style="color:#ff6a6a;">&bull; The builder has never checked in.</span>
+                        Make sure <code>poll_and_build.py</code> is scheduled on the RDP machine
+                        and that <code>BUNDLE_AUTOMATION_TOKEN</code> matches.
+                    {% elif build_status.runner_stale %}
+                        <span style="color:#ff9d4d;">&bull; Builder last seen
+                        {{ build_status.runner_seen_when }}</span> &mdash; over 10 min ago.
+                        It may be offline; manual triggers won't run until it polls again.
+                    {% else %}
+                        Builder last seen: <strong>{{ build_status.runner_seen_when }}</strong>.
+                    {% endif %}
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('roblox_bundles_build_now') }}"
+                  onsubmit="return confirm('Trigger a fresh Roblox install + bundle upload on the Windows builder?\n\nIf the latest Roblox version already matches your active bundle, the builder will report \"no update needed\" and exit cleanly.')"
+                  style="margin:0;">
+                <button type="submit" class="btn btn-primary"
+                        {% if build_status.pending %}disabled{% endif %}>
+                    {% if build_status.pending %}Build queued…{% else %}Build new bundle now{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+
     {% if bundles %}
     <div class="card" style="padding: 18px 22px; margin-bottom: 16px;
                              border-left: 4px solid #ff8c33;">
