@@ -2402,21 +2402,25 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     #      system Roblox; lets the official uninstaller deregister itself
     #      and clean Program Files / shortcuts / registry entries.
     #   2. Microsoft Store package — separate API; not covered by step 1.
-    #   3. %LocalAppData% folder wipe — catches the per-user install
-    #      (default Roblox Player target) and any leftover state.
-    #   4. Program Files folder wipe — best-effort fallback for orphaned
+    #   3. Program Files folder wipe — best-effort fallback for orphaned
     #      folders left behind when an uninstaller is missing or broken.
     #      Silently skipped if we lack admin rights.
+    #
+    # NOTE: We deliberately do NOT wipe %LocalAppData%\Roblox\ here. Even
+    # though we launch RobloxPlayerBeta.exe from our own portable folder,
+    # Roblox still uses %LocalAppData%\Roblox\ at startup for WebView2
+    # user-data, session lock files, crash logs, and rbx-storage cache.
+    # Wiping it immediately before launch caused first-launch failures with
+    # the "missing or damaged files" popup; the second launch worked only
+    # because Roblox had recreated the directory shell while crashing. The
+    # registry + Microsoft Store uninstalls below still remove the system
+    # Roblox install so Steam/web links open ours instead.
     try:
         uninstall_roblox_via_registry()
     except Exception:
         pass
     try:
         remove_microsoft_store_roblox()
-    except Exception:
-        pass
-    try:
-        purge_appdata_roblox_versions()
     except Exception:
         pass
     try:
@@ -3503,8 +3507,17 @@ def main():
                     # (see download_and_extract_roblox_bundle ~line 2210):
                     #   1. Add/Remove Programs uninstaller — the official path.
                     #   2. Microsoft Store package — separate API.
-                    #   3. %LocalAppData% Roblox-named folders — per-user install.
-                    #   4. Program Files Roblox-named folders — admin-only fallback.
+                    #   3. Program Files Roblox-named folders — admin-only fallback.
+                    #
+                    # We deliberately skip wiping %LocalAppData%\Roblox\ here:
+                    # Roblox writes WebView2 user-data, session lock files,
+                    # crash logs, and rbx-storage cache there at startup, even
+                    # when launched from our portable folder. Wiping it
+                    # immediately before launch was the cause of first-launch
+                    # "missing or damaged files" errors (second launch worked
+                    # only because Roblox recreated the dir shell while
+                    # crashing). Steps 1+2 still remove the system install so
+                    # Steam/web links use ours.
                     # Order matters and each call is wrapped so one failure
                     # cannot skip the next, and none can fail the launch.
                     #
@@ -3537,11 +3550,6 @@ def main():
                             log_lines.append(f"Microsoft Store Roblox removed: {ok_store}")
                         except Exception as _e:
                             log_lines.append(f"Store remove skipped: {_e}")
-                        try:
-                            n_local = purge_appdata_roblox_versions()
-                            log_lines.append(f"Wiped {n_local} %LocalAppData% Roblox folders")
-                        except Exception as _e:
-                            log_lines.append(f"LocalAppData wipe skipped: {_e}")
                         try:
                             n_pf = purge_program_files_roblox()
                             log_lines.append(f"Wiped {n_pf} Program Files Roblox folders")
