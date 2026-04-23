@@ -1839,7 +1839,7 @@ def create_splash_pixmap():
     p.setFont(sub_font)
     p.setPen(QColor(255, 255, 255, 120))
     p.drawText(right_x + pad, sub_y, max_title_w, sub_h,
-               Qt.AlignLeft | Qt.AlignVCenter, "Built for performance. Designed to disappear.")
+               Qt.AlignLeft | Qt.AlignVCenter, "Multi-login. Auto-logout. Always protected.")
 
     p.end()
     _cached_splash_pixmap = pix

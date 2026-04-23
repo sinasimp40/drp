@@ -6,6 +6,7 @@ import uuid
 import time
 import hmac
 import hashlib
+import zipfile
 import json
 import base64
 import sqlite3
@@ -3467,14 +3468,43 @@ def _reconcile_bundles_dir(conn) -> dict:
     if summary["removed_missing"]:
         conn.commit()
 
-    # 2) auto-import .zip files on disk not yet in DB
+    # 2) auto-import .zip files on disk not yet in DB. Be strict about what
+    # we accept here -- this folder also holds in-flight upload temp files
+    # (`.upload_*.zip`) and an admin might drop unrelated archives in by
+    # mistake. Auto-importing a bad zip would make it the highest-version
+    # row and push a broken bundle to every launcher on next poll.
     known = {row["filename"] for row in conn.execute("SELECT filename FROM roblox_bundles").fetchall()}
     next_version = (conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0) + 1
+    # Canonical format produced by uploads: roblox_bundle_v<int>_version-<id>.zip
+    # We also accept the older roblox_bundle_v<int>.zip / roblox_bundle_v<int>_*.zip
+    # patterns for backward compatibility, but nothing else.
+    canonical_re = re.compile(r"^roblox_bundle_v\d+(?:_.+)?\.zip$", re.IGNORECASE)
     for name in sorted(os.listdir(BUNDLES_DIR)):
         if not name.lower().endswith(".zip") or name in known:
             continue
+        # Skip hidden / temp upload scratch files outright.
+        if name.startswith(".") or name.lower().startswith(".upload_"):
+            continue
+        if not canonical_re.match(name):
+            continue
         fp = os.path.join(BUNDLES_DIR, name)
         if not os.path.isfile(fp):
+            continue
+        # Sanity-check the archive: must be a real zip and contain the
+        # Roblox launcher exe. Without this, any junk .zip with a matching
+        # name would become the live bundle.
+        try:
+            if not zipfile.is_zipfile(fp):
+                continue
+            with zipfile.ZipFile(fp) as zf:
+                names_in_zip = zf.namelist()
+            has_player = any(
+                os.path.basename(n).lower() == "robloxplayerbeta.exe"
+                for n in names_in_zip
+            )
+            if not has_player:
+                continue
+        except (OSError, zipfile.BadZipFile):
             continue
         try:
             sha = hashlib.sha256()
@@ -3866,6 +3896,13 @@ def api_admin_bundle_status():
     upload is needed. Returns the current (highest-version) bundle's
     metadata plus the integer version number to use for the next upload."""
     conn = get_db()
+    # Self-heal first: drop rows whose .zip vanished from disk so we don't
+    # report a "current" bundle the launcher can't actually download. Same
+    # guarantee the admin /roblox_bundles page and launcher-facing
+    # _latest_bundle path already give -- the unattended builder needs it
+    # too, otherwise it would compare against a stale Roblox-version note
+    # and decide "no update needed" while the server has nothing to serve.
+    _reconcile_bundles_dir(conn)
     row = conn.execute(
         "SELECT version, filename, file_size, sha256, uploaded_at, note "
         "FROM roblox_bundles ORDER BY version DESC, id DESC LIMIT 1"
@@ -3989,8 +4026,18 @@ def _ingest_bundle_from_stream(declared_len, version, note, raw_stream, default_
             (version, fname, size, sha.hexdigest(), time.time(), note or default_note),
         )
     except sqlite3.IntegrityError:
-        try: os.remove(dest)
-        except OSError: pass
+        # Concurrent runner won the race for this version int. Only remove
+        # `dest` if no surviving DB row still references that filename --
+        # same-named uploads (same Roblox version) share a path, and the
+        # winning row's file IS the file we just os.replace'd into place,
+        # so a blind os.remove(dest) would orphan the surviving row's
+        # download. Ref-count check mirrors _prune_to_retention.
+        still_referenced = conn.execute(
+            "SELECT 1 FROM roblox_bundles WHERE filename = ? LIMIT 1", (fname,)
+        ).fetchone()
+        if not still_referenced:
+            try: os.remove(dest)
+            except OSError: pass
         conn.close()
         return 409, {
             "ok": False,
@@ -4191,10 +4238,17 @@ def api_admin_upload_bundle():
             (version, fname, size, sha.hexdigest(), time.time(), note or "auto-upload"),
         )
     except sqlite3.IntegrityError:
-        # Concurrent runner won the race for this version int. Roll
-        # back our file. Caller should treat 409 as a benign no-op.
-        try: os.remove(dest)
-        except OSError: pass
+        # Concurrent runner won the race for this version int. Only roll
+        # back the file on disk if no surviving row still references it
+        # (same Roblox version uploads share a filename via os.replace,
+        # so the winner's row points at THIS path). Mirrors the ref-count
+        # guard in _prune_to_retention to avoid orphaning a valid row.
+        still_referenced = conn.execute(
+            "SELECT 1 FROM roblox_bundles WHERE filename = ? LIMIT 1", (fname,)
+        ).fetchone()
+        if not still_referenced:
+            try: os.remove(dest)
+            except OSError: pass
         conn.close()
         return jsonify({
             "ok": False,
