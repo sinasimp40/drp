@@ -856,16 +856,60 @@ def get_roblox_version(roblox_dir):
     return None
 
 
+def _launcher_protected_names():
+    """Names in APP_DIR that sync_files / cleanup must NEVER delete.
+
+    When the launcher's install folder doubles as the Roblox files folder
+    (the default flat layout), sync_files would otherwise treat the
+    launcher's own state files as "old files not present in the new
+    Roblox bundle" and delete them. The most painful case is .license_key
+    -- losing it shows the user "License not found" on next start and
+    forces a re-activation.
+
+    Match is case-insensitive against the basename. Folders end up here
+    too (Logs, Cache, _update, RobloxFiles).
+    """
+    names = {
+        ".license_key",
+        ".trial_exhausted",
+        ".update_state",
+        "_update",
+        "logs",
+        "cache",
+        "robloxfiles",     # legacy premium subfolder
+        "icon.ico",
+        "place_roblox_here.txt",
+    }
+    # Whatever executable is currently running (frozen exe in production,
+    # the .py file in dev). We never want to delete ourselves.
+    try:
+        if getattr(sys, "frozen", False):
+            names.add(os.path.basename(sys.executable).lower())
+        else:
+            names.add(os.path.basename(__file__).lower())
+    except Exception:
+        pass
+    return names
+
+
 def sync_files(source_dir, roblox_dir):
     count = 0
     removed = 0
     failed = []
 
+    # Files/folders the launcher owns inside roblox_dir. Only relevant
+    # when roblox_dir == APP_DIR (the default flat layout); harmless
+    # otherwise because none of these names will exist there.
+    protected = _launcher_protected_names()
+
     old_files = set()
     if os.path.isdir(roblox_dir):
         for item in os.listdir(roblox_dir):
-            if item != "PLACE_ROBLOX_HERE.txt":
-                old_files.add(item)
+            if item == "PLACE_ROBLOX_HERE.txt":
+                continue
+            if item.lower() in protected:
+                continue
+            old_files.add(item)
 
     new_files = set()
     for item in os.listdir(source_dir):
