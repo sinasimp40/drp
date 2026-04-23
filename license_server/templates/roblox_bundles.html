@@ -224,88 +224,122 @@
             <div style="flex:1; min-width:280px;">
                 <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
                             color:var(--text-mute); margin-bottom:6px;">
-                    Update Roblox bundle now
+                    Update Roblox bundle
                 </div>
                 <div style="font-size:13px; color:var(--text); margin-bottom:6px;">
-                    Have the Windows helper download the Roblox installer, run it,
-                    copy the installed Roblox folder into a new active bundle, then
-                    uninstall Roblox and clean up <code>Program Files</code> +
-                    <code>%LocalAppData%\Roblox</code>. Same pipeline as the daily
-                    scheduled update &mdash; only triggered manually.
+                    Click the button. The server will download the latest Roblox
+                    installer, run it, copy the installed Roblox folder into a
+                    new active bundle, then uninstall Roblox and clean up
+                    <code>Program Files</code> and <code>%LocalAppData%\Roblox</code>.
+                    If the latest Roblox version already matches the active bundle,
+                    nothing happens. Takes about 3&ndash;5 minutes.
                 </div>
-                <div style="font-size:12px; color:var(--text-mute); line-height:1.6;">
-                    {% if build_status.pending %}
-                        <span style="color:#ffd84d;">&bull; Queued &mdash;</span>
-                        the Windows helper will pick this up on its next check.
-                        Requested: <strong>{{ build_status.requested_when }}</strong>.<br>
-                    {% elif build_status.requested_when %}
-                        Last request: <strong>{{ build_status.requested_when }}</strong>.<br>
-                    {% endif %}
-                    {% if build_status.completed_when %}
-                        Last update finished: <strong>{{ build_status.completed_when }}</strong>
-                        {% if build_status.last_status %}
-                            &mdash; result:
-                            <code style="color:{% if build_status.last_status == 'ok' %}#4dd17a{% elif build_status.last_status == 'no-update-needed' %}#ff9d4d{% else %}#ff6a6a{% endif %};">
-                                {{ build_status.last_status }}</code>{% if build_status.last_message %}
-                            &mdash; <span style="color:var(--text-mute);">{{ build_status.last_message }}</span>
-                            {% endif %}
-                        {% endif %}<br>
-                    {% endif %}
-                    {% if build_status.runner_never_seen %}
-                        <span style="color:#ff6a6a;">&bull; The Windows helper has never checked in.</span>
-                        Make sure <code>poll_and_build.py</code> is scheduled on the Windows
-                        machine and that <code>BUNDLE_AUTOMATION_TOKEN</code> matches the server.
-                    {% elif build_status.runner_stale %}
-                        <span style="color:#ff9d4d;">&bull; Helper last seen
-                        {{ build_status.runner_seen_when }}</span> &mdash; over 10 min ago.
-                        It may be offline; queued updates won't run until it checks in again.
-                    {% else %}
-                        Helper last seen: <strong>{{ build_status.runner_seen_when }}</strong>.
-                    {% endif %}
+                <div id="update-status-panel"
+                     style="font-size:12px; line-height:1.6; color:var(--text-mute);
+                            margin-top:8px; padding:10px 12px;
+                            background:rgba(0,0,0,0.18); border-radius:6px;">
+                    Loading status&hellip;
                 </div>
             </div>
-            <form method="POST" action="{{ url_for('roblox_bundles_build_now') }}"
-                  onsubmit="return confirm('Download the latest Roblox installer, run it, copy the installed Roblox folder into a new bundle, then uninstall Roblox and wipe Program Files + LocalAppData?\n\nIf the latest Roblox version already matches your active bundle, the helper will report \&quot;no update needed\&quot; and exit cleanly.')"
+            <form method="POST" action="{{ url_for('roblox_bundles_update_now') }}"
+                  onsubmit="return confirm('Start the Roblox bundle update now?\n\nThis runs on the server: it will download the Roblox installer, install it, copy the folder, upload as a new bundle, then uninstall and clean up. Takes 3-5 minutes.\n\nIf the latest Roblox version already matches your active bundle, nothing happens.');"
                   style="margin:0;">
-                <button type="submit" class="btn btn-primary"
-                        {% if build_status.pending %}disabled{% endif %}>
-                    {% if build_status.pending %}Update queued…{% else %}Update Roblox bundle now{% endif %}
+                <button id="update-btn" type="submit" class="btn btn-primary"
+                        {% if update_status.is_running %}disabled{% endif %}>
+                    {% if update_status.is_running %}Update running&hellip;{% else %}Update Roblox bundle now{% endif %}
                 </button>
             </form>
         </div>
     </div>
 
-    {% if bundles %}
-    <div class="card" style="padding: 18px 22px; margin-bottom: 16px;
-                             border-left: 4px solid #ff8c33;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;">
-            <div>
-                <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
-                            color:var(--text-mute); margin-bottom:6px;">
-                    Force re-download on all clients
-                </div>
-                <div style="font-size:13px; color:var(--text); margin-bottom:4px;">
-                    Push the current bundle to every launcher again on its next start &mdash;
-                    even if the version number hasn't changed.
-                </div>
-                <div style="font-size:12px; color:var(--text-mute);">
-                    Use this after re-zipping the same Roblox version, or to refresh
-                    clients with corrupted local extracts.
-                    {% if force_when %}
-                        Last forced: <strong style="color:#ff9d4d;">{{ force_when }}</strong>.
-                    {% else %}
-                        Never forced.
-                    {% endif %}
-                </div>
-            </div>
-            <form method="POST" action="{{ url_for('roblox_bundles_force_redownload') }}"
-                  onsubmit="return confirm('Force every launcher to re-download the latest bundle on next launch?')"
-                  style="margin:0;">
-                <button type="submit" class="btn btn-primary">Force re-download now</button>
-            </form>
-        </div>
-    </div>
-    {% endif %}
+    <script>
+    (function() {
+      var STATUS_URL = "{{ url_for('api_admin_update_status') }}";
+      var seed = {{ update_status|tojson }};
+
+      function escapeHtml(s) {
+        var d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+      }
+
+      function fmtAgo(ts) {
+        if (!ts || ts <= 0) return "";
+        var s = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+        if (s < 60) return s + "s ago";
+        if (s < 3600) return Math.floor(s / 60) + "m " + (s % 60) + "s ago";
+        return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m ago";
+      }
+
+      function statusColor(s) {
+        if (s === "ok") return "#4dd17a";
+        if (s === "no-update-needed") return "#ff9d4d";
+        if (s === "running") return "#ffd84d";
+        return "#ff6a6a";
+      }
+
+      function render(d) {
+        var panel = document.getElementById("update-status-panel");
+        var btn = document.getElementById("update-btn");
+        if (!panel) return;
+
+        if (d.is_running) {
+          if (btn) { btn.disabled = true; btn.innerHTML = "Update running&hellip;"; }
+          var html = "";
+          html += "<span style=\"color:#ffd84d;\">&bull; Running</span> &mdash; ";
+          html += "started " + escapeHtml(fmtAgo(d.started_at)) + ".<br>";
+          html += "<strong>Now:</strong> <code style=\"color:var(--text);\">"
+                  + escapeHtml(d.message || "...") + "</code>";
+          if (d.log_tail) {
+            html += "<details style=\"margin-top:6px;\"><summary style=\"cursor:pointer;\">"
+                  + "Show recent log lines</summary>"
+                  + "<pre style=\"font-size:11px; max-height:240px; overflow:auto;"
+                  + " background:rgba(0,0,0,0.3); padding:8px; border-radius:4px;"
+                  + " margin-top:6px; white-space:pre-wrap;\">"
+                  + escapeHtml(d.log_tail) + "</pre></details>";
+          }
+          panel.innerHTML = html;
+        } else {
+          if (btn) { btn.disabled = false; btn.textContent = "Update Roblox bundle now"; }
+          var html = "";
+          if (d.finished_at && d.finished_at > 0) {
+            html += "Last update finished " + escapeHtml(fmtAgo(d.finished_at))
+                  + " &mdash; result: <code style=\"color:" + statusColor(d.status) + ";\">"
+                  + escapeHtml(d.status || "?") + "</code><br>";
+            if (d.message) {
+              html += "<span style=\"color:var(--text-mute);\">"
+                    + escapeHtml(d.message) + "</span>";
+            }
+            if (d.log_tail) {
+              html += "<details style=\"margin-top:6px;\"><summary style=\"cursor:pointer;\">"
+                    + "Show recent log lines</summary>"
+                    + "<pre style=\"font-size:11px; max-height:240px; overflow:auto;"
+                    + " background:rgba(0,0,0,0.3); padding:8px; border-radius:4px;"
+                    + " margin-top:6px; white-space:pre-wrap;\">"
+                    + escapeHtml(d.log_tail) + "</pre></details>";
+            }
+          } else {
+            html += "No update has been triggered yet from this server. "
+                  + "Click the button to start.";
+          }
+          panel.innerHTML = html;
+        }
+      }
+
+      function poll() {
+        fetch(STATUS_URL, { credentials: "same-origin", cache: "no-store" })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            render(d);
+            window.setTimeout(poll, d.is_running ? 2000 : 10000);
+          })
+          .catch(function() { window.setTimeout(poll, 5000); });
+      }
+
+      render(seed);
+      poll();
+    })();
+    </script>
 
     <div class="card" style="padding: 0;">
         {% if bundles %}

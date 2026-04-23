@@ -2203,21 +2203,8 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     bundle_token = info.get("download_token")
     total_size = int(info.get("file_size", 0) or 0)
     expected_hash = info.get("sha256", "")
-    # Server-controlled "force every client to re-download" timestamp. The
-    # admin clicks "Force re-download" on /roblox_bundles, the server
-    # bumps app_settings['bundle_force_redownload_at'] to time.time(),
-    # and that value lands in this field. We persist it next to
-    # .bundle_version after every successful download (.bundle_force_at)
-    # and re-download whenever the server's value is newer than ours,
-    # even if `target_version` matches what we already have. 0.0 means
-    # the admin has never forced a re-download.
-    try:
-        server_force_at = float(info.get("force_redownload_at", 0) or 0)
-    except (TypeError, ValueError):
-        server_force_at = 0.0
 
     version_marker = os.path.join(paths["roblox"], ".bundle_version")
-    force_marker = os.path.join(paths["roblox"], ".bundle_force_at")
     have_exe = os.path.isfile(os.path.join(paths["roblox"], "RobloxPlayerBeta.exe"))
     cached_ver = None
     if os.path.isfile(version_marker):
@@ -2226,18 +2213,8 @@ def download_and_extract_roblox_bundle(splash, app, paths):
                 cached_ver = fm.read().strip()
         except Exception:
             cached_ver = None
-    cached_force_at = 0.0
-    if os.path.isfile(force_marker):
-        try:
-            with open(force_marker, "r") as fm:
-                cached_force_at = float(fm.read().strip() or 0)
-        except (OSError, ValueError):
-            cached_force_at = 0.0
-    # Admin pushed a force-redownload AFTER our last successful download
-    # → ignore the version-match shortcut and re-download.
-    force_required = server_force_at > 0 and server_force_at > cached_force_at
 
-    if have_exe and cached_ver and str(cached_ver) == str(target_version) and not force_required:
+    if have_exe and cached_ver and str(cached_ver) == str(target_version):
         # Cache hit: nothing to download, so we leave %LOCALAPPDATA%\Roblox\
         # alone. The full wipe ONLY runs after a fresh bundle download (see
         # call site below the extract step) so user Roblox cookies / login
@@ -2250,18 +2227,13 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     # Existing local Roblox install but no .bundle_version marker yet (e.g.
     # an older install that pre-dates the bundle system, or a premium build
     # that fell back to bundle on this launch for the first time). Trust the
-    # local files and seed both markers so we don't re-download every
-    # launch. If the admin later uploads a newer bundle version OR clicks
-    # "Force re-download", the checks above will fire and we'll update.
-    if have_exe and not cached_ver and not force_required:
+    # local files and seed the marker so we don't re-download every launch.
+    # If the admin later uploads a newer bundle version, the version-mismatch
+    # check above will fire and we'll update.
+    if have_exe and not cached_ver:
         try:
             with open(version_marker, "w") as fm:
                 fm.write(str(target_version))
-        except Exception:
-            pass
-        try:
-            with open(force_marker, "w") as fm:
-                fm.write(str(server_force_at))
         except Exception:
             pass
         if splash:
@@ -2410,15 +2382,6 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     try:
         with open(version_marker, "w") as fm:
             fm.write(str(target_version))
-    except Exception:
-        pass
-    # Persist the server's force-redownload timestamp so the next launch
-    # knows we're already in sync with the most recent admin "force"
-    # request. Without this, every launch after a force would re-download
-    # forever because cached_force_at would stay at 0.
-    try:
-        with open(force_marker, "w") as fm:
-            fm.write(str(server_force_at))
     except Exception:
         pass
 

@@ -79,56 +79,46 @@ If the operator wants to push a new bundle right now without waiting
 for the schedule, just run the script — it's idempotent. If a bundle
 for the latest Roblox version already exists, it exits 0 immediately.
 
-## On-demand build via the admin UI (`poll_and_build.py`)
+## On-demand update via the admin UI
 
-The admin panel has a **Build new bundle now** button on the Roblox
-Bundles page. Clicking it sets a "build requested" flag on the
-license server. A small polling script on the RDP machine watches for
-that flag and runs `build_and_upload.py` when it's set. This gives
-the operator a one-click way to pull a new Roblox release without
-waiting for the next scheduled run.
+The admin panel has an **Update Roblox bundle now** button on the
+Roblox Bundles page. The license server itself spawns
+`build_and_upload.py` as a subprocess in a background thread when
+clicked, captures its stdout, and shows live progress on the page
+(polled every 2 seconds via `/api/admin/update_status`).
 
-### Setup on the RDP
-
-In addition to the daily `build_and_upload.py` task, schedule
-`poll_and_build.py` to run every 2–5 minutes:
-
-- Action: `Start a program`
-- Program: `python.exe`
-- Arguments: `C:\denfi\bundle_automation\poll_and_build.py`
-- Trigger: Daily at e.g. 00:00, repeat every 5 minutes for 1 day,
-  enabled.
-- Same env vars as the daily task (`LICENSE_SERVER_URL` +
-  `BUNDLE_AUTOMATION_TOKEN`).
-
-The poller exits 0 within ~1 second when no build is pending, so
-running it every few minutes is cheap. It logs to
-`bundle_automation\logs\poll_<date>.log`.
+This requires the **license server to be running on the same Windows
+machine** that should host the Roblox install (since the server is
+the one running the bootstrapper). For deployments where the server
+runs on Linux, keep using the scheduled `build_and_upload.py` task
+on a separate Windows builder.
 
 ### What the admin sees
 
-The bundle page card shows:
+The bundle page card shows live status:
 
-- **Pending** — request queued, waiting for the next poll.
-- **Last completed** + **status** (`ok`, `no-update-needed`, or a
-  failure label) + the last 8 log lines from the build.
-- **Builder last seen** — refreshes every poll. If it's been over
-  10 minutes, the UI flags the runner as stale (RDP offline?).
-- **Never seen** warning if the RDP poller has never checked in
-  (likely env-var misconfiguration).
+- **Running** — current install/zip/upload step + expandable log tail.
+- **Last update finished** — result code (`ok`, `no-update-needed`,
+  `error`) + message + expandable log tail from the most recent run.
 
-### Flag semantics (in case you're debugging the server)
+A second click while one is already running is rejected with a flash
+message; only one update can run at a time (in-process lock).
 
-Stored in `app_settings`:
+### State stored in `app_settings`
 
-- `bundle_build_requested_at` — bumped on every admin click.
-- `bundle_build_acked_at` — set by the poller after each build.
-  Build is "pending" when `requested_at > acked_at`. Strict `>`
-  guarantees no infinite loops; `max(cur, requested_at)` on ack
-  guarantees acks never move the watermark backwards.
-- `bundle_runner_seen_at` — bumped on every status poll.
-- `bundle_build_completed_at` / `bundle_build_last_status` /
-  `bundle_build_last_message` — for the UI status line.
+- `bundle_update_started_at` / `bundle_update_finished_at` — float
+  timestamps for the most recent run.
+- `bundle_update_status` — `running` / `ok` / `no-update-needed` /
+  `error`.
+- `bundle_update_message` — short text shown beside the status code
+  (the last log line while running, the result summary when done).
+- `bundle_update_log_tail` — last ~24 lines of subprocess output for
+  the expandable log panel.
+
+The actual "is something running right now?" answer comes from the
+in-process `_update_lock`, not from `bundle_update_status`, so a
+server restart mid-run cleanly resets to "not running" without
+manual intervention.
 
 ## Debugging
 

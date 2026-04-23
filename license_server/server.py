@@ -11,6 +11,7 @@ import base64
 import sqlite3
 import tempfile
 import secrets
+import collections
 import threading
 import shutil
 import re
@@ -3358,25 +3359,12 @@ def api_roblox_bundle_info():
             if _bundle_tokens[k]["expires"] < now:
                 del _bundle_tokens[k]
 
-    # `force_redownload_at` is a global admin-controlled timestamp. The
-    # admin clicks "Force re-download" on /roblox_bundles, which calls
-    # _set_setting("bundle_force_redownload_at", str(time.time())). The
-    # launcher persists this value next to .bundle_version after every
-    # successful download; on subsequent launches it compares the saved
-    # value to the one returned here. If the server's value is newer the
-    # launcher bypasses its "version unchanged → skip" shortcut and
-    # downloads the bundle again. Float, 0.0 if never set.
-    try:
-        force_ts = float(_get_setting("bundle_force_redownload_at", "0") or 0)
-    except (TypeError, ValueError):
-        force_ts = 0.0
     resp = {
         "valid": True,
         "version": bundle["version"],
         "file_size": bundle["file_size"],
         "sha256": bundle["sha256"],
         "download_token": token,
-        "force_redownload_at": force_ts,
     }
     return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)})
 
@@ -3520,105 +3508,156 @@ def roblox_bundles_page():
         "count": s["n"],
         "most_recent": format_time(s["most_recent"]),
     } for s in spread]
-    try:
-        force_ts = float(_get_setting("bundle_force_redownload_at", "0") or 0)
-    except (TypeError, ValueError):
-        force_ts = 0.0
-    force_when = format_time(force_ts) if force_ts > 0 else ""
-
-    # Remote-build (RDP poller) status — used by the "Build new bundle now"
-    # card to show last request, last completion, and a stale-runner
-    # warning when the RDP poller hasn't checked in for a while.
-    def _f(k):
-        try:
-            return float(_get_setting(k, "0") or 0)
-        except (TypeError, ValueError):
-            return 0.0
-    req_at = _f("bundle_build_requested_at")
-    ack_at = _f("bundle_build_acked_at")
-    comp_at = _f("bundle_build_completed_at")
-    seen_at = _f("bundle_runner_seen_at")
-    last_status = _get_setting("bundle_build_last_status", "") or ""
-    last_message = _get_setting("bundle_build_last_message", "") or ""
-    now_ts = time.time()
-    runner_stale = seen_at > 0 and (now_ts - seen_at) > 600  # 10 min
-    runner_never_seen = seen_at <= 0
-    pending = req_at > 0 and req_at > ack_at
-    build_status = {
-        "pending": pending,
-        "requested_when": format_time(req_at) if req_at > 0 else "",
-        "completed_when": format_time(comp_at) if comp_at > 0 else "",
-        "runner_seen_when": format_time(seen_at) if seen_at > 0 else "",
-        "runner_stale": runner_stale,
-        "runner_never_seen": runner_never_seen,
-        "last_status": last_status,
-        "last_message": last_message,
-    }
+    update_status = _read_bundle_update_status()
 
     return render_template(
         "roblox_bundles.html",
         bundles=rows,
         latest_seen=latest_seen,
         version_spread=spread_rows,
-        force_when=force_when,
-        build_status=build_status,
+        update_status=update_status,
     )
 
 
-@app.route("/roblox_bundles/force_redownload", methods=["POST"])
-@require_admin
-def roblox_bundles_force_redownload():
-    """Bump the global bundle_force_redownload_at timestamp.
+# ---------------------------------------------------------------------------
+# Direct bundle-update trigger
+# ---------------------------------------------------------------------------
+# The admin clicks ONE button on /roblox_bundles. This server (which is
+# expected to be running on the same Windows box as the Roblox install
+# target) spawns bundle_automation/build_and_upload.py as a subprocess
+# in a background thread, captures its stdout, and exposes live status
+# via /api/admin/update_status (polled by the page). Exit codes:
+#     0  -> success (a new bundle was uploaded)
+#    10  -> no update needed (latest Roblox already matches active bundle)
+#     4  -> config error (env vars missing)
+#   else -> install / upload failed
+_update_lock = threading.Lock()
 
-    Effect on clients: on their next launch, fetch_roblox_bundle_info will
-    return the new timestamp; the launcher compares it to the value it
-    persisted after its last successful download (.bundle_force_at) and,
-    if the server's value is newer, bypasses the "version unchanged ->
-    skip" shortcut and downloads the latest bundle again. Use this to
-    push out a re-download even when you haven't bumped the version
-    integer (e.g. you re-zipped the same Roblox version with a different
-    file set, or want to force every client to refresh from a cold
-    cache).
-    """
-    now = time.time()
-    _set_setting("bundle_force_redownload_at", str(now))
+
+def _read_bundle_update_status():
+    """Snapshot of the most recent (or in-progress) bundle update."""
+    def _f(k):
+        try:
+            return float(_get_setting(k, "0") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+    return {
+        "is_running": _update_lock.locked(),
+        "started_at": _f("bundle_update_started_at"),
+        "finished_at": _f("bundle_update_finished_at"),
+        "status": _get_setting("bundle_update_status", "") or "",
+        "message": _get_setting("bundle_update_message", "") or "",
+        "log_tail": _get_setting("bundle_update_log_tail", "") or "",
+    }
+
+
+def _bundle_update_worker():
+    """Run build_and_upload.py and stream status into app_settings.
+
+    Holds _update_lock for the whole duration. The lock prevents two
+    concurrent installs (which would fight over the Roblox installer
+    and the version-int counter)."""
+    started = time.time()
+    log_tail = collections.deque(maxlen=24)
+    try:
+        _set_setting("bundle_update_started_at", str(started))
+        _set_setting("bundle_update_finished_at", "0")
+        _set_setting("bundle_update_status", "running")
+        _set_setting("bundle_update_message", "Starting Roblox installer...")
+        _set_setting("bundle_update_log_tail", "")
+
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script = os.path.join(repo_root, "bundle_automation", "build_and_upload.py")
+        env = os.environ.copy()
+        # The subprocess uploads back to us over HTTP. Use loopback so it
+        # works even when the LAN-facing bind address changes.
+        port = os.environ.get("LICENSE_PORT", os.environ.get("PORT", "3842"))
+        env["LICENSE_SERVER_URL"] = f"http://127.0.0.1:{port}"
+        if BUNDLE_AUTOMATION_TOKEN:
+            env["BUNDLE_AUTOMATION_TOKEN"] = BUNDLE_AUTOMATION_TOKEN
+
+        rc = -1
+        try:
+            proc = subprocess.Popen(
+                [sys.executable, "-u", script],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                cwd=repo_root, env=env, text=True, bufsize=1,
+            )
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                line = line.rstrip("\r\n")
+                if not line:
+                    continue
+                log_tail.append(line)
+                _set_setting("bundle_update_message", line[:300])
+                _set_setting("bundle_update_log_tail", "\n".join(log_tail))
+            proc.wait()
+            rc = proc.returncode
+        except Exception as e:
+            log_tail.append(f"server failed to launch builder: {e}")
+            _set_setting("bundle_update_log_tail", "\n".join(log_tail))
+
+        if rc == 0:
+            status, msg = "ok", "New Roblox bundle uploaded successfully."
+        elif rc == 10:
+            status, msg = "no-update-needed", \
+                "Latest Roblox version already matches the active bundle."
+        elif rc == 4:
+            status, msg = "error", \
+                "Builder config error (BUNDLE_AUTOMATION_TOKEN missing on server)."
+        else:
+            status, msg = "error", f"Builder exited with code {rc}. See log for details."
+
+        _set_setting("bundle_update_finished_at", str(time.time()))
+        _set_setting("bundle_update_status", status)
+        _set_setting("bundle_update_message", msg)
+        _set_setting("bundle_update_log_tail", "\n".join(log_tail))
+    finally:
+        try:
+            _update_lock.release()
+        except RuntimeError:
+            pass
+
+
+@app.route("/roblox_bundles/update_now", methods=["POST"])
+@require_admin
+def roblox_bundles_update_now():
+    """Start a fresh Roblox install + bundle upload right now on this server."""
+    if not _update_lock.acquire(blocking=False):
+        flash(
+            "An update is already running on the server. Watch the green "
+            "panel for live progress; it'll finish in a few minutes.",
+            "error",
+        )
+        return redirect(url_for("roblox_bundles_page"))
+    # If thread.start() itself fails (extremely rare), the worker's
+    # finally-block never runs, so release the lock here so the next
+    # click isn't blocked forever.
+    try:
+        t = threading.Thread(target=_bundle_update_worker,
+                             name="BundleUpdateWorker", daemon=True)
+        t.start()
+    except Exception as e:
+        try:
+            _update_lock.release()
+        except RuntimeError:
+            pass
+        flash(f"Failed to start update worker: {e}", "error")
+        return redirect(url_for("roblox_bundles_page"))
     flash(
-        f"All clients will re-download the bundle on their next launch "
-        f"(force timestamp set to {format_time(now)}).",
+        "Roblox bundle update started. Watch the green panel for live "
+        "progress (download → install → copy → upload → cleanup). "
+        "Takes 3–5 minutes.",
         "success",
     )
     return redirect(url_for("roblox_bundles_page"))
 
 
-@app.route("/roblox_bundles/build_now", methods=["POST"])
-@require_admin
-def roblox_bundles_build_now():
-    """Ask the unattended Windows builder to run a fresh
-    install/zip/upload cycle on its next poll.
-
-    Pull-model coordination: the admin click bumps
-    bundle_build_requested_at. The RDP poller (poll_and_build.py)
-    hits /api/admin/bundle_build_status every few minutes and runs
-    build_and_upload.py when requested_at > acked_at, then POSTs
-    to /api/admin/bundle_build_ack. The Linux license server can't
-    install Roblox itself, so this is the only way to remote-trigger.
-    """
-    now = time.time()
-    _set_setting("bundle_build_requested_at", str(now))
-    flash(
-        f"Update request queued (at {format_time(now)}). The Windows "
-        f"helper will pick it up on its next check and run a fresh "
-        f"download / install / copy / upload / uninstall cycle.",
-        "success",
-    )
-    return redirect(url_for("roblox_bundles_page"))
-
-
-# NOTE: /api/admin/bundle_build_status and /api/admin/bundle_build_ack
-# (the bot-token endpoints used by the RDP poller for the "Build new
-# bundle now" feature) are defined further down in this file, right
-# after require_bundle_token is declared. They have to live there
-# because Python evaluates the decorator at module load.
+@app.route("/api/admin/update_status", methods=["GET"])
+@require_admin_api
+def api_admin_update_status():
+    """JSON snapshot polled by the admin page while an update runs."""
+    return jsonify(_read_bundle_update_status())
 
 
 @app.route("/roblox_bundles/scan", methods=["POST"])
@@ -3688,74 +3727,6 @@ def require_bundle_token(f):
             return jsonify({"ok": False, "error": "invalid bundle token"}), 403
         return f(*args, **kwargs)
     return decorated
-
-
-@app.route("/api/admin/bundle_build_status", methods=["GET"])
-@require_bundle_token
-def api_admin_bundle_build_status():
-    """Polled by the RDP builder. Returns whether a build is pending
-    (admin pressed the button since the last ack) and updates
-    bundle_runner_seen_at so the admin UI can show a stale-runner
-    warning if the RDP machine stops checking in."""
-    now = time.time()
-    _set_setting("bundle_runner_seen_at", str(now))
-    try:
-        requested_at = float(_get_setting("bundle_build_requested_at", "0") or 0)
-    except (TypeError, ValueError):
-        requested_at = 0.0
-    try:
-        acked_at = float(_get_setting("bundle_build_acked_at", "0") or 0)
-    except (TypeError, ValueError):
-        acked_at = 0.0
-    return jsonify({
-        "ok": True,
-        "server_time": now,
-        "requested_at": requested_at,
-        "acked_at": acked_at,
-        "pending": requested_at > 0 and requested_at > acked_at,
-    })
-
-
-@app.route("/api/admin/bundle_build_ack", methods=["POST"])
-@require_bundle_token
-def api_admin_bundle_build_ack():
-    """RDP builder reports back after handling a build request.
-
-    Body JSON: {requested_at: float, status: str, message: str}
-      - requested_at: the timestamp the runner saw on /bundle_build_status
-        and is acknowledging (so a button-press DURING a long build
-        doesn't get swallowed -- it stays pending after the ack).
-      - status: short token, e.g. "ok", "no-update-needed", "failed".
-      - message: free-text detail shown in the admin UI.
-    """
-    payload = request.get_json(silent=True) or {}
-    try:
-        requested_at = float(payload.get("requested_at", 0))
-    except (TypeError, ValueError):
-        requested_at = 0.0
-    status = (payload.get("status") or "")[:64]
-    message = (payload.get("message") or "")[:500]
-    now = time.time()
-
-    # Don't move acked_at backwards. If a stale ack arrives (e.g. the
-    # poller was restarted with an old request_at it never finished),
-    # keep the latest ack we have.
-    try:
-        cur_acked = float(_get_setting("bundle_build_acked_at", "0") or 0)
-    except (TypeError, ValueError):
-        cur_acked = 0.0
-    new_acked = max(cur_acked, requested_at)
-    _set_setting("bundle_build_acked_at", str(new_acked))
-    _set_setting("bundle_build_completed_at", str(now))
-    _set_setting("bundle_build_last_status", status)
-    _set_setting("bundle_build_last_message", message)
-    _set_setting("bundle_runner_seen_at", str(now))
-    return jsonify({
-        "ok": True,
-        "acked_at": new_acked,
-        "completed_at": now,
-        "status": status,
-    })
 
 
 @app.route("/api/admin/bundle_status", methods=["GET"])

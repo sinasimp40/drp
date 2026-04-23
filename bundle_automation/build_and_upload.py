@@ -432,7 +432,9 @@ def main() -> int:
 
     if current_note == latest_ver:
         log(f"Server already has bundle for {latest_ver} — nothing to do.")
-        return 0
+        # Distinct exit code so the caller (license_server) can show
+        # "no update needed" instead of generic success.
+        return 10
 
     # Step 3: clean slate before install so the version folder we end up with
     # is unambiguously the one we just installed (not some leftover).
