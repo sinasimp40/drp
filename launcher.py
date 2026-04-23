@@ -3632,49 +3632,24 @@ def main():
             log_lines.append("Windowed mode settings applied")
 
             # --- pre-launch sanity check ----------------------------------
-            # Quick verification that the install isn't half-deleted. We
-            # only check for things we KNOW are required at startup; a
-            # missing AppSettings.xml or empty content/ folder is a silent
-            # crash on the Roblox side (no error dialog, no exit code we
-            # can read after detach). Refusing to launch here turns that
-            # silent failure into a clear, actionable error message.
-            integrity_problems = []
+            # We ONLY block launch on things that are 100% guaranteed
+            # fatal. Anything softer (DLL counts, content/ size, etc.)
+            # gets logged for diagnostics but does NOT stop the launch —
+            # the post-launch 2-second liveness poll below is the real
+            # safety net for "Roblox starts then immediately dies."
+            #
+            # Why so conservative: modern Roblox Player installs ship
+            # most DLLs bundled into the exe, so a low DLL count at the
+            # root is NOT a sign of corruption. Folder names also vary
+            # between bundle versions. The only hard rule is "the exe
+            # we are about to Popen() must exist."
             roblox_dir = paths["roblox"]
-            # Hard requirements: Roblox literally cannot run without these.
-            # AppSettings.xml is intentionally NOT in this list — Roblox
-            # regenerates it on first run if absent, and not every clean
-            # source install ships with one (see _launcher_protected_names
-            # docstring). Including it would false-positive valid syncs.
-            required_files = ["RobloxPlayerBeta.exe"]
-            for name in required_files:
-                if not os.path.isfile(os.path.join(roblox_dir, name)):
-                    integrity_problems.append(f"missing {name}")
-            content_dir = os.path.join(roblox_dir, "content")
-            if not os.path.isdir(content_dir):
-                integrity_problems.append("missing content/ folder")
-            else:
-                try:
-                    if not os.listdir(content_dir):
-                        integrity_problems.append("content/ is empty")
-                except Exception:
-                    pass
-            try:
-                dll_count = sum(
-                    1 for f in os.listdir(roblox_dir)
-                    if f.lower().endswith(".dll")
-                )
-            except Exception:
-                dll_count = 0
-            if dll_count < 5:
-                # Healthy installs ship 30+ DLLs; <5 means the install was
-                # gutted (sync removed too much, antivirus quarantined, etc.)
-                integrity_problems.append(f"only {dll_count} DLL(s) present")
-
-            if integrity_problems:
-                # Splash only renders the first line of an error, so keep
-                # the human-readable reason on line 1 and put the longer
-                # remediation hint on subsequent lines for the log file.
-                short = "Install incomplete: " + "; ".join(integrity_problems)
+            integrity_warnings = []
+            if not os.path.isfile(exe_path):
+                # exe_path was already verified earlier (line ~3603) but
+                # double-check in case something raced; this is the one
+                # condition that absolutely cannot proceed.
+                short = "Install incomplete: missing " + os.path.basename(exe_path)
                 log_lines.append("INTEGRITY CHECK FAILED: " + short)
                 log_lines.append("Fix: delete the Roblox files folder and relaunch to re-download.")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -3682,6 +3657,21 @@ def main():
                 app.processEvents()
                 QTimer.singleShot(8000, app.quit)
                 return
+
+            content_dir = os.path.join(roblox_dir, "content")
+            if not os.path.isdir(content_dir):
+                integrity_warnings.append("no content/ folder")
+            try:
+                dll_count = sum(
+                    1 for f in os.listdir(roblox_dir)
+                    if f.lower().endswith(".dll")
+                )
+            except Exception:
+                dll_count = -1
+            if integrity_warnings or dll_count >= 0:
+                log_lines.append(
+                    f"Integrity warnings: {integrity_warnings}; dll_count={dll_count}"
+                )
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
