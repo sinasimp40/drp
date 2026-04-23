@@ -9,6 +9,7 @@ import hashlib
 import json
 import base64
 import sqlite3
+import tempfile
 import secrets
 import threading
 import shutil
@@ -42,6 +43,21 @@ SHARED_SECRET = os.environ.get("LICENSE_SHARED_SECRET", "DENFI_LICENSE_SECRET_KE
 TRIAL_REGISTER_SECRET = os.environ.get("TRIAL_REGISTER_SECRET", "DENFI_TRIAL_REGISTER_SECRET_2026")
 ADMIN_PASSWORD = os.environ.get("LICENSE_ADMIN_PASSWORD", "admin")
 ADMIN_UNLOCK_SECRET = os.environ.get("ADMIN_UNLOCK_SECRET", "zxc1")
+# Long-lived bot credential for the unattended bundle-builder running on the
+# RDP server. Empty by default — the upload endpoints refuse to authenticate
+# at all when this is unset, so a forgotten env var can't accidentally allow
+# anonymous bundle uploads.
+BUNDLE_AUTOMATION_TOKEN = os.environ.get("BUNDLE_AUTOMATION_TOKEN", "").strip()
+# Keep the last N bundles after an automated upload (oldest pruned first).
+# Manual uploads via the admin UI are NOT pruned — only automation triggers
+# this so an operator's deliberate history isn't erased.
+BUNDLE_RETENTION_COUNT = max(1, int(os.environ.get("BUNDLE_RETENTION_COUNT", "3")))
+# Hard ceiling on a single bundle upload (defaults to 1 GiB). The 16 MiB
+# global MAX_CONTENT_LENGTH does NOT apply to /api/admin/upload_bundle --
+# that endpoint reads wsgi.input directly. This cap is the only thing
+# stopping a bot-token holder from filling the disk in one shot, so keep
+# it generous but finite.
+BUNDLE_UPLOAD_MAX_BYTES = int(os.environ.get("BUNDLE_UPLOAD_MAX_BYTES", str(1024 * 1024 * 1024)))
 _UNLOCK_PBKDF2_ITERATIONS = 5000  # was 60k — 60k took ~200ms PER keystroke,
 # which made fast typing miss decrypts on slower devices. The keystream is
 # only used to hide the form HTML from casual View-Source snoopers; it isn't
@@ -673,6 +689,21 @@ def init_db():
             note TEXT DEFAULT ''
         )
     """)
+    # Enforce that bundle integer-versions are unique. Without this, two
+    # concurrent automated uploads can both SELECT MAX(version)=N, both
+    # INSERT version=N+1, and we end up with duplicate "active" rows
+    # (ORDER BY version DESC LIMIT 1 becomes nondeterministic). The
+    # /api/admin/upload_bundle handler catches the IntegrityError this
+    # raises and returns 409 instead.
+    try:
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_roblox_bundles_version ON roblox_bundles(version)")
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Existing data has duplicate version numbers — rare. Log and
+        # continue without the constraint rather than refusing to start.
+        pass
+    except sqlite3.IntegrityError:
+        pass
     # Generic key/value settings (admin-configurable, persisted across restarts).
     # Used for things like the public short-link base URL (CDN/DNS hostname)
     # so the origin IP never has to appear in shared download links.
@@ -3413,11 +3444,24 @@ def roblox_bundles_page():
                 for chunk in iter(lambda: fh.read(65536), b""):
                     sha.update(chunk)
             size = os.path.getsize(dest)
-            conn.execute(
-                "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) VALUES (?, ?, ?, ?, ?, ?)",
-                (version, fname, size, sha.hexdigest(), time.time(), note),
-            )
-            conn.commit()
+            try:
+                conn.execute(
+                    "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) VALUES (?, ?, ?, ?, ?, ?)",
+                    (version, fname, size, sha.hexdigest(), time.time(), note),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # Duplicate version int. The UNIQUE INDEX exists to make
+                # the unattended uploader race-safe; here it just means
+                # the operator picked a version that already exists.
+                # Roll back the file we just wrote, show a friendly
+                # error, and don't 500.
+                try: os.remove(dest)
+                except OSError: pass
+                flash(f"A bundle with version {version} already exists. "
+                      f"Pick a higher version number.", "error")
+                conn.close()
+                return redirect(url_for("roblox_bundles_page"))
             flash(f"Uploaded bundle v{version} ({size/1048576:.1f} MB)", "success")
             return redirect(url_for("roblox_bundles_page"))
     bundles = conn.execute("SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC").fetchall()
@@ -3522,6 +3566,229 @@ def roblox_bundles_scan():
     if errors:
         flash("Errors: " + "; ".join(errors), "error")
     return redirect(url_for("roblox_bundles_page"))
+
+
+def require_bundle_token(f):
+    """Header auth for the unattended bundle-builder running on the RDP
+    server. Compares X-Bundle-Token against BUNDLE_AUTOMATION_TOKEN with
+    a constant-time check. If the env var is empty (default), every
+    request is rejected — no anonymous fallback ever."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not BUNDLE_AUTOMATION_TOKEN:
+            return jsonify({"ok": False, "error": "bundle automation disabled (BUNDLE_AUTOMATION_TOKEN not set)"}), 403
+        provided = request.headers.get("X-Bundle-Token", "")
+        if not provided or not hmac.compare_digest(provided, BUNDLE_AUTOMATION_TOKEN):
+            return jsonify({"ok": False, "error": "invalid bundle token"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/api/admin/bundle_status", methods=["GET"])
+@require_bundle_token
+def api_admin_bundle_status():
+    """Read-only snapshot for the bundle-builder to decide whether a new
+    upload is needed. Returns the current (highest-version) bundle's
+    metadata plus the integer version number to use for the next upload."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT version, filename, file_size, sha256, uploaded_at, note "
+        "FROM roblox_bundles ORDER BY version DESC, id DESC LIMIT 1"
+    ).fetchone()
+    max_v = conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0
+    total = conn.execute("SELECT COUNT(*) AS c FROM roblox_bundles").fetchone()["c"]
+    conn.close()
+    return jsonify({
+        "ok": True,
+        "current": ({
+            "version": row["version"],
+            "filename": row["filename"],
+            "file_size": row["file_size"],
+            "sha256": row["sha256"],
+            "uploaded_at": row["uploaded_at"],
+            "note": row["note"] or "",
+        } if row else None),
+        "next_version": int(max_v) + 1,
+        "total_bundles": total,
+        "retention_keep": BUNDLE_RETENTION_COUNT,
+    })
+
+
+@app.route("/api/admin/upload_bundle", methods=["POST"])
+@require_bundle_token
+def api_admin_upload_bundle():
+    """Accept a Roblox bundle .zip from the unattended builder.
+
+    Body: raw .zip bytes (Content-Type: application/zip).
+    Headers:
+      X-Bundle-Token   : auth (handled by the decorator)
+      X-Bundle-Version : positive integer, must be > current max version
+      X-Bundle-Note    : optional free-text (e.g. Roblox version-string)
+
+    The body is streamed from wsgi.input straight into a temp file on
+    disk (1 MiB chunks, hashing on the fly) -- never into RAM -- so
+    150-200 MB bundles work fine. The endpoint reads wsgi.input
+    directly (not request.stream) to bypass the global 16 MiB
+    MAX_CONTENT_LENGTH cap; we apply our own
+    BUNDLE_UPLOAD_MAX_BYTES ceiling instead. The bypass is safe
+    because the decorator already validated the bot token.
+
+    Concurrent-runner safety: the version int is protected by a UNIQUE
+    INDEX on roblox_bundles(version). If two runners race, one wins
+    the INSERT and the other gets sqlite3.IntegrityError -> 409 here."""
+    try:
+        version = int(request.headers.get("X-Bundle-Version", "0"))
+    except ValueError:
+        version = 0
+    note = (request.headers.get("X-Bundle-Note", "") or "").strip()[:200]
+
+    if version <= 0:
+        return jsonify({"ok": False, "error": "X-Bundle-Version must be a positive integer"}), 400
+
+    # Read straight off wsgi.input rather than request.stream. Werkzeug
+    # wraps request.stream in a LimitedStream the moment the request
+    # is parsed, using the global MAX_CONTENT_LENGTH (16 MiB) -- so
+    # changing request.max_content_length later does NOT lift the cap.
+    # The raw wsgi.input has no such cap; we honor Content-Length
+    # ourselves and apply our own (much larger) sanity ceiling.
+    try:
+        declared_len = int(request.headers.get("Content-Length", "0"))
+    except ValueError:
+        declared_len = 0
+    if declared_len <= 0:
+        return jsonify({"ok": False, "error": "Content-Length header is required"}), 400
+    if declared_len > BUNDLE_UPLOAD_MAX_BYTES:
+        return jsonify({
+            "ok": False,
+            "error": f"bundle too large: {declared_len} bytes > {BUNDLE_UPLOAD_MAX_BYTES} byte cap",
+        }), 413
+
+    raw_stream = request.environ.get("wsgi.input")
+    if raw_stream is None:
+        return jsonify({"ok": False, "error": "no request body stream available"}), 500
+
+    os.makedirs(BUNDLES_DIR, exist_ok=True)
+
+    # Stream body to a hidden temp file in BUNDLES_DIR while hashing.
+    # Atomic-rename to the final filename only after version validation
+    # passes, so a 409 leaves no orphan on disk.
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".upload_", suffix=".zip", dir=BUNDLES_DIR)
+    sha = hashlib.sha256()
+    size = 0
+    remaining = declared_len
+    try:
+        with os.fdopen(tmp_fd, "wb") as out:
+            while remaining > 0:
+                want = min(1024 * 1024, remaining)
+                chunk = raw_stream.read(want)
+                if not chunk:
+                    break
+                out.write(chunk)
+                sha.update(chunk)
+                size += len(chunk)
+                remaining -= len(chunk)
+    except Exception as e:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return jsonify({"ok": False, "error": f"failed to receive bundle: {e}"}), 500
+
+    if size != declared_len:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return jsonify({
+            "ok": False,
+            "error": f"received {size} bytes but Content-Length said {declared_len}",
+        }), 400
+
+    if size == 0:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return jsonify({"ok": False, "error": "empty body"}), 400
+
+    # Cheap zip-magic sanity check ("PK..."). Catches the operator who
+    # accidentally points the script at the wrong file.
+    try:
+        with open(tmp_path, "rb") as fh:
+            magic = fh.read(4)
+    except OSError:
+        magic = b""
+    if magic[:2] != b"PK":
+        try: os.remove(tmp_path)
+        except OSError: pass
+        return jsonify({"ok": False, "error": "body is not a zip file"}), 400
+
+    conn = get_db()
+
+    # Pre-check (informational + fast 409 path). The UNIQUE INDEX is
+    # the actual race-safe guard -- the IntegrityError handler below
+    # catches the case where two runners both pass this check.
+    max_v = conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0
+    if version <= max_v:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        conn.close()
+        return jsonify({
+            "ok": False,
+            "error": f"version {version} is not greater than current max {max_v}",
+        }), 409
+
+    fname = f"roblox_bundle_v{version}_{int(time.time())}.zip"
+    dest = os.path.join(BUNDLES_DIR, fname)
+    try:
+        os.rename(tmp_path, dest)
+    except OSError as e:
+        try: os.remove(tmp_path)
+        except OSError: pass
+        conn.close()
+        return jsonify({"ok": False, "error": f"failed to commit bundle file: {e}"}), 500
+
+    try:
+        cur = conn.execute(
+            "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (version, fname, size, sha.hexdigest(), time.time(), note or "auto-upload"),
+        )
+    except sqlite3.IntegrityError:
+        # Concurrent runner won the race for this version int. Roll
+        # back our file. Caller should treat 409 as a benign no-op.
+        try: os.remove(dest)
+        except OSError: pass
+        conn.close()
+        return jsonify({
+            "ok": False,
+            "error": f"version {version} was just uploaded by another runner",
+        }), 409
+    bundle_id = cur.lastrowid
+    conn.commit()
+
+    # Prune: keep newest BUNDLE_RETENTION_COUNT, delete older rows + files.
+    pruned = []
+    rows = conn.execute(
+        "SELECT id, filename FROM roblox_bundles ORDER BY version DESC, id DESC"
+    ).fetchall()
+    for old in rows[BUNDLE_RETENTION_COUNT:]:
+        fp = os.path.join(BUNDLES_DIR, old["filename"])
+        if os.path.isfile(fp):
+            try:
+                os.remove(fp)
+            except OSError:
+                pass
+        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (old["id"],))
+        pruned.append(old["filename"])
+    if pruned:
+        conn.commit()
+    conn.close()
+
+    return jsonify({
+        "ok": True,
+        "bundle_id": bundle_id,
+        "version": version,
+        "filename": fname,
+        "file_size": size,
+        "sha256": sha.hexdigest(),
+        "pruned": pruned,
+        "retention_keep": BUNDLE_RETENTION_COUNT,
+    })
 
 
 @app.route("/roblox_bundles/<int:bundle_id>/delete", methods=["POST"])
