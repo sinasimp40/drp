@@ -364,39 +364,63 @@ def install_roblox(work_dir: str) -> None:
     flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
     proc = subprocess.Popen([installer], creationflags=flags)
 
-    # We need to kill the whole Roblox chain the INSTANT the files finish
-    # extracting, because:
-    #   1. On a VPS / VM, Roblox's Hyperion anti-cheat pops a blocking
-    #      "Virtual Machine detected" modal when the player starts. If we
-    #      let the bootstrapper auto-launch RobloxPlayerBeta.exe that
-    #      dialog hangs forever on a headless scheduled run.
-    #   2. Even on bare metal, waiting for the bootstrapper to exit on
-    #      its own burns minutes — the player stays up trying to login.
-    #
-    # AppSettings.xml is written as the final step of extraction, so its
-    # presence alongside RobloxPlayerBeta.exe means "install is complete,
-    # it is safe to kill everything now before the player actually starts".
+    # On a VPS / VM, Roblox's Hyperion anti-cheat pops a blocking
+    # "Virtual Machine detected" modal when the player starts, which:
+    #   - interrupts the install before AppSettings.xml is written, and
+    #   - can leave the bootstrapper hanging forever on a headless run.
+    # So we can't rely on either the bootstrapper exiting OR AppSettings
+    # being written. Instead we treat extraction as "done" when the
+    # version folder's total file count + size stops changing for a few
+    # seconds AND RobloxPlayerBeta.exe is present. That works whether the
+    # bootstrapper finishes cleanly or gets interrupted by the VM dialog.
+    STABLE_FOR = 6.0          # seconds of no file-change activity
+    MIN_VERSION_BYTES = 50 * 1024 * 1024  # sanity floor: >50 MB
     deadline = time.time() + INSTALL_TIMEOUT
     detected = None
     install_complete = False
+    last_snapshot = (0, 0)    # (file_count, total_bytes)
+    stable_since = None
+    last_log_t = 0.0
     while time.time() < deadline:
         detected = detected or find_installed_version_folder()
         if detected:
-            exe_ok = os.path.isfile(os.path.join(detected, "RobloxPlayerBeta.exe"))
-            marker_ok = os.path.isfile(os.path.join(detected, "AppSettings.xml"))
-            if exe_ok and marker_ok:
-                install_complete = True
-                break
-        if proc.poll() is not None and detected:
-            # Bootstrapper exited without leaving AppSettings.xml; files may
-            # still be fine, let the outer caller decide via its own checks.
-            break
+            file_count = 0
+            total_bytes = 0
+            try:
+                for root, _dirs, files in os.walk(detected):
+                    for n in files:
+                        try:
+                            total_bytes += os.path.getsize(os.path.join(root, n))
+                            file_count += 1
+                        except OSError:
+                            pass
+            except OSError:
+                pass
+
+            snapshot = (file_count, total_bytes)
+            if snapshot == last_snapshot and snapshot != (0, 0):
+                if stable_since is None:
+                    stable_since = time.time()
+                elif (time.time() - stable_since) >= STABLE_FOR:
+                    exe_ok = os.path.isfile(os.path.join(detected, "RobloxPlayerBeta.exe"))
+                    if exe_ok and total_bytes >= MIN_VERSION_BYTES:
+                        install_complete = True
+                        break
+            else:
+                stable_since = None
+            last_snapshot = snapshot
+
+            # periodic progress log so the user can see it isn't stuck
+            if time.time() - last_log_t > 5:
+                log(f"  extracting... {file_count} files, {total_bytes/1048576:.1f} MB")
+                last_log_t = time.time()
+
         time.sleep(0.5)
 
     if install_complete:
-        log("Install finished — killing bootstrapper + player before anti-cheat fires")
+        log(f"Install finished ({last_snapshot[0]} files, {last_snapshot[1]/1048576:.1f} MB) — killing Roblox before anti-cheat can block")
     else:
-        log("Install deadline reached without AppSettings.xml marker")
+        log("Install deadline reached without a stable version folder")
 
     # Kill the bootstrapper tree first (it spawns the player as a child on
     # Windows, so taskkill /T ensures the player never gets to display the
