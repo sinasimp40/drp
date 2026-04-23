@@ -177,6 +177,48 @@
         }
 
         /* ============================================================
+           Roblox version stamp — appears on every splash design.
+           Mirrors what launcher.py paints in the bottom-left of the
+           orange block (see SplashScreen.drawContents around line 1443):
+           a small uppercase "ROBLOX" eyebrow above the version build
+           string in tabular monospace. The dark scrim under it makes
+           it readable against any background; we draw it absolutely
+           positioned at bottom-left so the operator can verify
+           placement at a glance for every design variant.
+           ============================================================ */
+        .rbx-stamp {
+            position: absolute;
+            left: 12px;
+            bottom: 10px;
+            z-index: 30;
+            padding: 5px 9px 6px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .rbx-stamp .label {
+            display: block;
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            color: #ff9d4d;
+            margin-bottom: 3px;
+        }
+        .rbx-stamp .ver {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: #f4f4f6;
+        }
+
+        /* ============================================================
            NEW DESIGN — MARQUEE
            Editorial / developer-tool premium. Left-aligned, big confident
            type, vertical orange accent bar, asymmetric layout, full-bleed
@@ -2335,6 +2377,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-marquee">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="accent"></div>
 
                 <div class="meta-row">
@@ -2387,6 +2430,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-horizon">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="left">
                     <div class="notch">DENFI</div>
                     <div class="notch notch-b">// LAUNCHER</div>
@@ -2437,6 +2481,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-console">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="titlebar">
                     <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
                     <div class="tab-title"><span class="em">●</span>&nbsp;&nbsp;denfi-launcher &mdash; ~/{{ (app_name or 'roblox')|lower }}</div>
@@ -2494,6 +2539,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-playhouse">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="grid"></div>
                 <div class="top">
                     <div class="brand"><span class="brand-logo">D</span><span>Denfi Launcher</span></div>
@@ -2534,6 +2580,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-sandbox">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="floaters">
                     <div class="stud s1"><div class="top"></div></div>
                     <div class="stud s2"><div class="top"></div></div>
@@ -2583,6 +2630,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-play">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="spotlight"></div>
                 <div class="floor"></div>
                 <div class="top">
@@ -2627,6 +2675,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-checkpoint">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="cloud c1"></div>
                 <div class="cloud c2"></div>
                 <div class="cloud c3"></div>
@@ -2693,6 +2742,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-ticket">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="glow"></div>
 
                 <div class="top">
@@ -2752,6 +2802,7 @@
         </div>
         <div class="design-stage">
             <div class="splash-crate">
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
                 <div class="sparks"></div>
                 <div class="platform"></div>
 

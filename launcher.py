@@ -1437,11 +1437,23 @@ class SplashScreen(QSplashScreen):
         painter.setPen(QColor("#f4f4f6"))
         painter.drawText(num_x, row_y, num_w, row_h, Qt.AlignVCenter | Qt.AlignLeft, num_text)
 
-        # Optional Roblox version, drawn small under "// LAUNCHER" notch on left block
+        # Roblox version, drawn just above the "// LAUNCHER" notch on the
+        # left orange block. Two lines: a small uppercase "ROBLOX" eyebrow
+        # and the version string in a tabular monospace so a long string
+        # like "version-4f6a73b9c1d8" still reads as a build hash and not
+        # body copy. Full opacity (was 160) so it's actually legible at
+        # the splash's tiny render size.
         if self.roblox_version:
-            painter.setPen(QColor(255, 255, 255, 160))
-            painter.setFont(QFont("Segoe UI", 7))
-            painter.drawText(16, h - 38, ORANGE_W - 32, 14,
+            painter.setPen(QColor(255, 255, 255, 200))
+            painter.setFont(QFont("Segoe UI", 7, QFont.Bold))
+            painter.drawText(16, h - 60, ORANGE_W - 32, 12,
+                             Qt.AlignLeft | Qt.AlignVCenter, "ROBLOX")
+            ver_font = QFont("JetBrains Mono", 8, QFont.Bold)
+            if not ver_font.exactMatch():
+                ver_font = QFont("Consolas", 8, QFont.Bold)
+            painter.setPen(QColor(255, 255, 255, 240))
+            painter.setFont(ver_font)
+            painter.drawText(16, h - 48, ORANGE_W - 32, 14,
                              Qt.AlignLeft | Qt.AlignVCenter, self.roblox_version)
 
 
@@ -1900,6 +1912,20 @@ def import_time():
     return _t.time()
 
 
+_current_roblox_version = ""
+
+def set_current_roblox_version(v):
+    """Remember the Roblox player version detected this session so every
+    subsequent license heartbeat/validate can ship it to the server. The
+    server stores this in licenses.last_roblox_version and surfaces it on
+    the bundles admin page so the operator knows when to upload a fresh
+    bundle (no extra request from the client — piggybacks the existing
+    signed heartbeat call so it stays authenticated and rate-limited)."""
+    global _current_roblox_version
+    if isinstance(v, str):
+        _current_roblox_version = v.strip()[:64]
+
+
 def validate_license(key, endpoint="validate"):
     if not LICENSE_SERVER_URL:
         return {"valid": True, "remaining_text": "No server configured", "remaining_seconds": 999999}
@@ -1907,6 +1933,8 @@ def validate_license(key, endpoint="validate"):
         import urllib.request, urllib.error
         url = LICENSE_SERVER_URL.rstrip("/") + f"/api/{endpoint}"
         body = {"key": key, "version": APP_VERSION}
+        if _current_roblox_version:
+            body["roblox_version"] = _current_roblox_version
         timestamp, nonce, req_sig = sign_request(body)
         req_data = json.dumps(body).encode('utf-8')
         req = urllib.request.Request(url, data=req_data, headers={
@@ -3299,6 +3327,12 @@ def main():
             elif not splash.roblox_version:
                 detected = get_roblox_version(paths["roblox"])
                 splash.roblox_version = detected if detected else "Roblox"
+            # Mirror to the global the heartbeat reads so the server
+            # learns the Roblox version this client is on without a
+            # second roundtrip. Skip the placeholder "Roblox" so we
+            # never report an empty/unknown version upstream.
+            if splash.roblox_version and splash.roblox_version != "Roblox":
+                set_current_roblox_version(splash.roblox_version)
 
             if system_path:
                 portable_fp = get_folder_fingerprint(paths["roblox"])
@@ -3330,6 +3364,7 @@ def main():
                     detected = get_roblox_version(paths["roblox"])
                     if detected:
                         splash.roblox_version = detected
+                        set_current_roblox_version(detected)
                     log_lines.append("Server bundle ready (no system Roblox)")
                 elif not has_exe_already:
                     log_lines.append("Bundle download failed and no local Roblox files")

@@ -4,6 +4,94 @@
 
 {% block content %}
 <div style="max-width: 1100px;">
+    {% if latest_seen %}
+        {% set bundle_top = bundles[0] if bundles else None %}
+        {% set update_needed = bundle_top and bundle_top.note and (latest_seen.version not in bundle_top.note) %}
+        <div class="card" style="padding: 18px 22px; margin-bottom: 16px;
+                                 border-left: 4px solid {% if not bundle_top %}#ff8c33{% else %}#36c179{% endif %};">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+                                color:var(--text-mute); margin-bottom:6px;">
+                        Roblox version radar
+                    </div>
+                    <div style="font-size:18px; font-weight:600; color:var(--text);">
+                        Latest seen on clients:
+                        <span style="color:#ff9d4d; font-family:'JetBrains Mono', monospace;">
+                            {{ latest_seen.version }}
+                        </span>
+                    </div>
+                    <div style="font-size:12px; color:var(--text-mute); margin-top:4px;">
+                        Reported {{ latest_seen.when }} by license <code>{{ latest_seen.license_key_short }}</code>
+                        &nbsp;·&nbsp;
+                        {% if bundle_top %}
+                            Your latest bundle is <strong>v{{ bundle_top.version }}</strong>
+                            {% if bundle_top.note %} (<em>{{ bundle_top.note }}</em>){% endif %}
+                        {% else %}
+                            <strong style="color:#ff8c33;">No bundle uploaded yet</strong>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    {% if not bundle_top %}
+                        <span style="display:inline-block; padding:6px 12px; border-radius:4px;
+                                     background:#3d1d0a; color:#ffaa66; font-size:12px; font-weight:600;
+                                     border:1px solid #6b3a18;">
+                            UPLOAD A BUNDLE
+                        </span>
+                    {% else %}
+                        <span style="display:inline-block; padding:6px 12px; border-radius:4px;
+                                     background:#0d2a18; color:#7ad99e; font-size:12px; font-weight:600;
+                                     border:1px solid #1c5736;">
+                            COMPARE &amp; UPDATE IF NEWER
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if version_spread and version_spread|length > 1 %}
+            <details style="margin-top:14px;">
+                <summary style="cursor:pointer; font-size:12px; color:var(--text-mute);">
+                    Version spread across {{ version_spread|sum(attribute='count') }} clients
+                </summary>
+                <table style="margin-top:10px; width:100%; font-size:12px;
+                              border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #2a2a38; color:var(--text-mute);">
+                            <th style="text-align:left; padding:6px;">Roblox version</th>
+                            <th style="text-align:right; padding:6px;">Clients</th>
+                            <th style="text-align:right; padding:6px;">Last seen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for v in version_spread %}
+                        <tr style="border-bottom:1px solid #1a1a22;">
+                            <td style="padding:6px; font-family:'JetBrains Mono', monospace;
+                                       color:{% if loop.first %}#ff9d4d{% else %}var(--text){% endif %};">
+                                {{ v.version }}
+                            </td>
+                            <td style="padding:6px; text-align:right;">{{ v.count }}</td>
+                            <td style="padding:6px; text-align:right; color:var(--text-mute);">
+                                {{ v.most_recent }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </details>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="card" style="padding: 14px 22px; margin-bottom: 16px;
+                                 border-left: 4px solid #2a2a38;">
+            <div style="font-size:12px; color:var(--text-mute);">
+                <strong style="color:var(--text);">Roblox version radar:</strong>
+                no clients have reported a Roblox version yet.
+                Once your launcher.exe is rebuilt and running on a client, the
+                latest detected Roblox version will show up here so you know when
+                to upload a fresh bundle.
+            </div>
+        </div>
+    {% endif %}
     <div class="card" style="padding: 24px; margin-bottom: 16px;">
         <h3 style="margin-top:0; color: var(--accent);">Upload new bundle</h3>
         <p style="color: var(--text-mute); font-size: 12px;">

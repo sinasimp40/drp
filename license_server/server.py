@@ -538,6 +538,20 @@ def init_db():
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE licenses ADD COLUMN launcher_version TEXT DEFAULT ''")
         conn.commit()
+    # last_roblox_version: the Roblox player build (e.g. "version-abc123") that
+    # the client most recently launched. Reported on every heartbeat/validate so
+    # the admin panel can show "newest Roblox version seen across all clients"
+    # and prompt the operator to upload a fresh bundle when Roblox patches.
+    try:
+        conn.execute("SELECT last_roblox_version FROM licenses LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE licenses ADD COLUMN last_roblox_version TEXT DEFAULT ''")
+        conn.commit()
+    try:
+        conn.execute("SELECT last_roblox_version_at FROM licenses LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE licenses ADD COLUMN last_roblox_version_at REAL")
+        conn.commit()
     # Track *why* and *how* an auto-suspension happened so the admin can show
     # the user proof of the IP change. These columns are populated whenever the
     # server suspends a license because the client IP no longer matches the
@@ -1241,6 +1255,16 @@ def api_validate():
                 "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
                 (now, client_ip, row["id"])
             )
+        # Roblox player version reported by the client. Stored in a
+        # separate UPDATE so the four-way conditional above stays simple
+        # and so a missing/blank value never overwrites a previously good
+        # one (only persist when the client actually reported something).
+        rbx_ver = (data.get("roblox_version", "") or "").strip()[:64]
+        if rbx_ver:
+            conn.execute(
+                "UPDATE licenses SET last_roblox_version = ?, last_roblox_version_at = ? WHERE id = ?",
+                (rbx_ver, now, row["id"])
+            )
         conn.commit()
         conn.close()
         resp = {
@@ -1375,6 +1399,15 @@ def api_heartbeat():
         conn.execute(
             "UPDATE licenses SET last_heartbeat = ?, last_ip = ? WHERE id = ?",
             (now, client_ip, row["id"])
+        )
+    # Persist Roblox player version reported by the client (separate
+    # UPDATE so the conditional above stays simple, and so a blank value
+    # never clobbers a previously good one).
+    rbx_ver = (data.get("roblox_version", "") or "").strip()[:64]
+    if rbx_ver:
+        conn.execute(
+            "UPDATE licenses SET last_roblox_version = ?, last_roblox_version_at = ? WHERE id = ?",
+            (rbx_ver, now, row["id"])
         )
     conn.commit()
     conn.close()
@@ -3388,6 +3421,28 @@ def roblox_bundles_page():
             flash(f"Uploaded bundle v{version} ({size/1048576:.1f} MB)", "success")
             return redirect(url_for("roblox_bundles_page"))
     bundles = conn.execute("SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC").fetchall()
+    # Find the most-recent Roblox player version any client has reported.
+    # Sorting by reported_at gives "newest seen in time" rather than highest
+    # version-string lexicographically (Roblox versions look like
+    # "version-abc123def" — they don't sort meaningfully as strings).
+    seen_row = conn.execute(
+        """SELECT last_roblox_version, last_roblox_version_at, license_key
+           FROM licenses
+           WHERE last_roblox_version IS NOT NULL AND last_roblox_version != ''
+           ORDER BY last_roblox_version_at DESC
+           LIMIT 1"""
+    ).fetchone()
+    # Aggregate stats: how many distinct Roblox versions are out there in
+    # the field right now, and a small breakdown for the operator.
+    spread = conn.execute(
+        """SELECT last_roblox_version AS ver, COUNT(*) AS n,
+                  MAX(last_roblox_version_at) AS most_recent
+           FROM licenses
+           WHERE last_roblox_version IS NOT NULL AND last_roblox_version != ''
+           GROUP BY last_roblox_version
+           ORDER BY most_recent DESC
+           LIMIT 5"""
+    ).fetchall()
     conn.close()
     rows = [{
         "id": b["id"], "version": b["version"], "filename": b["filename"],
@@ -3396,7 +3451,24 @@ def roblox_bundles_page():
         "uploaded": format_time(b["uploaded_at"]),
         "note": b["note"] or "",
     } for b in bundles]
-    return render_template("roblox_bundles.html", bundles=rows)
+    latest_seen = None
+    if seen_row:
+        latest_seen = {
+            "version": seen_row["last_roblox_version"],
+            "when": format_time(seen_row["last_roblox_version_at"]),
+            "license_key_short": (seen_row["license_key"] or "")[:8] + "…",
+        }
+    spread_rows = [{
+        "version": s["ver"],
+        "count": s["n"],
+        "most_recent": format_time(s["most_recent"]),
+    } for s in spread]
+    return render_template(
+        "roblox_bundles.html",
+        bundles=rows,
+        latest_seen=latest_seen,
+        version_spread=spread_rows,
+    )
 
 
 @app.route("/roblox_bundles/scan", methods=["POST"])
