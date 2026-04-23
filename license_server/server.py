@@ -3331,9 +3331,19 @@ def api_trial_register():
 
 
 def _latest_bundle(conn):
-    return conn.execute(
-        "SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC LIMIT 1"
-    ).fetchone()
+    """Newest bundle whose .zip is actually present on disk. Drops stale
+    DB rows along the way so the launcher never gets handed a download
+    URL for a file that vanished (deleted by admin, antivirus, etc.)."""
+    while True:
+        row = conn.execute(
+            "SELECT * FROM roblox_bundles ORDER BY version DESC, id DESC LIMIT 1"
+        ).fetchone()
+        if not row:
+            return None
+        if os.path.isfile(os.path.join(BUNDLES_DIR, row["filename"])):
+            return row
+        conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (row["id"],))
+        conn.commit()
 
 
 @app.route("/api/roblox_bundle/info", methods=["POST"])
@@ -3430,6 +3440,70 @@ def download_trial_public():
 _ROBLOX_VERSION_RE = re.compile(r"^version-[a-f0-9]{8,}$")
 
 
+def _reconcile_bundles_dir(conn) -> dict:
+    """Make the DB match what is actually on disk in BUNDLES_DIR.
+
+    Two corrections happen here, and both are safe to run on every
+    admin-page load:
+
+    1. Drop rows whose .zip was deleted out from under us (admin
+       removed it via SFTP, antivirus quarantine, etc.). Without this
+       cleanup the bundles table keeps stale entries that the launcher
+       would try to download and 404 on.
+    2. Auto-register any .zip file present in BUNDLES_DIR that isn't
+       already in the DB. Same logic as the explicit "Scan folder"
+       button — the operator never has to remember to click it.
+    """
+    os.makedirs(BUNDLES_DIR, exist_ok=True)
+    summary = {"removed_missing": [], "imported": []}
+
+    # 1) prune rows for missing files
+    rows = conn.execute("SELECT id, filename FROM roblox_bundles").fetchall()
+    for r in rows:
+        fp = os.path.join(BUNDLES_DIR, r["filename"])
+        if not os.path.isfile(fp):
+            conn.execute("DELETE FROM roblox_bundles WHERE id = ?", (r["id"],))
+            summary["removed_missing"].append(r["filename"])
+    if summary["removed_missing"]:
+        conn.commit()
+
+    # 2) auto-import .zip files on disk not yet in DB
+    known = {row["filename"] for row in conn.execute("SELECT filename FROM roblox_bundles").fetchall()}
+    next_version = (conn.execute("SELECT MAX(version) AS v FROM roblox_bundles").fetchone()["v"] or 0) + 1
+    for name in sorted(os.listdir(BUNDLES_DIR)):
+        if not name.lower().endswith(".zip") or name in known:
+            continue
+        fp = os.path.join(BUNDLES_DIR, name)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            sha = hashlib.sha256()
+            with open(fp, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    sha.update(chunk)
+            size = os.path.getsize(fp)
+            # Recover the Roblox version from the filename when it's
+            # the new format (roblox_bundle_version-XXXX.zip); else
+            # leave the note blank.
+            m_note = re.search(r"_(version-[a-f0-9]+)\.zip$", name)
+            note = m_note.group(1) if m_note else ""
+            m_ver = re.search(r"_v(\d+)_", name) or re.search(r"_v(\d+)\.zip$", name)
+            ver = int(m_ver.group(1)) if m_ver else next_version
+            if not m_ver:
+                next_version += 1
+            conn.execute(
+                "INSERT INTO roblox_bundles (version, filename, file_size, sha256, uploaded_at, note) VALUES (?, ?, ?, ?, ?, ?)",
+                (ver, name, size, sha.hexdigest(), time.time(), note or "imported from disk"),
+            )
+            summary["imported"].append(name)
+        except (OSError, sqlite3.IntegrityError):
+            continue
+    if summary["imported"]:
+        conn.commit()
+
+    return summary
+
+
 def _prune_to_retention(conn, retention_count: int) -> list:
     """Delete oldest bundle rows beyond `retention_count` and remove their
     files from disk — but only delete a file if no other surviving row
@@ -3478,6 +3552,10 @@ def _build_bundle_filename(version: int, note: str) -> str:
 def roblox_bundles_page():
     os.makedirs(BUNDLES_DIR, exist_ok=True)
     conn = get_db()
+    # Self-heal on every visit: drop rows whose .zip vanished, import
+    # any .zip dropped into the folder. The operator no longer needs
+    # to remember "Scan folder" or hand-clean orphan rows.
+    _reconcile_bundles_dir(conn)
     if request.method == "POST":
         f = request.files.get("bundle")
         # Operator no longer picks the integer version. We auto-assign
