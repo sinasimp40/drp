@@ -52,7 +52,7 @@ BUNDLE_AUTOMATION_TOKEN = os.environ.get("BUNDLE_AUTOMATION_TOKEN", "").strip()
 # Keep the last N bundles after an automated upload (oldest pruned first).
 # Manual uploads via the admin UI are NOT pruned — only automation triggers
 # this so an operator's deliberate history isn't erased.
-BUNDLE_RETENTION_COUNT = max(1, int(os.environ.get("BUNDLE_RETENTION_COUNT", "3")))
+BUNDLE_RETENTION_COUNT = max(1, int(os.environ.get("BUNDLE_RETENTION_COUNT", "1")))
 # Hard ceiling on a single bundle upload (defaults to 1 GiB). The 16 MiB
 # global MAX_CONTENT_LENGTH does NOT apply to /api/admin/upload_bundle --
 # that endpoint reads wsgi.input directly. This cap is the only thing
@@ -3427,12 +3427,13 @@ def _build_bundle_filename(version: int, note: str) -> str:
     """Filename for a stored bundle.
 
     If `note` matches the Roblox version pattern (e.g. 'version-2e64...'),
-    embed it so admins can tell at a glance which Roblox release each
-    file holds. Otherwise fall back to a timestamp suffix to keep the
-    name unique."""
+    use it directly so the file on disk plainly says which Roblox
+    release it holds. Otherwise fall back to v{N}_{timestamp} so manual
+    uploads without a version note still get a unique name. The DB's
+    integer `version` column stays the source of truth for ordering."""
     note_clean = (note or "").strip()
     if _ROBLOX_VERSION_RE.match(note_clean):
-        return f"roblox_bundle_v{version}_{note_clean}.zip"
+        return f"roblox_bundle_{note_clean}.zip"
     return f"roblox_bundle_v{version}_{int(time.time())}.zip"
 
 
