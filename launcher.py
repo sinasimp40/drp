@@ -714,21 +714,70 @@ def purge_program_files_roblox():
 
 
 def find_system_roblox():
+    """Locate the newest installed Roblox player on this machine.
+
+    Modern Roblox installs to %LOCALAPPDATA%\\Roblox\\Versions\\version-XXX,
+    but older installers, Bloxstrap, custom MSIs, and corporate deployments
+    can land in Program Files (x86)\\Roblox\\Versions or Program Files\\Roblox\\Versions
+    instead. We scan ALL of them so a client with a non-LocalAppData install
+    still triggers sync — otherwise the launcher silently treats them as
+    "no Roblox installed" and falls through to the bundle download path,
+    which means new Roblox patches never reach the portable folder.
+
+    Mirrors the candidate-roots logic in purge_program_files_roblox so
+    detection and cleanup stay in sync (anywhere we'd wipe, we'd also
+    detect).
+
+    Returns (latest_path, fingerprint, latest_version) for the newest
+    valid version folder across all roots, or (None, None, None) if
+    nothing is found.
+    """
     if sys.platform != "win32":
         return None, None, None
-    local_app = os.environ.get("LOCALAPPDATA", "")
-    versions_path = os.path.join(local_app, "Roblox", "Versions")
-    if not os.path.isdir(versions_path):
-        return None, None, None
+
+    # Build the list of candidate roots that may contain a "Roblox\Versions"
+    # subtree. We never recurse — only one level (root\Roblox\Versions\*).
+    candidate_roots = []
+    for env in ("LOCALAPPDATA", "ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
+        p = os.environ.get(env, "")
+        if p and os.path.isdir(p) and p not in candidate_roots:
+            candidate_roots.append(p)
+
     versions = []
-    for item in os.listdir(versions_path):
-        full = os.path.join(versions_path, item)
-        if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
-            versions.append((full, item))
+    for root in candidate_roots:
+        versions_path = os.path.join(root, "Roblox", "Versions")
+        if not os.path.isdir(versions_path):
+            continue
+        try:
+            entries = os.listdir(versions_path)
+        except OSError:
+            continue
+        for item in entries:
+            full = os.path.join(versions_path, item)
+            try:
+                if os.path.isdir(full) and os.path.isfile(os.path.join(full, "RobloxPlayerBeta.exe")):
+                    versions.append((full, item))
+            except OSError:
+                continue
+
     if not versions:
         return None, None, None
-    versions.sort(key=lambda x: os.path.getmtime(x[0]), reverse=True)
-    latest_path, latest_version = versions[0]
+
+    # Pick newest by modified-time across ALL roots, so an older copy in
+    # LocalAppData doesn't shadow a fresher copy in Program Files.
+    # Resolve mtimes individually so one unreadable entry (transient ACL,
+    # deleted-mid-scan, etc.) doesn't abort the entire sort and silently
+    # leave us picking by insertion order.
+    dated = []
+    for path, ver in versions:
+        try:
+            dated.append((os.path.getmtime(path), path, ver))
+        except OSError:
+            continue
+    if not dated:
+        return None, None, None
+    dated.sort(key=lambda x: x[0], reverse=True)
+    _, latest_path, latest_version = dated[0]
     fingerprint = get_folder_fingerprint(latest_path)
     return latest_path, fingerprint, latest_version
 
