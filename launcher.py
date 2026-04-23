@@ -277,6 +277,42 @@ def purge_appdata_roblox_versions():
     if not targets:
         return 0
 
+    # --- Step 2.5: NEVER wipe a folder that holds (or IS) the launcher's
+    # own install directory. If the operator named the launcher install
+    # folder something containing "roblox" (e.g. "DENFI ROBLOX"), the
+    # raw substring match above would target it and shutil.rmtree would
+    # delete the .license_key sibling file (launcher.exe is locked by
+    # the running process so it survives, but the saved license is
+    # gone -> next launch reports "license key not found"). Filter
+    # those out here.
+    try:
+        app_dir_real = os.path.realpath(APP_DIR)
+    except OSError:
+        app_dir_real = APP_DIR
+
+    def _contains_app_dir(target_real):
+        try:
+            common = os.path.commonpath([target_real, app_dir_real])
+            return common == target_real
+        except (OSError, ValueError):
+            return False
+
+    safe_targets = []
+    for name in targets:
+        candidate = os.path.join(local_app, name)
+        try:
+            cand_real = os.path.realpath(candidate)
+        except OSError:
+            cand_real = candidate
+        if cand_real == app_dir_real or _contains_app_dir(cand_real):
+            # Skip — the launcher itself (and its .license_key) lives
+            # here. Wiping would erase the saved license.
+            continue
+        safe_targets.append(name)
+    targets = safe_targets
+    if not targets:
+        return 0
+
     # --- Step 3: defensive deleter with path-boundary check + chmod retry.
     def _safe_inside_localappdata(path):
         # Resolve realpath; require the result is still under LOCALAPPDATA.
@@ -665,6 +701,32 @@ def purge_program_files_roblox():
             e for e in entries
             if any(h in e.lower() for h in _ROBLOX_UNINSTALL_NAME_HINTS)
         ]
+        if not targets:
+            continue
+
+        # Never delete the folder that holds the launcher itself
+        # (e.g. "C:\\Program Files\\DENFI ROBLOX\\") — that would erase
+        # the .license_key sibling file. Mirrors the LOCALAPPDATA
+        # guard in purge_appdata_roblox_versions.
+        try:
+            app_dir_real_pf = os.path.realpath(APP_DIR)
+        except OSError:
+            app_dir_real_pf = APP_DIR
+        filtered = []
+        for name in targets:
+            candidate = os.path.join(root, name)
+            try:
+                cand_real = os.path.realpath(candidate)
+            except OSError:
+                cand_real = candidate
+            try:
+                shared = os.path.commonpath([cand_real, app_dir_real_pf])
+            except (OSError, ValueError):
+                shared = ""
+            if cand_real == app_dir_real_pf or shared == cand_real:
+                continue
+            filtered.append(name)
+        targets = filtered
         if not targets:
             continue
 
