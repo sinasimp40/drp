@@ -3358,12 +3358,25 @@ def api_roblox_bundle_info():
             if _bundle_tokens[k]["expires"] < now:
                 del _bundle_tokens[k]
 
+    # `force_redownload_at` is a global admin-controlled timestamp. The
+    # admin clicks "Force re-download" on /roblox_bundles, which calls
+    # _set_setting("bundle_force_redownload_at", str(time.time())). The
+    # launcher persists this value next to .bundle_version after every
+    # successful download; on subsequent launches it compares the saved
+    # value to the one returned here. If the server's value is newer the
+    # launcher bypasses its "version unchanged → skip" shortcut and
+    # downloads the bundle again. Float, 0.0 if never set.
+    try:
+        force_ts = float(_get_setting("bundle_force_redownload_at", "0") or 0)
+    except (TypeError, ValueError):
+        force_ts = 0.0
     resp = {
         "valid": True,
         "version": bundle["version"],
         "file_size": bundle["file_size"],
         "sha256": bundle["sha256"],
         "download_token": token,
+        "force_redownload_at": force_ts,
     }
     return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)})
 
@@ -3507,12 +3520,43 @@ def roblox_bundles_page():
         "count": s["n"],
         "most_recent": format_time(s["most_recent"]),
     } for s in spread]
+    try:
+        force_ts = float(_get_setting("bundle_force_redownload_at", "0") or 0)
+    except (TypeError, ValueError):
+        force_ts = 0.0
+    force_when = format_time(force_ts) if force_ts > 0 else ""
     return render_template(
         "roblox_bundles.html",
         bundles=rows,
         latest_seen=latest_seen,
         version_spread=spread_rows,
+        force_when=force_when,
     )
+
+
+@app.route("/roblox_bundles/force_redownload", methods=["POST"])
+@require_admin
+def roblox_bundles_force_redownload():
+    """Bump the global bundle_force_redownload_at timestamp.
+
+    Effect on clients: on their next launch, fetch_roblox_bundle_info will
+    return the new timestamp; the launcher compares it to the value it
+    persisted after its last successful download (.bundle_force_at) and,
+    if the server's value is newer, bypasses the "version unchanged ->
+    skip" shortcut and downloads the latest bundle again. Use this to
+    push out a re-download even when you haven't bumped the version
+    integer (e.g. you re-zipped the same Roblox version with a different
+    file set, or want to force every client to refresh from a cold
+    cache).
+    """
+    now = time.time()
+    _set_setting("bundle_force_redownload_at", str(now))
+    flash(
+        f"All clients will re-download the bundle on their next launch "
+        f"(force timestamp set to {format_time(now)}).",
+        "success",
+    )
+    return redirect(url_for("roblox_bundles_page"))
 
 
 @app.route("/roblox_bundles/scan", methods=["POST"])

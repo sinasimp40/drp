@@ -194,6 +194,38 @@
         </script>
     </div>
 
+    {% if bundles %}
+    <div class="card" style="padding: 18px 22px; margin-bottom: 16px;
+                             border-left: 4px solid #ff8c33;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+            <div>
+                <div style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+                            color:var(--text-mute); margin-bottom:6px;">
+                    Force re-download on all clients
+                </div>
+                <div style="font-size:13px; color:var(--text); margin-bottom:4px;">
+                    Push the current bundle to every launcher again on its next start &mdash;
+                    even if the version number hasn't changed.
+                </div>
+                <div style="font-size:12px; color:var(--text-mute);">
+                    Use this after re-zipping the same Roblox version, or to refresh
+                    clients with corrupted local extracts.
+                    {% if force_when %}
+                        Last forced: <strong style="color:#ff9d4d;">{{ force_when }}</strong>.
+                    {% else %}
+                        Never forced.
+                    {% endif %}
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('roblox_bundles_force_redownload') }}"
+                  onsubmit="return confirm('Force every launcher to re-download the latest bundle on next launch?')"
+                  style="margin:0;">
+                <button type="submit" class="btn btn-primary">Force re-download now</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card" style="padding: 0;">
         {% if bundles %}
         <table class="cc-table" style="width:100%;">
