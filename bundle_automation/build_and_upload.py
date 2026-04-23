@@ -362,30 +362,61 @@ def install_roblox(work_dir: str) -> None:
 
     log("Running bootstrapper (no console window)...")
     flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-    # Run and wait. The bootstrapper exits once unpack is done. We poll
-    # for the version folder to appear in case the bootstrapper double-
-    # forks and the parent exits early.
     proc = subprocess.Popen([installer], creationflags=flags)
+
+    # We need to kill the whole Roblox chain the INSTANT the files finish
+    # extracting, because:
+    #   1. On a VPS / VM, Roblox's Hyperion anti-cheat pops a blocking
+    #      "Virtual Machine detected" modal when the player starts. If we
+    #      let the bootstrapper auto-launch RobloxPlayerBeta.exe that
+    #      dialog hangs forever on a headless scheduled run.
+    #   2. Even on bare metal, waiting for the bootstrapper to exit on
+    #      its own burns minutes — the player stays up trying to login.
+    #
+    # AppSettings.xml is written as the final step of extraction, so its
+    # presence alongside RobloxPlayerBeta.exe means "install is complete,
+    # it is safe to kill everything now before the player actually starts".
     deadline = time.time() + INSTALL_TIMEOUT
     detected = None
+    install_complete = False
     while time.time() < deadline:
+        detected = detected or find_installed_version_folder()
+        if detected:
+            exe_ok = os.path.isfile(os.path.join(detected, "RobloxPlayerBeta.exe"))
+            marker_ok = os.path.isfile(os.path.join(detected, "AppSettings.xml"))
+            if exe_ok and marker_ok:
+                install_complete = True
+                break
         if proc.poll() is not None and detected:
+            # Bootstrapper exited without leaving AppSettings.xml; files may
+            # still be fine, let the outer caller decide via its own checks.
             break
-        detected = find_installed_version_folder()
-        if detected and proc.poll() is not None:
-            break
-        time.sleep(2.0)
-    # Force-kill if it's still running 60s after a version folder appeared
-    # (some bootstrappers stay up to launch the player UI).
+        time.sleep(0.5)
+
+    if install_complete:
+        log("Install finished — killing bootstrapper + player before anti-cheat fires")
+    else:
+        log("Install deadline reached without AppSettings.xml marker")
+
+    # Kill the bootstrapper tree first (it spawns the player as a child on
+    # Windows, so taskkill /T ensures the player never gets to display the
+    # VM-detection dialog).
     if proc.poll() is None:
         try:
-            proc.terminate()
-            try:
-                proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                capture_output=True, timeout=10,
+                creationflags=flags,
+            )
         except Exception:
             pass
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
     kill_roblox_processes()
 
 
