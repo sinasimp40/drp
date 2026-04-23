@@ -151,12 +151,8 @@ def write_log(logs_dir, message):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(logs_dir, exist_ok=True)
     log_file = os.path.join(logs_dir, f"launch_{timestamp}.log")
-    try:
-        with open(log_file, "w", encoding="utf-8") as f:
-            f.write(message)
-        return log_file
-    except Exception:
-        return None
+    with open(log_file, "w") as f:
+        f.write(message)
 
 
 def get_folder_fingerprint(folder):
@@ -897,16 +893,6 @@ def _launcher_protected_names():
         "robloxfiles",     # legacy premium subfolder
         "icon.ico",
         "place_roblox_here.txt",
-        # Roblox runtime state that's NOT in every source install but is
-        # required for the player to start. If sync_files saw these
-        # locally and not in the source it used to delete them, leaving
-        # the user with a Roblox that crashes silently on launch. Treat
-        # them as preserve-on-sync.
-        "appsettings.xml",
-        ".bundle_version",
-        "globalbasicsettings_13.xml",
-        "globalsettings_13.xml",
-        "clientsettings",
     }
     # Whatever executable is currently running (frozen exe in production,
     # the .py file in dev). We never want to delete ourselves.
@@ -3635,48 +3621,6 @@ def main():
             ensure_windowed_mode()
             log_lines.append("Windowed mode settings applied")
 
-            # --- pre-launch sanity check ----------------------------------
-            # We ONLY block launch on things that are 100% guaranteed
-            # fatal. Anything softer (DLL counts, content/ size, etc.)
-            # gets logged for diagnostics but does NOT stop the launch —
-            # the post-launch 2-second liveness poll below is the real
-            # safety net for "Roblox starts then immediately dies."
-            #
-            # Why so conservative: modern Roblox Player installs ship
-            # most DLLs bundled into the exe, so a low DLL count at the
-            # root is NOT a sign of corruption. Folder names also vary
-            # between bundle versions. The only hard rule is "the exe
-            # we are about to Popen() must exist."
-            roblox_dir = paths["roblox"]
-            integrity_warnings = []
-            if not os.path.isfile(exe_path):
-                # exe_path was already verified earlier (line ~3603) but
-                # double-check in case something raced; this is the one
-                # condition that absolutely cannot proceed.
-                short = "Install incomplete: missing " + os.path.basename(exe_path)
-                log_lines.append("INTEGRITY CHECK FAILED: " + short)
-                log_lines.append("Fix: delete the Roblox files folder and relaunch to re-download.")
-                write_log(paths["logs"], "\n".join(log_lines))
-                splash.show_error(short)
-                app.processEvents()
-                QTimer.singleShot(8000, app.quit)
-                return
-
-            content_dir = os.path.join(roblox_dir, "content")
-            if not os.path.isdir(content_dir):
-                integrity_warnings.append("no content/ folder")
-            try:
-                dll_count = sum(
-                    1 for f in os.listdir(roblox_dir)
-                    if f.lower().endswith(".dll")
-                )
-            except Exception:
-                dll_count = -1
-            if integrity_warnings or dll_count >= 0:
-                log_lines.append(
-                    f"Integrity warnings: {integrity_warnings}; dll_count={dll_count}"
-                )
-
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
 
@@ -3698,89 +3642,6 @@ def main():
                 app._roblox_pid = process.pid
                 log_lines.append(f"Roblox launched (PID: {process.pid})")
                 log_lines.append(f"Executable: {exe_path}")
-
-                # --- post-launch liveness check ---------------------------
-                # Popen returning success only means the OS spawned the
-                # process; if Roblox crashes during init (missing DLL,
-                # corrupt AppSettings.xml, antivirus interception) it can
-                # exit within a fraction of a second and the user is left
-                # staring at "Roblox is running!" while nothing actually
-                # is. Wait briefly and verify the process is still alive.
-                import time as _time
-                _early_exit = None
-                for _ in range(8):  # ~2 seconds total at 0.25s intervals
-                    _time.sleep(0.25)
-                    app.processEvents()
-                    rc = process.poll()
-                    if rc is not None:
-                        _early_exit = rc
-                        break
-                if _early_exit is not None:
-                    log_lines.append(
-                        f"Roblox exited immediately (code {_early_exit}) — "
-                        f"likely missing files, antivirus block, or corrupt install"
-                    )
-                    # Snapshot the install folder so the user (or whoever
-                    # reads the log) can see at a glance what's actually
-                    # there vs. what should be there. Roblox itself never
-                    # tells us which file it was looking for, so this is
-                    # the best diagnostic we can offer.
-                    try:
-                        log_lines.append("--- Roblox folder contents ---")
-                        log_lines.append(f"Path: {roblox_dir}")
-                        entries = sorted(os.listdir(roblox_dir))
-                        files_at_root = []
-                        dirs_at_root = []
-                        for e in entries:
-                            full = os.path.join(roblox_dir, e)
-                            if os.path.isdir(full):
-                                try:
-                                    n = len(os.listdir(full))
-                                except Exception:
-                                    n = -1
-                                dirs_at_root.append(f"{e}/ ({n} items)")
-                            else:
-                                try:
-                                    sz = os.path.getsize(full)
-                                except Exception:
-                                    sz = -1
-                                files_at_root.append(f"{e} ({sz} bytes)")
-                        log_lines.append(f"Folders ({len(dirs_at_root)}):")
-                        for d in dirs_at_root:
-                            log_lines.append(f"  {d}")
-                        log_lines.append(f"Files ({len(files_at_root)}):")
-                        for f in files_at_root:
-                            log_lines.append(f"  {f}")
-                        # Quick sanity expectations for a healthy player install
-                        expected = [
-                            "RobloxPlayerBeta.exe", "AppSettings.xml",
-                            "content", "shaders", "ssl", "ClientSettings",
-                            "ExtraContent", "Plugins",
-                        ]
-                        present_lower = {e.lower() for e in entries}
-                        missing = [x for x in expected if x.lower() not in present_lower]
-                        if missing:
-                            log_lines.append("Expected but NOT FOUND: " + ", ".join(missing))
-                    except Exception as _diag_e:
-                        log_lines.append(f"(could not snapshot folder: {_diag_e})")
-
-                    log_path = write_log(paths["logs"], "\n".join(log_lines))
-                    # Show the user a hint about WHERE the log lives so they
-                    # don't have to hunt for it. Splash only renders one
-                    # line, so cram the most useful info into ~80 chars.
-                    log_hint = ""
-                    try:
-                        if log_path:
-                            log_hint = f" Log: {os.path.basename(log_path)}"
-                    except Exception:
-                        pass
-                    splash.show_error(
-                        f"Roblox closed right after launch (exit {_early_exit})."
-                        f"{log_hint}"
-                    )
-                    app.processEvents()
-                    QTimer.singleShot(10000, app.quit)
-                    return
             except Exception as e:
                 log_lines.append(f"Launch failed: {e}")
                 write_log(paths["logs"], "\n".join(log_lines))
@@ -3806,10 +3667,8 @@ def main():
 
             def hide_and_watch():
                 splash.hide()
-                import time as _wt_time
                 state = {"phase": "WAIT_FILES", "my_files": set(), "my_pids": set(),
-                         "no_window_count": 0, "cleanup_attempts": 0,
-                         "wait_started_at": _wt_time.time()}
+                         "no_window_count": 0, "cleanup_attempts": 0}
                 app._watcher_state = state
 
                 def watcher_tick():
@@ -3824,65 +3683,6 @@ def main():
                                 if pid:
                                     state["my_pids"].add(pid)
                             state["phase"] = "ACTIVE"
-                        else:
-                            # Memprof file should appear within seconds of
-                            # Roblox starting. If 60s pass without one,
-                            # decide what happened by inspecting the
-                            # process we spawned:
-                            #   * dead → Roblox crashed silently after our
-                            #     2s post-launch window. Surface an error.
-                            #   * alive WITH a visible window → user is
-                            #     past the loader and Roblox is just being
-                            #     slow to write memprof. Reset the timer
-                            #     and keep watching; do NOT kill.
-                            #   * alive WITHOUT a window → wedged. Tell
-                            #     the user, then kill the process tree
-                            #     (image-name guarded inside kill_pid_tree).
-                            elapsed = _wt_time.time() - state["wait_started_at"]
-                            if elapsed > 60:
-                                rbx_pid = getattr(app, "_roblox_pid", None)
-                                pid_alive = False
-                                pid_has_window = False
-                                try:
-                                    if rbx_pid:
-                                        pid_alive = is_pid_alive(rbx_pid)
-                                        if pid_alive:
-                                            pid_has_window = pid_has_visible_window(rbx_pid)
-                                except Exception:
-                                    pass
-
-                                if pid_alive and pid_has_window:
-                                    # Healthy slow start; reset the timer
-                                    # and let the user keep playing. Next
-                                    # tick will keep watching for memprof.
-                                    state["wait_started_at"] = _wt_time.time()
-                                    return
-
-                                # Either dead or alive-but-wedged: error out.
-                                if pid_alive:
-                                    try:
-                                        kill_pid_tree(rbx_pid)
-                                    except Exception:
-                                        pass
-                                    err_msg = (
-                                        "Roblox stopped responding before it "
-                                        "finished loading. Closing the launcher."
-                                    )
-                                else:
-                                    err_msg = (
-                                        "Roblox closed unexpectedly during "
-                                        "loading. Try launching again — if it "
-                                        "keeps happening, delete the Roblox "
-                                        "files folder so it re-downloads."
-                                    )
-                                try:
-                                    splash.show()
-                                    splash.show_error(err_msg)
-                                    app.processEvents()
-                                except Exception:
-                                    pass
-                                QTimer.singleShot(8000, app.quit)
-                                return
 
                     elif state["phase"] == "ACTIVE":
                         has_window = False
