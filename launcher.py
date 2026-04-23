@@ -853,6 +853,20 @@ def get_roblox_version(roblox_dir):
     for item in os.listdir(roblox_dir):
         if item.startswith("version-"):
             return item
+    # Server bundles are extracted flat (RobloxPlayerBeta.exe + DLLs sit
+    # directly in roblox_dir, no version-* subfolder), so the two checks
+    # above can't find anything. Fall back to the .bundle_version marker
+    # the bundle downloader writes — that way the splash shows a real
+    # version label like "bundle v7" instead of the placeholder "Roblox".
+    marker = os.path.join(roblox_dir, ".bundle_version")
+    if os.path.isfile(marker):
+        try:
+            with open(marker, "r") as fm:
+                ver = fm.read().strip()
+            if ver:
+                return f"bundle v{ver}" if ver.isdigit() else ver
+        except Exception:
+            pass
     return None
 
 
