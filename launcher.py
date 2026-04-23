@@ -3671,10 +3671,14 @@ def main():
                 integrity_problems.append(f"only {dll_count} DLL(s) present")
 
             if integrity_problems:
-                msg = "Roblox install is incomplete:\n" + "; ".join(integrity_problems)
-                log_lines.append("INTEGRITY CHECK FAILED: " + msg)
+                # Splash only renders the first line of an error, so keep
+                # the human-readable reason on line 1 and put the longer
+                # remediation hint on subsequent lines for the log file.
+                short = "Install incomplete: " + "; ".join(integrity_problems)
+                log_lines.append("INTEGRITY CHECK FAILED: " + short)
+                log_lines.append("Fix: delete the Roblox files folder and relaunch to re-download.")
                 write_log(paths["logs"], "\n".join(log_lines))
-                splash.show_error(msg + "\n\nDelete the Roblox files folder and relaunch to re-download.")
+                splash.show_error(short)
                 app.processEvents()
                 QTimer.singleShot(8000, app.quit)
                 return
