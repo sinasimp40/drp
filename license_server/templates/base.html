@@ -134,7 +134,7 @@
             background: var(--bg-main);
         }
         .topbar {
-            height: 64px;
+            min-height: 64px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -145,6 +145,7 @@
             top: 0;
             z-index: 40;
             gap: 12px;
+            flex-wrap: wrap;
         }
         .topbar-title {
             display: flex;
@@ -154,7 +155,9 @@
             font-weight: 600;
             color: #f3f3f8;
             min-width: 0;
+            flex: 1 1 auto;
         }
+        .topbar-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .topbar-actions {
             display: flex;
             align-items: center;
@@ -573,9 +576,13 @@
             }
             body.sidebar-open .sidebar { transform: translateX(0); }
             body.sidebar-open .sidebar-backdrop { display: block; }
-            .topbar { padding: 0 14px; height: 56px; gap: 8px; }
-            .topbar-title { gap: 8px; }
-            .topbar-actions { gap: 6px; }
+            .topbar { padding: 8px 14px; min-height: 56px; gap: 8px; }
+            .topbar-title { gap: 8px; flex: 0 0 100%; }
+            .topbar-actions { gap: 6px; flex: 0 0 100%; justify-content: flex-start; }
+            .topbar-actions .search-wrap,
+            .topbar-actions .filter-input,
+            .topbar-actions form { flex: 1 1 auto; }
+            .topbar-actions form .btn { width: 100%; }
             .content { padding: 16px 12px; }
             .page-header h1 { font-size: 18px; }
             .card-header { padding: 12px 14px; }
@@ -600,7 +607,6 @@
         }
         @media (max-width: 560px) {
             .topbar-title { font-size: 14px; }
-            .topbar-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .live-indicator { display: none; }
         }
         /* On any touch / coarse-pointer device (covers tablets + phones in

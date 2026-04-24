@@ -15,6 +15,7 @@
     .tb-section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #9a9ab0; margin: 18px 0 10px; }
 
     .tb-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; align-items: end; }
+    @media (max-width: 720px) { .tb-form-grid { grid-template-columns: 1fr; gap: 12px; } }
     .tb-form-grid .full { grid-column: 1 / -1; }
     .tb-form-grid label { display: block; font-size: 12px; color: #9a9ab0; margin-bottom: 4px; }
     .tb-form-grid input[type=text],
@@ -60,7 +61,7 @@
 
     .tb-modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
     .tb-modal-bg.open { display: flex; }
-    .tb-modal { background: #15151d; border: 1px solid #2a2a36; border-radius: 10px; padding: 20px 24px; min-width: 380px; max-width: 92vw; }
+    .tb-modal { background: #15151d; border: 1px solid #2a2a36; border-radius: 10px; padding: 20px 24px; width: 380px; max-width: calc(100vw - 24px); box-sizing: border-box; }
     .tb-modal h3 { margin: 0 0 14px; font-size: 16px; color: #f0f0f5; }
     .tb-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
@@ -104,9 +105,9 @@
             Build config page (independent from the license lifetime; leave it blank to keep the link forever).</span>
         </p>
         <form method="POST" action="{{ url_for('trial_blocks_settings') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap: wrap;">
-            <div>
+            <div style="flex: 1 1 240px; min-width: 0; max-width: 320px;">
                 <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">Cooldown</label>
-                <div class="tb-duration-row" style="width: 280px;">
+                <div class="tb-duration-row" style="width: 100%;">
                     <input type="number" name="cooldown_value" min="0" step="0.5" value="{{ '%g' % (cooldown_seconds / 86400) if cooldown_seconds > 0 else '0' }}" required>
                     <select name="cooldown_unit">
                         <option value="hours">hours</option>
