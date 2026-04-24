@@ -99,9 +99,9 @@
             Every successful trial issuance creates an automatic block (by IP + machine) for this long.
             Set to <strong>0</strong> to disable auto-blocks entirely (manual blocks still work).
             Changes take effect immediately for the next trial request.<br>
-            <span style="color:#7a7a90;">Need to control how long the download link stays alive? That's set per-build via
-            <strong>Trial duration</strong> on the Build config page — when the duration runs out, both
-            the license and the download link die together.</span>
+            <span style="color:#7a7a90;">Need to control how long the download link stays alive?
+            That's a separate per-build setting — see <strong>Trial link expiry</strong> on the
+            Build config page (independent from the license lifetime; leave it blank to keep the link forever).</span>
         </p>
         <form method="POST" action="{{ url_for('trial_blocks_settings') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap: wrap;">
             <div>

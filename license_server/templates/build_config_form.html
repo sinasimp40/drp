@@ -2,10 +2,120 @@
 {% block title %}{{ 'Edit' if config else 'Create' }} Build Config - License Admin{% endblock %}
 {% block topbar_title %}{{ 'Edit' if config else 'Create' }} Build Config{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* Build config form: a focused, centered editing surface that
+       reads cleanly on phones, tablets, and wide desktops. */
+    .bcf-shell {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+    .bcf-card {
+        background: var(--panel);
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        padding: 22px 24px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+
+    /* Highlighted "Trial mode" panel inside the form */
+    .bcf-trial {
+        border: 1px solid rgba(255,140,51,0.45);
+        border-radius: 10px;
+        padding: 14px 16px;
+        background: linear-gradient(180deg, rgba(255,140,51,0.07), rgba(255,140,51,0.02));
+        margin-bottom: 18px;
+    }
+    .bcf-trial-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .bcf-trial-head input[type="checkbox"] {
+        width: auto;
+        margin: 3px 0 0 0;
+        flex-shrink: 0;
+        accent-color: var(--accent);
+    }
+    .bcf-trial-head .bcf-trial-title {
+        font-weight: 600;
+        color: var(--accent);
+        font-size: 13.5px;
+        line-height: 1.35;
+    }
+    .bcf-trial-head .bcf-trial-title small {
+        display: block;
+        color: var(--text-mute);
+        font-weight: 400;
+        font-size: 11.5px;
+        margin-top: 3px;
+    }
+    .bcf-trial p.bcf-trial-intro {
+        color: var(--text-mute);
+        font-size: 11.5px;
+        line-height: 1.5;
+        margin: 0 0 12px;
+    }
+
+    /* Composite "value + unit" control. Number on the left, unit
+       dropdown on the right, both stay in a single row on every width.
+       Number has min-width so it never collapses to 1 char. */
+    .bcf-num-unit {
+        display: flex;
+        gap: 8px;
+        align-items: stretch;
+    }
+    .bcf-num-unit input[type="number"] {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .bcf-num-unit select {
+        flex: 0 0 110px;
+        min-width: 0;
+    }
+
+    /* Each field's helper line — clamped height so two side-by-side
+       fields never have uneven heights pushing the row down. */
+    .bcf-help {
+        font-size: 11px;
+        color: var(--text-mute);
+        margin-top: 5px;
+        line-height: 1.45;
+    }
+
+    .bcf-label-aux {
+        color: var(--text-mute);
+        font-weight: 400;
+        margin-left: 4px;
+    }
+
+    /* Action row pinned to the bottom of the card */
+    .bcf-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border-soft);
+        flex-wrap: wrap;
+    }
+    .bcf-actions .btn { min-width: 130px; }
+
+    /* Mobile polish */
+    @media (max-width: 720px) {
+        .bcf-card { padding: 16px 14px; border-radius: 8px; }
+        .bcf-trial { padding: 12px 12px; }
+        .bcf-num-unit select { flex: 0 0 100px; }
+        .bcf-actions .btn { width: 100%; min-width: 0; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 800px;">
-    <div class="card" style="padding: 24px;">
+<div class="bcf-shell">
+    <div class="bcf-card">
         <form method="POST" enctype="multipart/form-data" autocomplete="off">
+
             <div class="form-row">
                 <div class="form-group">
                     <label>App Name</label>
@@ -41,18 +151,31 @@
             </div>
 
             <div class="form-group">
-                <label>Embedded License Key (optional override — defaults to linked license key)</label>
+                <label>Embedded License Key <span class="bcf-label-aux">(optional override — defaults to linked license key)</span></label>
                 <input type="text" name="embedded_key" value="{{ config.embedded_key if config else '' }}" placeholder="Leave blank to use linked license key" autocomplete="off">
             </div>
 
-            <div class="form-group" style="border:1px solid #ff6a00; border-radius:8px; padding:12px; background:rgba(255,106,0,0.05);">
-                <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#ff8c33;">
+            {# ------------------------------------------------------------------
+               Trial mode panel.
+               Layout:
+                 - Header row: checkbox + title + sub-title
+                 - Intro paragraph
+                 - Row 1 (.form-row): Trial duration | Trial link expiry  → side-by-side on desktop, stacked on mobile
+                 - Row 2: Max trials per /24 subnet (own row, narrow)
+            ------------------------------------------------------------------ #}
+            <div class="bcf-trial">
+                <label class="bcf-trial-head">
                     <input type="checkbox" name="is_trial" id="is_trial_chk" {% if config and config.is_trial %}checked{% endif %}>
-                    TRIAL MODE — auto-issue time-limited license + auto-download Roblox bundle
+                    <span class="bcf-trial-title">
+                        TRIAL MODE
+                        <small>Auto-issue a time-limited license and auto-download the Roblox bundle. No key prompt.</small>
+                    </span>
                 </label>
-                <p style="color: var(--text-mute); font-size: 11px; margin: 6px 0 10px;">
+                <p class="bcf-trial-intro">
                     Trial users land on the splash directly with no key prompt. You can have multiple trial configs (e.g. a 30-min demo and a 7-day promo).
                 </p>
+
+                {# Reverse-format trial_duration_seconds (always non-null, defaults to 24h) #}
                 {% set _dur_secs = (config and config.trial_duration_seconds) or 86400 %}
                 {% if _dur_secs % 86400 == 0 and _dur_secs >= 86400 %}
                     {% set _dur_value = _dur_secs // 86400 %}
@@ -64,7 +187,8 @@
                     {% set _dur_value = (_dur_secs // 60) if (_dur_secs // 60) > 0 else 1 %}
                     {% set _dur_unit = 'minutes' %}
                 {% endif %}
-                {# Pretty-format trial_link_expiry_seconds for the input. NULL/0 → blank input (= "never"). #}
+
+                {# Reverse-format trial_link_expiry_seconds — NULL/0 → blank input (= "never") #}
                 {% set _link_secs = (config and config.trial_link_expiry_seconds) or 0 %}
                 {% if _link_secs and _link_secs % 86400 == 0 and _link_secs >= 86400 %}
                     {% set _link_value = _link_secs // 86400 %}
@@ -79,47 +203,50 @@
                     {% set _link_value = '' %}
                     {% set _link_unit = 'days' %}
                 {% endif %}
-                <div class="form-row" style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Trial duration <span style="color: var(--text-mute); font-weight: 400;">(license lifetime)</span></label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="number" name="trial_duration_value" min="1" step="1" value="{{ _dur_value }}" style="flex:2;">
-                            <select name="trial_duration_unit" style="flex:1;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Trial duration <span class="bcf-label-aux">(license lifetime)</span></label>
+                        <div class="bcf-num-unit">
+                            <input type="number" name="trial_duration_value" min="1" step="1" value="{{ _dur_value }}">
+                            <select name="trial_duration_unit">
                                 <option value="minutes" {% if _dur_unit == 'minutes' %}selected{% endif %}>Minutes</option>
                                 <option value="hours" {% if _dur_unit == 'hours' %}selected{% endif %}>Hours</option>
                                 <option value="days" {% if _dur_unit == 'days' %}selected{% endif %}>Days</option>
                             </select>
                         </div>
-                        <div style="font-size:11px; color: var(--text-mute); margin-top:4px;">How long the issued license stays active after activation.</div>
+                        <div class="bcf-help">How long the issued license stays active after activation.</div>
                     </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Trial link expiry <span style="color: var(--text-mute); font-weight: 400;">(launcher.exe + download page)</span></label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="number" name="trial_link_expiry_value" min="0" step="1" value="{{ _link_value }}" placeholder="blank = never" style="flex:2;">
-                            <select name="trial_link_expiry_unit" style="flex:1;">
+                    <div class="form-group">
+                        <label>Trial link expiry <span class="bcf-label-aux">(launcher.exe + page)</span></label>
+                        <div class="bcf-num-unit">
+                            <input type="number" name="trial_link_expiry_value" min="0" step="1" value="{{ _link_value }}" placeholder="blank = never">
+                            <select name="trial_link_expiry_unit">
                                 <option value="minutes" {% if _link_unit == 'minutes' %}selected{% endif %}>Minutes</option>
                                 <option value="hours" {% if _link_unit == 'hours' %}selected{% endif %}>Hours</option>
                                 <option value="days" {% if _link_unit == 'days' %}selected{% endif %}>Days</option>
                             </select>
                         </div>
-                        <div style="font-size:11px; color: var(--text-mute); margin-top:4px;">How long the launcher.exe + download link stay on the server. Leave blank or 0 to keep them forever.</div>
+                        <div class="bcf-help">How long the download link stays on the server. Leave blank or 0 to keep it forever.</div>
                     </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Max trials per /24 subnet</label>
-                        <input type="number" name="trial_max_per_subnet" min="1" value="{{ (config and config.trial_max_per_subnet) or 5 }}">
-                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Max trials per /24 subnet</label>
+                    <input type="number" name="trial_max_per_subnet" min="1" value="{{ (config and config.trial_max_per_subnet) or 5 }}" style="max-width:200px;">
+                    <div class="bcf-help">Caps how many trials can be issued from the same IP block (first three octets) over the cooldown window.</div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Icon (PNG, JPG, JFIF, ICO, BMP, WebP)</label>
+                <label>Icon <span class="bcf-label-aux">(PNG, JPG, JFIF, ICO, BMP, WebP)</span></label>
                 <input type="file" name="icon" accept=".ico,.png,.jpg,.jpeg,.jfif,.bmp,.webp,image/*" style="color: var(--text-dim);">
                 {% if config and config.icon_filename %}
                 <div style="margin-top: 6px; font-size: 12px; color: var(--good);">Current icon: {{ config.icon_filename }}</div>
                 {% endif %}
             </div>
 
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <div class="bcf-actions">
                 <button type="submit" class="btn btn-primary">{{ 'Update Config' if config else 'Create Config' }}</button>
                 <a href="{{ url_for('builds_page') }}" class="btn btn-secondary">Cancel</a>
             </div>
