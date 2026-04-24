@@ -656,6 +656,12 @@ def init_db():
     for col, ddl, default in (
         ("is_trial", "ALTER TABLE licenses ADD COLUMN is_trial INTEGER DEFAULT 0", 0),
         ("parent_config_id", "ALTER TABLE licenses ADD COLUMN parent_config_id INTEGER", None),
+        # Machine fingerprint sent by the launcher (SHA-256 of MachineGuid +
+        # motherboard serial + disk serial). Lets us block re-trial abuse
+        # by the same physical PC even if the IP changed (VPN, reboot,
+        # different network). Nullable for backwards compatibility with
+        # licenses created before this column existed.
+        ("machine_hash", "ALTER TABLE licenses ADD COLUMN machine_hash TEXT", None),
     ):
         try:
             conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
@@ -735,6 +741,54 @@ def init_db():
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_short_links_target_unique"
         " ON short_links(target_path)"
     )
+    # ── Trial-block table ────────────────────────────────────────────────
+    # Records every (ip, machine_hash) pair that has consumed a trial,
+    # with an `unblocks_at` timestamp (NULL = permanent block). When the
+    # launcher hits /api/trial_register we look the requester up by BOTH
+    # ip and machine_hash; a hit on either column means "no fresh trial".
+    #
+    # Rows are created automatically when a trial is issued (cooldown
+    # taken from the global `trial_cooldown_seconds` setting), and can
+    # also be created/edited/cleared by the admin from the Trial Blocks
+    # page so honest customers can be unblocked in two clicks.
+    #
+    # `created_by` is 'auto' or 'admin'; `license_id` (when set) points at
+    # the trial license row that triggered an auto-block, so the History
+    # page can cross-link the two.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS trial_blocks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT,
+            machine_hash TEXT,
+            blocked_at REAL NOT NULL,
+            unblocks_at REAL,
+            reason TEXT DEFAULT '',
+            created_by TEXT NOT NULL DEFAULT 'auto',
+            license_id INTEGER
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trial_blocks_ip ON trial_blocks(ip)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trial_blocks_hash ON trial_blocks(machine_hash)")
+    # ── Trial-block audit log ────────────────────────────────────────────
+    # Every admin action on the Trial Blocks page (add / edit / delete /
+    # settings change) writes one immutable row here. The list view on
+    # the page only shows currently-active blocks, so without this log a
+    # deleted-then-re-added block would erase its history. The audit
+    # table is append-only — the UI never offers a way to delete rows
+    # from it.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS trial_block_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts REAL NOT NULL,
+            actor TEXT NOT NULL DEFAULT 'admin',
+            action TEXT NOT NULL,
+            block_id INTEGER,
+            ip TEXT,
+            machine_hash TEXT,
+            details TEXT
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trial_block_audit_ts ON trial_block_audit(ts DESC)")
     conn.commit()
     conn.close()
 
@@ -1792,6 +1846,15 @@ def history():
                 int(row["is_trial"] or 0) == 1
                 if "is_trial" in row.keys() else False
             ),
+            # Short machine fingerprint shown in the History "Machine"
+            # column. Empty string for licenses issued before launchers
+            # started sending the field. Truncated server-side? No — the
+            # template handles the slice so the full value can also be
+            # used for cross-references on the Trial Blocks page.
+            "machine_hash": (
+                (row["machine_hash"] or "")
+                if "machine_hash" in row.keys() else ""
+            ),
         })
 
     return render_template("history.html", licenses=licenses)
@@ -2420,6 +2483,13 @@ def api_history_data():
             "is_trial": (
                 int(row["is_trial"] or 0) == 1
                 if "is_trial" in row.keys() else False
+            ),
+            # Surfaced so the History table can show a short machine
+            # fingerprint (first 12 chars) per license. Older licenses
+            # issued before the column existed will read as empty.
+            "machine_hash": (
+                (row["machine_hash"] or "")
+                if "machine_hash" in row.keys() else ""
             ),
         })
 
@@ -3299,6 +3369,105 @@ def delete_build_config(config_id):
 
 # ─────────────────────────── Trial mode endpoints ───────────────────────────
 
+# Default cooldown if the admin hasn't set one yet. Picked at 7 days based
+# on the discussion: short enough that a curious returning user can re-trial
+# soon, long enough that "wait it out" abuse is annoying.
+TRIAL_COOLDOWN_DEFAULT_SECONDS = 7 * 24 * 60 * 60
+
+
+def _get_trial_cooldown_seconds() -> int:
+    """Read the global trial cooldown from app_settings.
+    Falls back to TRIAL_COOLDOWN_DEFAULT_SECONDS for fresh installs."""
+    raw = _get_setting("trial_cooldown_seconds", "")
+    try:
+        v = int(raw)
+        if v < 0:
+            return 0  # 0 = "no cooldown" (effectively disables auto-blocks)
+        return v
+    except (TypeError, ValueError):
+        return TRIAL_COOLDOWN_DEFAULT_SECONDS
+
+
+def _set_trial_cooldown_seconds(seconds: int) -> None:
+    seconds = max(0, int(seconds))
+    _set_setting("trial_cooldown_seconds", str(seconds))
+
+
+def _normalize_machine_hash(raw) -> str:
+    """Sanity-check the machine_hash value coming from the launcher.
+    The launcher emits a SHA-256 hex digest, so we accept ONLY lowercase
+    64-char hex. Anything else (wrong length, non-hex, garbage) gets stored
+    as empty so a malicious client can't smuggle SQL/HTML through this
+    field into the admin UI, and so the column never holds inconsistent
+    fingerprint formats that block matching from working reliably.
+
+    The admin UI for manually adding a block also calls this, so an admin
+    that pastes a truncated value will be told "needs at least an IP or
+    machine hash" rather than silently saving a bad row."""
+    if not raw:
+        return ""
+    s = str(raw).strip().lower()
+    if len(s) != 64:
+        return ""
+    if not all(c in "0123456789abcdef" for c in s):
+        return ""
+    return s
+
+
+def _check_active_trial_block(conn, ip: str, machine_hash: str):
+    """Return the active block row that matches `ip` OR `machine_hash`,
+    or None if neither matches.
+
+    "Active" means unblocks_at IS NULL (permanent) or unblocks_at > now.
+    We pick the LATEST-expiring block so the error message tells the user
+    the longest wait time -- if both an IP-block and a hash-block hit,
+    they need both to expire."""
+    now = time.time()
+    machine_hash = _normalize_machine_hash(machine_hash)
+    candidates = []
+    if ip:
+        rows = conn.execute(
+            "SELECT * FROM trial_blocks WHERE ip = ? "
+            "AND (unblocks_at IS NULL OR unblocks_at > ?)",
+            (ip, now),
+        ).fetchall()
+        candidates.extend(rows)
+    if machine_hash:
+        rows = conn.execute(
+            "SELECT * FROM trial_blocks WHERE machine_hash = ? "
+            "AND (unblocks_at IS NULL OR unblocks_at > ?)",
+            (machine_hash, now),
+        ).fetchall()
+        candidates.extend(rows)
+    if not candidates:
+        return None
+    # Permanent blocks (unblocks_at IS NULL) win. Otherwise pick the
+    # furthest-out unblock time so the worst-case wait is shown.
+    perm = [r for r in candidates if r["unblocks_at"] is None]
+    if perm:
+        return perm[0]
+    return max(candidates, key=lambda r: r["unblocks_at"])
+
+
+def _create_auto_trial_block(conn, ip: str, machine_hash: str,
+                              license_id: int | None, cooldown_seconds: int) -> None:
+    """Insert an auto-block row when a trial is issued. No-op if cooldown
+    is 0 (admin disabled the feature)."""
+    if cooldown_seconds <= 0:
+        return
+    machine_hash = _normalize_machine_hash(machine_hash)
+    if not ip and not machine_hash:
+        return  # Without either identifier the block can never match anything
+    now = time.time()
+    conn.execute(
+        "INSERT INTO trial_blocks (ip, machine_hash, blocked_at, unblocks_at, "
+        "reason, created_by, license_id) VALUES (?, ?, ?, ?, ?, 'auto', ?)",
+        (ip or None, machine_hash or None, now, now + cooldown_seconds,
+         f"Auto-block on trial issuance ({format_duration(cooldown_seconds)} cooldown)",
+         license_id),
+    )
+
+
 def _get_trial_config(conn, config_id=None):
     if config_id:
         return conn.execute(
@@ -3315,6 +3484,11 @@ def api_trial_register():
     data = request.get_json(silent=True) or {}
     config_id = int(data.get("config_id") or 0) or None
     client_ip = _get_client_ip()
+    # New in this release: launcher sends a stable machine fingerprint
+    # so the same physical PC can't trial again after deleting the folder
+    # or switching networks. Old launchers don't send it; that's fine,
+    # we just fall back to IP-only blocking for those clients.
+    machine_hash = _normalize_machine_hash(data.get("machine_hash"))
 
     if not _trial_rate_limit_check(client_ip):
         resp = {"valid": False, "error": "Too many trial requests, try again later"}
@@ -3327,43 +3501,100 @@ def api_trial_register():
         resp = {"valid": False, "error": "Trial not available"}
         return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 404
 
-    duration = int(cfg["trial_duration_seconds"] or 86400)
+    # Hard cap on trial duration. Even if the build_configs row says
+    # something larger (admin set 7d when the column meant trial-license
+    # duration in an older release), the per-user trial license never
+    # lives longer than 24h. The download-link expiry is a separate
+    # concept — see TRIAL_CONFIG_MAX_AGE_SECONDS.
+    TRIAL_LICENSE_HARD_CAP_SECONDS = 24 * 60 * 60
+    duration = min(int(cfg["trial_duration_seconds"] or 86400),
+                   TRIAL_LICENSE_HARD_CAP_SECONDS)
     max_per_subnet = int(cfg["trial_max_per_subnet"] or 5)
 
-    rows = conn.execute(
-        "SELECT registered_ip FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
-        (cfg["id"],),
-    ).fetchall()
-    same_subnet = sum(1 for r in rows if r["registered_ip"] and _is_same_subnet(r["registered_ip"], client_ip))
-    if same_subnet >= max_per_subnet:
+    # ── Atomic write section ────────────────────────────────────────────
+    # Two concurrent /api/trial_register requests from the same IP/machine
+    # used to race: both passed the block check before either inserted
+    # its auto-block row, so two trials got issued. We close that hole
+    # here with BEGIN IMMEDIATE which acquires the SQLite write lock
+    # up-front; the second request blocks until the first commits, then
+    # sees the freshly-inserted block row and returns 429.
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+    except sqlite3.OperationalError:
+        # Couldn't grab the write lock fast enough. Treat as a transient
+        # rate-limit; the launcher will retry on next start.
         conn.close()
-        resp = {"valid": False, "error": "Trial limit reached for your network"}
+        resp = {"valid": False, "error": "Server busy, try again in a moment"}
         return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
 
-    new_key = generate_key()
-    while conn.execute("SELECT 1 FROM licenses WHERE license_key = ?", (new_key,)).fetchone():
-        new_key = generate_key()
+    try:
+        # Re-check inside the transaction so we see any block row a parallel
+        # request committed between our SELECT and our BEGIN IMMEDIATE.
+        block = _check_active_trial_block(conn, client_ip, machine_hash)
+        if block is not None:
+            conn.execute("ROLLBACK")
+            conn.close()
+            if block["unblocks_at"] is None:
+                err = "Your trial has been permanently blocked. Contact support."
+                wait_s = -1  # sentinel
+            else:
+                wait_s = max(0, int(block["unblocks_at"] - time.time()))
+                err = f"Trial already used. Try again in {format_duration(wait_s)}."
+            print(f"[trial] BLOCKED ip={client_ip} hash={machine_hash[:12] or '-'} "
+                  f"block_id={block['id']} wait_s={wait_s}", flush=True)
+            resp = {"valid": False, "error": err, "retry_after_seconds": wait_s}
+            return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
 
-    now = time.time()
-    expires_at = now + duration
-    conn.execute(
-        """INSERT INTO licenses
-           (license_key, note, status, duration_seconds, created_at, activated_at, expires_at,
-            registered_ip, last_heartbeat, last_ip, is_trial, parent_config_id)
-           VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, 1, ?)""",
-        (
-            new_key,
-            f"TRIAL ({cfg['app_name']}) ip={client_ip}",
-            duration,
-            now, now, expires_at,
-            client_ip, now, client_ip,
-            cfg["id"],
-        ),
-    )
-    conn.commit()
+        rows = conn.execute(
+            "SELECT registered_ip FROM licenses WHERE is_trial = 1 AND parent_config_id = ?",
+            (cfg["id"],),
+        ).fetchall()
+        same_subnet = sum(1 for r in rows if r["registered_ip"] and _is_same_subnet(r["registered_ip"], client_ip))
+        if same_subnet >= max_per_subnet:
+            conn.execute("ROLLBACK")
+            conn.close()
+            resp = {"valid": False, "error": "Trial limit reached for your network"}
+            return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
+
+        new_key = generate_key()
+        while conn.execute("SELECT 1 FROM licenses WHERE license_key = ?", (new_key,)).fetchone():
+            new_key = generate_key()
+
+        now = time.time()
+        expires_at = now + duration
+        cur = conn.execute(
+            """INSERT INTO licenses
+               (license_key, note, status, duration_seconds, created_at, activated_at, expires_at,
+                registered_ip, last_heartbeat, last_ip, is_trial, parent_config_id, machine_hash)
+               VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+            (
+                new_key,
+                f"TRIAL ({cfg['app_name']}) ip={client_ip}",
+                duration,
+                now, now, expires_at,
+                client_ip, now, client_ip,
+                cfg["id"],
+                machine_hash or None,
+            ),
+        )
+        new_license_id = cur.lastrowid
+
+        # Record the auto-block so the same IP / machine can't immediately
+        # mint a second trial. Cooldown is the global app_settings value,
+        # editable from the Trial Blocks page.
+        cooldown = _get_trial_cooldown_seconds()
+        _create_auto_trial_block(conn, client_ip, machine_hash, new_license_id, cooldown)
+
+        conn.commit()
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        conn.close()
+        raise
     conn.close()
 
-    print(f"[trial] issued {new_key} to {client_ip} cfg={cfg['id']} duration={duration}s", flush=True)
+    print(f"[trial] issued {new_key} to {client_ip} hash={machine_hash[:12] or '-'} "
+          f"cfg={cfg['id']} duration={duration}s cooldown={cooldown}s", flush=True)
     resp = {
         "valid": True,
         "license_key": new_key,
@@ -3371,6 +3602,424 @@ def api_trial_register():
         "duration_seconds": duration,
     }
     return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)})
+
+
+# ─────────────────────────── Trial Blocks admin UI ───────────────────────────
+
+def _require_same_origin_or_abort():
+    """Lightweight CSRF defense for admin POST endpoints. Validates that
+    Origin or Referer (in that order) matches the request host. We rely
+    on the browser to send at least one of these for a fetch/form POST;
+    requests with neither header (curl with no flags, off-origin form
+    submissions) are rejected.
+
+    Returns None when the request is allowed; otherwise returns a tuple
+    (response, status) the caller should return immediately. We don't
+    raise so that we can still flash() a friendly message to the admin
+    if they somehow bookmarked a stale form."""
+    host = request.host  # includes port; matches what Origin/Referer have
+    origin = (request.headers.get("Origin") or "").strip()
+    referer = (request.headers.get("Referer") or "").strip()
+    def _host_of(url):
+        try:
+            from urllib.parse import urlparse
+            return urlparse(url).netloc.lower()
+        except Exception:
+            return ""
+    expected = host.lower()
+    if origin:
+        if _host_of(origin) == expected:
+            return None
+    elif referer:
+        if _host_of(referer) == expected:
+            return None
+    # Reject. Logging the failed Origin/Referer helps Mary debug if a
+    # legitimate request gets blocked by a misconfigured reverse proxy.
+    print(f"[csrf] reject {request.method} {request.path} "
+          f"host={host} origin={origin!r} referer={referer!r}", flush=True)
+    return ("Cross-origin request rejected", 403)
+
+
+def _audit_trial_block(action: str, block_id=None, ip="", machine_hash="",
+                       details="", conn=None):
+    """Append an immutable row to trial_block_audit.
+
+    When `conn` is provided we insert on that connection WITHOUT calling
+    commit() — the caller is expected to be inside its own transaction
+    and will commit (or rollback) the audit row together with the admin
+    mutation it represents. This is the path the four admin POST routes
+    take, so an audit-log outage rolls back the whole action and the
+    admin sees a 500 instead of silently losing forensic history.
+
+    When `conn` is None we open our own connection and commit immediately.
+    This is intentionally best-effort — used for cases (e.g. background
+    tasks) where the caller would rather log-and-continue than abort."""
+    if conn is not None:
+        conn.execute(
+            "INSERT INTO trial_block_audit (ts, actor, action, block_id, ip, machine_hash, details)"
+            " VALUES (?, 'admin', ?, ?, ?, ?, ?)",
+            (time.time(), action, block_id, ip or None,
+             (machine_hash or None), (details or None)),
+        )
+        return
+    try:
+        own = get_db()
+        try:
+            own.execute(
+                "INSERT INTO trial_block_audit (ts, actor, action, block_id, ip, machine_hash, details)"
+                " VALUES (?, 'admin', ?, ?, ?, ?, ?)",
+                (time.time(), action, block_id, ip or None,
+                 (machine_hash or None), (details or None)),
+            )
+            own.commit()
+        finally:
+            own.close()
+    except Exception as e:
+        print(f"[trial-audit] insert failed action={action} block_id={block_id}: {e}", flush=True)
+
+
+def _parse_duration_form(form, field_prefix: str, default_seconds: int = 0,
+                          require_positive: bool = False) -> int:
+    """Parse a (value, unit) pair like ('7','days') from a form into seconds.
+
+    Behavior:
+    - Missing / blank value → returns `default_seconds` (or 0 when caller
+      sets `require_positive=True` to force the caller to error out).
+    - Non-numeric value → returns 0 when require_positive, else default.
+    - Non-positive value (<=0) → returns 0 when require_positive, else default.
+
+    `require_positive=True` is used by /trial_blocks/add and /trial_blocks/<id>/edit
+    so an admin who accidentally clears the field gets an explicit
+    "duration must be > 0" error instead of silently falling back to a
+    week-long block. /trial_blocks/settings keeps the default behavior
+    (returning the saved cooldown when no value is sent), and handles
+    explicit zero in its own handler to mean "disable auto-blocks"."""
+    raw_val = (form.get(f"{field_prefix}_value") or "").strip()
+    raw_unit = (form.get(f"{field_prefix}_unit") or "days").strip().lower()
+    if not raw_val:
+        return 0 if require_positive else default_seconds
+    try:
+        v = float(raw_val)
+    except ValueError:
+        return 0 if require_positive else default_seconds
+    if v <= 0:
+        return 0 if require_positive else default_seconds
+    mults = {
+        "seconds": 1, "minutes": 60, "hours": 3600,
+        "days": 86400, "weeks": 86400 * 7,
+    }
+    return int(v * mults.get(raw_unit, 86400))
+
+
+def _list_trial_blocks(conn, include_expired: bool = False):
+    """Returns blocks sorted: permanent first, then soonest-to-expire,
+    then expired (when included). Each row gets two computed fields:
+    `is_active` and `seconds_remaining` (None for permanent)."""
+    now = time.time()
+    if include_expired:
+        rows = conn.execute(
+            "SELECT b.*, l.license_key AS license_key "
+            "FROM trial_blocks b LEFT JOIN licenses l ON l.id = b.license_id "
+            "ORDER BY b.unblocks_at IS NULL DESC, "
+            "         CASE WHEN b.unblocks_at IS NULL OR b.unblocks_at > ? THEN 0 ELSE 1 END, "
+            "         b.unblocks_at ASC, b.id DESC",
+            (now,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT b.*, l.license_key AS license_key "
+            "FROM trial_blocks b LEFT JOIN licenses l ON l.id = b.license_id "
+            "WHERE b.unblocks_at IS NULL OR b.unblocks_at > ? "
+            "ORDER BY b.unblocks_at IS NULL DESC, b.unblocks_at ASC, b.id DESC",
+            (now,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        if d["unblocks_at"] is None:
+            d["is_active"] = True
+            d["is_permanent"] = True
+            d["seconds_remaining"] = None
+        else:
+            d["is_active"] = d["unblocks_at"] > now
+            d["is_permanent"] = False
+            d["seconds_remaining"] = max(0, int(d["unblocks_at"] - now))
+        out.append(d)
+    return out
+
+
+@app.route("/trial_blocks")
+@require_admin
+def trial_blocks_page():
+    show_expired = request.args.get("show_expired") == "1"
+    conn = get_db()
+    try:
+        blocks = _list_trial_blocks(conn, include_expired=show_expired)
+        cooldown_s = _get_trial_cooldown_seconds()
+        # Stats for the header card
+        active_count = sum(1 for b in blocks if b["is_active"])
+        perm_count = sum(1 for b in blocks if b["is_permanent"])
+    finally:
+        conn.close()
+    return render_template(
+        "trial_blocks.html",
+        blocks=blocks,
+        show_expired=show_expired,
+        cooldown_seconds=cooldown_s,
+        cooldown_human=format_duration(cooldown_s) if cooldown_s > 0 else "disabled",
+        active_count=active_count,
+        perm_count=perm_count,
+        total_count=len(blocks),
+    )
+
+
+@app.route("/api/trial_blocks")
+@require_admin
+def api_trial_blocks():
+    """JSON feed for the live-countdown timer on the Trial Blocks page."""
+    show_expired = request.args.get("show_expired") == "1"
+    conn = get_db()
+    try:
+        blocks = _list_trial_blocks(conn, include_expired=show_expired)
+    finally:
+        conn.close()
+    return jsonify({
+        "now": time.time(),
+        "blocks": [
+            {
+                "id": b["id"],
+                "ip": b["ip"] or "",
+                "machine_hash": b["machine_hash"] or "",
+                "blocked_at": b["blocked_at"],
+                "unblocks_at": b["unblocks_at"],
+                "is_active": b["is_active"],
+                "is_permanent": b["is_permanent"],
+                "seconds_remaining": b["seconds_remaining"],
+                "reason": b["reason"] or "",
+                "created_by": b["created_by"],
+                "license_id": b["license_id"],
+                "license_key": b["license_key"],
+            }
+            for b in blocks
+        ],
+    })
+
+
+@app.route("/trial_blocks/add", methods=["POST"])
+@require_admin
+def trial_blocks_add():
+    err = _require_same_origin_or_abort()
+    if err is not None:
+        return err
+    ip = (request.form.get("ip") or "").strip()[:64]
+    machine_hash = _normalize_machine_hash(request.form.get("machine_hash") or "")
+    if not ip and not machine_hash:
+        flash("Block needs at least an IP or a 64-char machine hash.", "error")
+        return redirect(url_for("trial_blocks_page"))
+    permanent = request.form.get("permanent") == "1"
+    reason = (request.form.get("reason") or "").strip()[:500]
+    now = time.time()
+    if permanent:
+        unblocks_at = None
+        details = "permanent"
+    else:
+        seconds = _parse_duration_form(request.form, "duration", require_positive=True)
+        if seconds <= 0:
+            flash("Block duration must be a positive number.", "error")
+            return redirect(url_for("trial_blocks_page"))
+        unblocks_at = now + seconds
+        details = f"duration={seconds}s"
+    conn = get_db()
+    try:
+        # Audit row is inserted on the same connection so it commits as
+        # one unit with the block row — no chance of "block created but
+        # we lost the audit trail" for forensic purposes.
+        conn.execute("BEGIN")
+        cur = conn.execute(
+            "INSERT INTO trial_blocks (ip, machine_hash, blocked_at, unblocks_at, "
+            "reason, created_by) VALUES (?, ?, ?, ?, ?, 'admin')",
+            (ip or None, machine_hash or None, now, unblocks_at, reason),
+        )
+        new_id = cur.lastrowid
+        _audit_trial_block(
+            "add", block_id=new_id, ip=ip, machine_hash=machine_hash,
+            details=f"{details}; reason={reason!r}", conn=conn,
+        )
+        conn.commit()
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        conn.close()
+        raise
+    finally:
+        try: conn.close()
+        except Exception: pass
+    flash("Trial block added.", "success")
+    return redirect(url_for("trial_blocks_page"))
+
+
+@app.route("/trial_blocks/<int:block_id>/edit", methods=["POST"])
+@require_admin
+def trial_blocks_edit(block_id):
+    err = _require_same_origin_or_abort()
+    if err is not None:
+        return err
+    permanent = request.form.get("permanent") == "1"
+    reason = (request.form.get("reason") or "").strip()[:500]
+    # Decide what change to apply BEFORE entering the transaction so we
+    # can short-circuit on validation errors without touching the DB.
+    if permanent:
+        new_unblocks = None
+        details_suffix = "→ permanent"
+    else:
+        seconds = _parse_duration_form(request.form, "duration", require_positive=True)
+        if seconds <= 0:
+            flash("Edit needs a positive duration (or check 'permanent').", "error")
+            return redirect(url_for("trial_blocks_page"))
+        # Editing reschedules from NOW so admin's new "1 day" actually
+        # means 1 day from this moment, not from original blocked_at.
+        new_unblocks = time.time() + seconds
+        details_suffix = f"→ duration={seconds}s"
+
+    conn = get_db()
+    try:
+        # Read the row INSIDE the transaction so a concurrent delete can't
+        # cause "we audited an edit on a row that no longer exists" — we
+        # check the UPDATE rowcount below to confirm we actually changed
+        # something before writing the audit row.
+        conn.execute("BEGIN")
+        row = conn.execute("SELECT * FROM trial_blocks WHERE id = ?", (block_id,)).fetchone()
+        if not row:
+            conn.execute("ROLLBACK")
+            conn.close()
+            flash("Block not found.", "error")
+            return redirect(url_for("trial_blocks_page"))
+        prev_unblocks = row["unblocks_at"]
+        prev_reason = row["reason"]
+        cur = conn.execute(
+            "UPDATE trial_blocks SET unblocks_at = ?, reason = ? WHERE id = ?",
+            (new_unblocks, reason, block_id),
+        )
+        if cur.rowcount != 1:
+            conn.execute("ROLLBACK")
+            conn.close()
+            flash("Block changed under us. Reload and retry.", "error")
+            return redirect(url_for("trial_blocks_page"))
+        _audit_trial_block(
+            "edit", block_id=block_id,
+            ip=row["ip"] or "", machine_hash=row["machine_hash"] or "",
+            details=(f"unblocks_at: {prev_unblocks} {details_suffix}; "
+                     f"reason: {prev_reason!r} → {reason!r}"),
+            conn=conn,
+        )
+        conn.commit()
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        conn.close()
+        raise
+    finally:
+        try: conn.close()
+        except Exception: pass
+    flash("Trial block updated.", "success")
+    return redirect(url_for("trial_blocks_page"))
+
+
+@app.route("/trial_blocks/<int:block_id>/delete", methods=["POST"])
+@require_admin
+def trial_blocks_delete(block_id):
+    err = _require_same_origin_or_abort()
+    if err is not None:
+        return err
+    conn = get_db()
+    removed = 0
+    snapshot = None
+    try:
+        conn.execute("BEGIN")
+        snapshot = conn.execute("SELECT * FROM trial_blocks WHERE id = ?", (block_id,)).fetchone()
+        cur = conn.execute("DELETE FROM trial_blocks WHERE id = ?", (block_id,))
+        removed = cur.rowcount
+        if removed:
+            _audit_trial_block(
+                "delete", block_id=block_id,
+                ip=(snapshot["ip"] if snapshot else "") or "",
+                machine_hash=(snapshot["machine_hash"] if snapshot else "") or "",
+                details=(f"reason={snapshot['reason']!r}, "
+                          f"unblocks_at={snapshot['unblocks_at']}, "
+                          f"created_by={snapshot['created_by']}" if snapshot else ""),
+                conn=conn,
+            )
+        conn.commit()
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        conn.close()
+        raise
+    finally:
+        try: conn.close()
+        except Exception: pass
+    if removed:
+        flash("Trial block removed (user can trial again immediately).", "success")
+    else:
+        flash("Block not found (already removed?).", "error")
+    return redirect(url_for("trial_blocks_page"))
+
+
+@app.route("/trial_blocks/settings", methods=["POST"])
+@require_admin
+def trial_blocks_settings():
+    err = _require_same_origin_or_abort()
+    if err is not None:
+        return err
+    raw_val = (request.form.get("cooldown_value") or "").strip()
+    # Robust "is this a numeric zero?" check — handles "0", "0.0", "00",
+    # "0.00", "+0", " 0 " etc. The previous string-equality check missed
+    # most of these and silently fell back to the 7-day default.
+    is_explicit_zero = False
+    try:
+        is_explicit_zero = (raw_val != "" and float(raw_val) == 0)
+    except ValueError:
+        pass
+    if is_explicit_zero:
+        seconds = 0
+    else:
+        seconds = _parse_duration_form(
+            request.form, "cooldown",
+            default_seconds=TRIAL_COOLDOWN_DEFAULT_SECONDS,
+        )
+    seconds = max(0, int(seconds))
+    conn = get_db()
+    try:
+        conn.execute("BEGIN")
+        prev_row = conn.execute(
+            "SELECT value FROM app_settings WHERE key = 'trial_cooldown_seconds'"
+        ).fetchone()
+        prev = prev_row["value"] if prev_row else "(unset)"
+        conn.execute(
+            "INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)"
+            " ON CONFLICT(key) DO UPDATE SET value = excluded.value,"
+            " updated_at = excluded.updated_at",
+            ("trial_cooldown_seconds", str(seconds), time.time()),
+        )
+        _audit_trial_block(
+            "settings",
+            details=f"trial_cooldown_seconds: {prev} → {seconds}",
+            conn=conn,
+        )
+        conn.commit()
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        conn.close()
+        raise
+    finally:
+        try: conn.close()
+        except Exception: pass
+    if seconds <= 0:
+        flash("Auto-blocks disabled. Trials will no longer create cooldowns.", "success")
+    else:
+        flash(f"Trial cooldown set to {format_duration(seconds)}.", "success")
+    return redirect(url_for("trial_blocks_page"))
 
 
 def _latest_bundle(conn):

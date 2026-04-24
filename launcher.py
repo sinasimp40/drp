@@ -2127,6 +2127,65 @@ def _verify_signature_with_secret(data, signature, secret):
     return hmac.compare_digest(expected, signature)
 
 
+def _get_machine_fingerprint():
+    """Compute a stable per-PC SHA-256 fingerprint for trial-abuse blocking.
+    Combines: Windows MachineGuid + motherboard serial + system disk serial.
+    Returns "" on any failure so the caller can fall back to IP-only blocking
+    (the server treats missing machine_hash as "old launcher")."""
+    parts = []
+    # 1) Windows MachineGuid — survives reinstalls of our app, changes only
+    #    when Windows is reinstalled. Cheap to read, no admin needed.
+    try:
+        import winreg
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Cryptography",
+            0,
+            winreg.KEY_READ | winreg.KEY_WOW64_64KEY,
+        ) as k:
+            guid, _ = winreg.QueryValueEx(k, "MachineGuid")
+            if guid:
+                parts.append("guid:" + str(guid).strip())
+    except Exception:
+        pass
+    # 2) Motherboard serial via WMIC. WMIC is deprecated in Win11 but still
+    #    present; we tolerate "" when the BIOS reports nothing useful.
+    try:
+        out = subprocess.check_output(
+            ["wmic", "baseboard", "get", "serialnumber"],
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            timeout=4,
+        ).decode("utf-8", errors="replace").strip()
+        # First line is the column header "SerialNumber"; serial is line 2+
+        for line in out.splitlines()[1:]:
+            s = line.strip()
+            if s and s.lower() not in ("none", "to be filled by o.e.m.", "default string", "n/a"):
+                parts.append("mb:" + s)
+                break
+    except Exception:
+        pass
+    # 3) System disk serial. Same WMIC tolerance.
+    try:
+        out = subprocess.check_output(
+            ["wmic", "diskdrive", "get", "serialnumber"],
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            timeout=4,
+        ).decode("utf-8", errors="replace").strip()
+        for line in out.splitlines()[1:]:
+            s = line.strip()
+            if s and s.lower() not in ("none", "n/a"):
+                parts.append("disk:" + s)
+                break
+    except Exception:
+        pass
+    if not parts:
+        return ""
+    h = hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+    return h
+
+
 def register_trial_license():
     """Ask the server to mint a fresh time-limited trial license for this PC.
     Returns the new key string on success, or None on failure (caller should
@@ -2136,7 +2195,16 @@ def register_trial_license():
     try:
         import urllib.request, urllib.error
         url = LICENSE_SERVER_URL.rstrip("/") + "/api/trial_register"
-        body = {"config_id": CONFIG_ID, "version": APP_VERSION, "app_name": APP_NAME}
+        # Include a stable machine fingerprint so the server can hard-block
+        # re-trials from the same PC (even if the user wipes the launcher
+        # folder or switches networks). Empty string is acceptable; the
+        # server then falls back to IP-only blocking for this client.
+        body = {
+            "config_id": CONFIG_ID,
+            "version": APP_VERSION,
+            "app_name": APP_NAME,
+            "machine_hash": _get_machine_fingerprint(),
+        }
         secret = _decode_trial_secret()
         ts, nonce, sig = _sign_request_with_secret(body, secret)
         req = urllib.request.Request(

@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+{% block title %}Trial Blocks - License Admin{% endblock %}
+{% block topbar_title %}Trial Blocks{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .tb-stat { background: #1c1c26; border: 1px solid #2a2a36; border-radius: 8px; padding: 14px 16px; }
+    .tb-stat-label { color: #9a9ab0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .tb-stat-value { color: #f0f0f5; font-size: 22px; font-weight: 600; }
+    .tb-stat-value.perm { color: #ff6b6b; }
+    .tb-stat-value.active { color: #ffb347; }
+    .tb-stat-value.cooldown { color: #6cb6ff; font-size: 16px; }
+
+    .tb-section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #9a9ab0; margin: 18px 0 10px; }
+
+    .tb-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; align-items: end; }
+    .tb-form-grid .full { grid-column: 1 / -1; }
+    .tb-form-grid label { display: block; font-size: 12px; color: #9a9ab0; margin-bottom: 4px; }
+    .tb-form-grid input[type=text],
+    .tb-form-grid input[type=number],
+    .tb-form-grid select,
+    .tb-form-grid textarea {
+        width: 100%; box-sizing: border-box;
+        background: #15151d; border: 1px solid #2a2a36; color: #f0f0f5;
+        border-radius: 6px; padding: 8px 10px; font-size: 13px;
+        font-family: inherit;
+    }
+    .tb-form-grid textarea { resize: vertical; min-height: 50px; }
+    .tb-duration-row { display: flex; gap: 6px; }
+    .tb-duration-row input { flex: 1; }
+    .tb-duration-row select { flex: 0 0 110px; }
+    .tb-checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #d0d0e0; margin-top: 6px; }
+
+    .tb-table { width: 100%; border-collapse: collapse; }
+    .tb-table th { text-align: left; color: #9a9ab0; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 12px; border-bottom: 1px solid #2a2a36; }
+    .tb-table td { padding: 12px; border-bottom: 1px solid #1f1f29; vertical-align: top; }
+    .tb-table tr:last-child td { border-bottom: none; }
+    .tb-mono { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #d0d0e0; }
+    .tb-empty { color: #6a6a80; font-style: italic; }
+
+    .tb-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+    .tb-badge-perm { background: #4d1f1f; color: #ff8a8a; }
+    .tb-badge-active { background: #4d3a1f; color: #ffc580; }
+    .tb-badge-expired { background: #2a2a36; color: #7a7a90; }
+    .tb-badge-auto { background: #1f3a4d; color: #80c5ff; }
+    .tb-badge-admin { background: #2a1f4d; color: #b890ff; }
+
+    .tb-countdown { font-family: 'SF Mono','Consolas',monospace; font-size: 13px; color: #ffb347; }
+    .tb-countdown.expired { color: #6a6a80; }
+    .tb-countdown.perm { color: #ff6b6b; }
+
+    .tb-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .tb-btn { background: #2a2a36; color: #d0d0e0; border: 1px solid #3a3a48; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: inherit; }
+    .tb-btn:hover { background: #3a3a48; }
+    .tb-btn-primary { background: #ff9d4d; color: #1a1a22; border-color: #ff9d4d; font-weight: 500; }
+    .tb-btn-primary:hover { background: #ffb070; }
+    .tb-btn-bad { background: #4d1f1f; color: #ff8a8a; border-color: #5a2a2a; }
+    .tb-btn-bad:hover { background: #5a2a2a; }
+
+    .tb-modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+    .tb-modal-bg.open { display: flex; }
+    .tb-modal { background: #15151d; border: 1px solid #2a2a36; border-radius: 10px; padding: 20px 24px; min-width: 380px; max-width: 92vw; }
+    .tb-modal h3 { margin: 0 0 14px; font-size: 16px; color: #f0f0f5; }
+    .tb-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+    .tb-toggle-row { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .tb-toggle-row a { color: #6cb6ff; font-size: 12px; text-decoration: none; }
+    .tb-toggle-row a:hover { text-decoration: underline; }
+    .tb-toggle-row a.active { color: #ff9d4d; font-weight: 500; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tb-stats">
+    <div class="tb-stat">
+        <div class="tb-stat-label">Active blocks</div>
+        <div class="tb-stat-value active">{{ active_count }}</div>
+    </div>
+    <div class="tb-stat">
+        <div class="tb-stat-label">Permanent</div>
+        <div class="tb-stat-value perm">{{ perm_count }}</div>
+    </div>
+    <div class="tb-stat">
+        <div class="tb-stat-label">Total in view</div>
+        <div class="tb-stat-value">{{ total_count }}</div>
+    </div>
+    <div class="tb-stat">
+        <div class="tb-stat-label">Default cooldown</div>
+        <div class="tb-stat-value cooldown">{{ cooldown_human }}</div>
+    </div>
+</div>
+
+<!-- Settings card: global cooldown -->
+<div class="card">
+    <div class="card-header"><h3 style="margin:0;">Default cooldown</h3></div>
+    <div class="card-body">
+        <p style="color:#9a9ab0; font-size:12px; margin: 0 0 12px;">
+            Every successful trial issuance creates an automatic block for this long.
+            Set to <strong>0</strong> to disable auto-blocks entirely (manual blocks still work).
+            Changes take effect immediately for the next trial request.
+        </p>
+        <form method="POST" action="{{ url_for('trial_blocks_settings') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap: wrap;">
+            <div>
+                <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">Cooldown</label>
+                <div class="tb-duration-row" style="width: 280px;">
+                    <input type="number" name="cooldown_value" min="0" step="0.5" value="{{ '%g' % (cooldown_seconds / 86400) if cooldown_seconds > 0 else '0' }}" required>
+                    <select name="cooldown_unit">
+                        <option value="hours">hours</option>
+                        <option value="days" selected>days</option>
+                        <option value="weeks">weeks</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="tb-btn tb-btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add new block -->
+<div class="card" style="margin-top:16px;">
+    <div class="card-header"><h3 style="margin:0;">Add manual block</h3></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('trial_blocks_add') }}">
+            <div class="tb-form-grid">
+                <div>
+                    <label>IP address (optional)</label>
+                    <input type="text" name="ip" placeholder="e.g. 203.0.113.42" maxlength="64">
+                </div>
+                <div>
+                    <label>Machine hash (optional)</label>
+                    <input type="text" name="machine_hash" placeholder="hex (from History → Machine column)" maxlength="128">
+                </div>
+                <div>
+                    <label>Duration</label>
+                    <div class="tb-duration-row">
+                        <input type="number" name="duration_value" min="0" step="0.5" value="7">
+                        <select name="duration_unit">
+                            <option value="hours">hours</option>
+                            <option value="days" selected>days</option>
+                            <option value="weeks">weeks</option>
+                        </select>
+                    </div>
+                    <label class="tb-checkbox-row">
+                        <input type="checkbox" name="permanent" value="1"> Permanent (ignores duration)
+                    </label>
+                </div>
+                <div>
+                    <label>Reason / note</label>
+                    <textarea name="reason" maxlength="500" placeholder="Visible only to admins"></textarea>
+                </div>
+                <div class="full" style="display:flex; justify-content:flex-end;">
+                    <button type="submit" class="tb-btn tb-btn-primary">Add block</button>
+                </div>
+            </div>
+        </form>
+        <p style="color:#6a6a80; font-size:11px; margin: 10px 0 0;">
+            At least one of IP / machine hash is required. Match is OR — an active block on
+            either field will deny the trial.
+        </p>
+    </div>
+</div>
+
+<!-- Block list -->
+<div class="card" style="margin-top:16px;">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">{% if show_expired %}All blocks{% else %}Active blocks{% endif %}</h3>
+        <div class="tb-toggle-row" style="margin:0;">
+            <a href="{{ url_for('trial_blocks_page') }}" class="{% if not show_expired %}active{% endif %}">Active only</a>
+            <span style="color:#3a3a48;">·</span>
+            <a href="{{ url_for('trial_blocks_page', show_expired=1) }}" class="{% if show_expired %}active{% endif %}">Show expired</a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if blocks %}
+        <table class="tb-table" id="tb-blocks-table">
+            <thead>
+                <tr>
+                    <th style="width:64px;">ID</th>
+                    <th>IP</th>
+                    <th>Machine hash</th>
+                    <th>Status / time remaining</th>
+                    <th>Source</th>
+                    <th>Reason</th>
+                    <th>Trial</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in blocks %}
+                <tr data-id="{{ b.id }}" data-unblocks="{{ b.unblocks_at if b.unblocks_at is not none else '' }}">
+                    <td class="tb-mono">#{{ b.id }}</td>
+                    <td class="tb-mono">{{ b.ip or '—' }}</td>
+                    <td class="tb-mono" title="{{ b.machine_hash or '' }}">
+                        {% if b.machine_hash %}{{ b.machine_hash[:16] }}…{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if b.is_permanent %}
+                            <span class="tb-badge tb-badge-perm">PERMANENT</span>
+                        {% elif b.is_active %}
+                            <span class="tb-badge tb-badge-active">ACTIVE</span>
+                            <div class="tb-countdown" data-countdown="1">{{ b.seconds_remaining }}s</div>
+                        {% else %}
+                            <span class="tb-badge tb-badge-expired">EXPIRED</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if b.created_by == 'admin' %}
+                            <span class="tb-badge tb-badge-admin">ADMIN</span>
+                        {% else %}
+                            <span class="tb-badge tb-badge-auto">AUTO</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width:240px; color:#d0d0e0; font-size:12px;">{{ b.reason or '' }}</td>
+                    <td class="tb-mono">
+                        {% if b.license_key %}{{ b.license_key[:14] }}…{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div class="tb-actions">
+                            <button type="button" class="tb-btn"
+                                    onclick="openEditBlock({{ b.id }}, '{{ (b.reason or '')|replace("'", "\\'")|replace('\n', ' ') }}', {{ 'true' if b.is_permanent else 'false' }})">
+                                Edit
+                            </button>
+                            <form method="POST" action="{{ url_for('trial_blocks_delete', block_id=b.id) }}"
+                                  onsubmit="return confirm('Remove this block? The user will be able to trial again immediately.');" style="display:inline;">
+                                <button type="submit" class="tb-btn tb-btn-bad">Remove</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="tb-empty" style="margin:0; padding: 16px 0;">
+            {% if show_expired %}No blocks recorded yet.{% else %}No active blocks. Trials are unrestricted.{% endif %}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit modal -->
+<div class="tb-modal-bg" id="tb-edit-modal">
+    <form class="tb-modal" method="POST" id="tb-edit-form">
+        <h3>Edit block</h3>
+        <div>
+            <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">New duration (resets countdown from now)</label>
+            <div class="tb-duration-row">
+                <input type="number" name="duration_value" min="0" step="0.5" value="7" id="tb-edit-duration-value">
+                <select name="duration_unit" id="tb-edit-duration-unit">
+                    <option value="hours">hours</option>
+                    <option value="days" selected>days</option>
+                    <option value="weeks">weeks</option>
+                </select>
+            </div>
+            <label class="tb-checkbox-row">
+                <input type="checkbox" name="permanent" value="1" id="tb-edit-permanent"> Make permanent
+            </label>
+        </div>
+        <div style="margin-top:12px;">
+            <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">Reason / note</label>
+            <textarea name="reason" maxlength="500" id="tb-edit-reason" style="width:100%; box-sizing:border-box; background:#15151d; border:1px solid #2a2a36; color:#f0f0f5; border-radius:6px; padding:8px 10px; font-size:13px; min-height:50px; font-family:inherit;"></textarea>
+        </div>
+        <div class="tb-modal-actions">
+            <button type="button" class="tb-btn" onclick="closeEditBlock()">Cancel</button>
+            <button type="submit" class="tb-btn tb-btn-primary">Save</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function() {
+    // Format seconds → human "1d 4h 12m 5s" / "12m 5s" / "5s".
+    function fmt(s) {
+        if (s == null) return '∞';
+        s = Math.max(0, Math.floor(s));
+        var d = Math.floor(s / 86400); s -= d * 86400;
+        var h = Math.floor(s / 3600);  s -= h * 3600;
+        var m = Math.floor(s / 60);    s -= m * 60;
+        var parts = [];
+        if (d) parts.push(d + 'd');
+        if (h || d) parts.push(h + 'h');
+        if (m || h || d) parts.push(m + 'm');
+        parts.push(s + 's');
+        return parts.join(' ');
+    }
+
+    // Live countdown — recompute from data-unblocks each tick. Picking
+    // unblocks_at from the row instead of decrementing avoids drift over
+    // a long page session.
+    function tick() {
+        var now = Date.now() / 1000;
+        document.querySelectorAll('tr[data-unblocks]').forEach(function(tr) {
+            var raw = tr.getAttribute('data-unblocks');
+            if (!raw) return;
+            var ub = parseFloat(raw);
+            if (isNaN(ub)) return;
+            var cd = tr.querySelector('.tb-countdown[data-countdown="1"]');
+            if (!cd) return;
+            var remaining = ub - now;
+            if (remaining <= 0) {
+                cd.textContent = 'expired (refreshing…)';
+                cd.classList.add('expired');
+            } else {
+                cd.textContent = fmt(remaining);
+            }
+        });
+    }
+    setInterval(tick, 1000);
+    tick();
+
+    // Periodic full refresh so newly-expired rows actually disappear and
+    // newly-issued auto-blocks show up without a manual reload. We just
+    // re-fetch the page HTML and swap the table body — keeps the form
+    // values intact for an admin who's mid-typing.
+    function refreshTable() {
+        var url = window.location.pathname + window.location.search;
+        fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var fresh = doc.querySelector('#tb-blocks-table');
+                var current = document.querySelector('#tb-blocks-table');
+                var freshEmpty = doc.querySelector('.tb-empty');
+                if (fresh && current) {
+                    current.querySelector('tbody').innerHTML = fresh.querySelector('tbody').innerHTML;
+                } else if (fresh && !current) {
+                    // Empty state → table state: easier to just reload.
+                    window.location.reload();
+                } else if (!fresh && current) {
+                    window.location.reload();
+                }
+                tick();
+            })
+            .catch(function() {});
+    }
+    setInterval(refreshTable, 15000);
+
+    // Edit modal wiring
+    window.openEditBlock = function(id, reason, isPermanent) {
+        var form = document.getElementById('tb-edit-form');
+        form.action = '/trial_blocks/' + id + '/edit';
+        document.getElementById('tb-edit-reason').value = reason || '';
+        document.getElementById('tb-edit-permanent').checked = !!isPermanent;
+        document.getElementById('tb-edit-modal').classList.add('open');
+    };
+    window.closeEditBlock = function() {
+        document.getElementById('tb-edit-modal').classList.remove('open');
+    };
+    document.getElementById('tb-edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditBlock();
+    });
+})();
+</script>
+{% endblock %}

@@ -35,6 +35,7 @@
                     <th>Activated</th>
                     <th>Expires</th>
                     <th>IP (Registered)</th>
+                    <th title="Short machine fingerprint reported by the launcher (SHA-256 of MachineGuid + motherboard + disk). Used to block re-trial abuse from the same PC even after IP changes.">Machine</th>
                     <th>Ver</th>
                     <th>Note</th>
                     <th style="text-align:right;">Actions</th>
@@ -104,6 +105,13 @@
                             </div>
                             {% endfor %}
                         </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if lic.machine_hash %}
+                        <span title="{{ lic.machine_hash }}" style="font-family:'SF Mono','Consolas',monospace; font-size:11px; color:#9a9ab0;">{{ lic.machine_hash[:12] }}…</span>
+                        {% else %}
+                        <span style="color:#3a3a48;">-</span>
                         {% endif %}
                     </td>
                     <td><span style="color: {% if lic.version %}#ff9d4d{% else %}#3a3a48{% endif %}; font-size: 12px; font-family: 'SF Mono','Consolas',monospace;">{{ lic.version or '-' }}</span></td>
@@ -309,7 +317,7 @@
                     table.id = "history-licenses-table";
                     table.innerHTML =
                         '<thead><tr><th>License Key</th><th>Status</th><th>Duration</th>' +
-                        '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Ver</th><th>Note</th>' +
+                        '<th>Created</th><th>Activated</th><th>Expires</th><th>IP (Registered)</th><th>Machine</th><th>Ver</th><th>Note</th>' +
                         '<th style="text-align:right;">Actions</th></tr></thead>' +
                         '<tbody id="history-tbody"></tbody>';
                     container.innerHTML = "";
@@ -366,6 +374,9 @@
                         ipText += logHtml;
                     }
                     var verColor = lic.version ? '#ff9d4d' : '#3a3a48';
+                    var hashCell = lic.machine_hash
+                        ? '<span title="' + _esc(lic.machine_hash) + '" style="font-family:SF Mono,Consolas,monospace;font-size:11px;color:#9a9ab0;">' + _esc(lic.machine_hash.slice(0, 12)) + '…</span>'
+                        : '<span style="color:#3a3a48;">-</span>';
                     tr.innerHTML =
                         '<td><span class="key-text">' + lic.key + '</span></td>' +
                         '<td>' + statusBadge(lic) + '</td>' +
@@ -374,6 +385,7 @@
                         '<td style="color:#9a9ab0;">' + lic.activated + '</td>' +
                         '<td style="color:#9a9ab0;">' + lic.expires + '</td>' +
                         '<td>' + ipText + '</td>' +
+                        '<td>' + hashCell + '</td>' +
                         '<td><span style="color:' + verColor + ';font-size:12px;font-family:SF Mono,Consolas,monospace;">' + (lic.version || '-') + '</span></td>' +
                         '<td style="max-width:220px;">' + (lic.note || '') + '</td>' +
                         '<td>' + buildActions(lic) + '</td>';

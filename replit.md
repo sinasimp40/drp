@@ -38,6 +38,7 @@ I prefer simple language and direct instructions. I want the agent to prioritize
     - **Validation:** Validates with the server before launching and re-checks every 10 seconds.
     - **IP Binding:** Subnet-based IP binding (first 3 octets) to support diskless setups.
     - **Suspended State:** Licenses can be suspended by admin or automatically due to IP mismatch.
+    - **Trial Mode:** Public download links mint a one-shot 24h-capped trial license (`/api/trial_register`, signed). Launcher reports a stable per-PC fingerprint (SHA-256 of MachineGuid + motherboard + disk serial) and the server creates an auto-block (`trial_blocks` table) keyed on both IP and machine_hash. Default cooldown is 7 days, configurable globally via the **Trial Blocks** admin page (Management group), which also supports manual add/edit/delete with permanent and temporary blocks. Each license row stores its `machine_hash`, surfaced as a column on the History page.
     - **Offline Grace:** Tolerates 3 consecutive server failures before locking.
     - **HMAC Signing:** Server signs responses with HMAC to prevent tampering.
 - **OTA Update System:**
