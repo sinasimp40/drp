@@ -105,16 +105,23 @@
     .cw-generate.is-loading svg { animation: cw-spin 0.6s linear infinite; }
     @keyframes cw-spin { to { transform: rotate(360deg); } }
 
-    /* Mobile: workbench bar stacks — duration + label on row 1,
-       note input on its own row, Generate button full-width below */
+    /* Mobile: workbench bar — keep "New Key + 24 hours + Generate" compact on
+       row 1, push the note input to its own full-width row below */
     @media (max-width: 720px) {
         .cw-bar { padding: 14px 12px; }
-        .cw-form { flex-wrap: wrap; gap: 10px; padding-left: 6px; }
-        .cw-bar-label { padding-left: 0; }
-        .cw-note-input { flex: 1 1 100%; min-width: 0; }
-        .cw-generate { flex: 1 1 100%; min-width: 0; padding: 12px 22px; }
+        .cw-form { flex-wrap: wrap; gap: 10px; padding-left: 6px; align-items: stretch; }
+        .cw-bar-label { padding-left: 0; order: 1; }
+        .cw-segment { order: 2; flex: 1 1 auto; }
+        .cw-segment input[type=number] { width: auto; flex: 1 1 auto; min-width: 0; }
+        .cw-generate { order: 3; min-width: auto; padding: 9px 16px; flex: 0 0 auto; }
+        .cw-note-input { order: 4; flex: 1 1 100%; min-width: 0; }
         .cw-row .note { max-width: 100%; white-space: normal; }
         .cw-row .left { gap: 10px; }
+    }
+    @media (max-width: 420px) {
+        /* Very narrow phones: drop Generate to its own row so it stays
+           tappable instead of getting squeezed next to the duration */
+        .cw-generate { flex: 1 1 100%; padding: 11px 18px; }
     }
 
     /* Activity */
