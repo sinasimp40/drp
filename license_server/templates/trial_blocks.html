@@ -89,43 +89,28 @@
         <div class="tb-stat-label">Default cooldown</div>
         <div class="tb-stat-value cooldown">{{ cooldown_human }}</div>
     </div>
-    <div class="tb-stat">
-        <div class="tb-stat-label">Download-link expiry</div>
-        <div class="tb-stat-value cooldown">{{ link_expiry_human }}</div>
-    </div>
 </div>
 
-<!-- Settings card: global cooldown + download-link expiry -->
+<!-- Settings card: global cooldown -->
 <div class="card">
-    <div class="card-header"><h3 style="margin:0;">Trial settings</h3></div>
+    <div class="card-header"><h3 style="margin:0;">Default cooldown</h3></div>
     <div class="card-body">
         <p style="color:#9a9ab0; font-size:12px; margin: 0 0 12px;">
-            <strong>Cooldown:</strong> every successful trial creates an automatic block for this long.
-            Set to <strong>0</strong> to disable auto-blocks (manual blocks still work).<br>
-            <strong>Download-link expiry:</strong> trial download pages and their build artifacts
-            are deleted automatically after this much time, regardless of whether anyone used them.
-            Set to <strong>0</strong> to keep links forever (until you delete them or the trial license dies).<br>
-            Changes take effect immediately on the next trial request / next cleanup sweep.
+            Every successful trial issuance creates an automatic block (by IP + machine) for this long.
+            Set to <strong>0</strong> to disable auto-blocks entirely (manual blocks still work).
+            Changes take effect immediately for the next trial request.<br>
+            <span style="color:#7a7a90;">Need to control how long the download link stays alive? That's set per-build via
+            <strong>Trial duration</strong> on the Build config page — when the duration runs out, both
+            the license and the download link die together.</span>
         </p>
-        <form method="POST" action="{{ url_for('trial_blocks_settings') }}" style="display:flex; gap:14px; align-items:flex-end; flex-wrap: wrap;">
+        <form method="POST" action="{{ url_for('trial_blocks_settings') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap: wrap;">
             <div>
                 <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">Cooldown</label>
-                <div class="tb-duration-row" style="width: 240px;">
+                <div class="tb-duration-row" style="width: 280px;">
                     <input type="number" name="cooldown_value" min="0" step="0.5" value="{{ '%g' % (cooldown_seconds / 86400) if cooldown_seconds > 0 else '0' }}" required>
                     <select name="cooldown_unit">
                         <option value="hours">hours</option>
                         <option value="days" selected>days</option>
-                        <option value="weeks">weeks</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; color:#9a9ab0; margin-bottom:4px;">Download-link expiry</label>
-                <div class="tb-duration-row" style="width: 240px;">
-                    <input type="number" name="link_expiry_value" min="0" step="0.5" value="{{ '%g' % (link_expiry_seconds / 3600) if link_expiry_seconds > 0 else '0' }}" required>
-                    <select name="link_expiry_unit">
-                        <option value="hours" selected>hours</option>
-                        <option value="days">days</option>
                         <option value="weeks">weeks</option>
                     </select>
                 </div>
