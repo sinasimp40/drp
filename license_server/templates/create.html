@@ -105,6 +105,18 @@
     .cw-generate.is-loading svg { animation: cw-spin 0.6s linear infinite; }
     @keyframes cw-spin { to { transform: rotate(360deg); } }
 
+    /* Mobile: workbench bar stacks — duration + label on row 1,
+       note input on its own row, Generate button full-width below */
+    @media (max-width: 720px) {
+        .cw-bar { padding: 14px 12px; }
+        .cw-form { flex-wrap: wrap; gap: 10px; padding-left: 6px; }
+        .cw-bar-label { padding-left: 0; }
+        .cw-note-input { flex: 1 1 100%; min-width: 0; }
+        .cw-generate { flex: 1 1 100%; min-width: 0; padding: 12px 22px; }
+        .cw-row .note { max-width: 100%; white-space: normal; }
+        .cw-row .left { gap: 10px; }
+    }
+
     /* Activity */
     .cw-activity { display:flex; flex-direction:column; min-height: 400px; }
     .cw-activity-header { display:flex; justify-content:space-between; align-items:center; padding: 14px 18px; border-bottom: 1px solid var(--border-soft); background: rgba(14,14,17,0.4); }
