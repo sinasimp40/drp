@@ -64,9 +64,24 @@
                     {% set _dur_value = (_dur_secs // 60) if (_dur_secs // 60) > 0 else 1 %}
                     {% set _dur_unit = 'minutes' %}
                 {% endif %}
+                {# Pretty-format trial_link_expiry_seconds for the input. NULL/0 → blank input (= "never"). #}
+                {% set _link_secs = (config and config.trial_link_expiry_seconds) or 0 %}
+                {% if _link_secs and _link_secs % 86400 == 0 and _link_secs >= 86400 %}
+                    {% set _link_value = _link_secs // 86400 %}
+                    {% set _link_unit = 'days' %}
+                {% elif _link_secs and _link_secs % 3600 == 0 and _link_secs >= 3600 %}
+                    {% set _link_value = _link_secs // 3600 %}
+                    {% set _link_unit = 'hours' %}
+                {% elif _link_secs %}
+                    {% set _link_value = (_link_secs // 60) if (_link_secs // 60) > 0 else 1 %}
+                    {% set _link_unit = 'minutes' %}
+                {% else %}
+                    {% set _link_value = '' %}
+                    {% set _link_unit = 'days' %}
+                {% endif %}
                 <div class="form-row" style="display:flex; gap:12px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Trial duration</label>
+                        <label>Trial duration <span style="color: var(--text-mute); font-weight: 400;">(license lifetime)</span></label>
                         <div style="display:flex; gap:8px;">
                             <input type="number" name="trial_duration_value" min="1" step="1" value="{{ _dur_value }}" style="flex:2;">
                             <select name="trial_duration_unit" style="flex:1;">
@@ -75,6 +90,19 @@
                                 <option value="days" {% if _dur_unit == 'days' %}selected{% endif %}>Days</option>
                             </select>
                         </div>
+                        <div style="font-size:11px; color: var(--text-mute); margin-top:4px;">How long the issued license stays active after activation.</div>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Trial link expiry <span style="color: var(--text-mute); font-weight: 400;">(launcher.exe + download page)</span></label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" name="trial_link_expiry_value" min="0" step="1" value="{{ _link_value }}" placeholder="blank = never" style="flex:2;">
+                            <select name="trial_link_expiry_unit" style="flex:1;">
+                                <option value="minutes" {% if _link_unit == 'minutes' %}selected{% endif %}>Minutes</option>
+                                <option value="hours" {% if _link_unit == 'hours' %}selected{% endif %}>Hours</option>
+                                <option value="days" {% if _link_unit == 'days' %}selected{% endif %}>Days</option>
+                            </select>
+                        </div>
+                        <div style="font-size:11px; color: var(--text-mute); margin-top:4px;">How long the launcher.exe + download link stay on the server. Leave blank or 0 to keep them forever.</div>
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Max trials per /24 subnet</label>

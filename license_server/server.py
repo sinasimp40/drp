@@ -672,6 +672,13 @@ def init_db():
         ("is_trial", "ALTER TABLE build_configs ADD COLUMN is_trial INTEGER DEFAULT 0", 0),
         ("trial_duration_seconds", "ALTER TABLE build_configs ADD COLUMN trial_duration_seconds INTEGER DEFAULT 86400", 86400),
         ("trial_max_per_subnet", "ALTER TABLE build_configs ADD COLUMN trial_max_per_subnet INTEGER DEFAULT 5", 5),
+        # Per-build "how long the download link / launcher.exe stays on
+        # the server" expiry. Distinct from trial_duration_seconds (which
+        # controls license lifetime). NULL or 0 = never auto-purge by
+        # age — only cases (a)/(b) of _auto_purge_inactive_trial_configs
+        # apply. Existing rows get NULL on migration so we honor the
+        # user's "no 24h auto-delete like before" rule.
+        ("trial_link_expiry_seconds", "ALTER TABLE build_configs ADD COLUMN trial_link_expiry_seconds INTEGER", None),
     ):
         try:
             conn.execute(f"SELECT {col} FROM build_configs LIMIT 1")
@@ -818,6 +825,34 @@ def _parse_trial_duration_form(form, default_seconds=86400):
         n = float(raw_value)
     except (TypeError, ValueError):
         return default_seconds
+    multipliers = {"minutes": 60, "hours": 3600, "days": 86400}
+    seconds = int(n * multipliers.get(unit, 3600))
+    return max(60, seconds)
+
+
+def _parse_trial_link_expiry_form(form):
+    """Read trial-link expiry from a build-config form. Independent from
+    trial duration. Layout: `trial_link_expiry_value` + `trial_link_expiry_unit`
+    (unit is "minutes", "hours", or "days").
+
+    Returns:
+      - integer seconds (>= 60) if admin typed a positive value
+      - None if admin left the field blank OR explicitly typed 0
+        ("never auto-delete the link by age")
+
+    NEVER falls back to a hardcoded 24h default — the user explicitly
+    rejected that behavior. Blank/zero means "no age-based auto-purge".
+    """
+    raw_value = (form.get("trial_link_expiry_value") or "").strip()
+    if raw_value == "":
+        return None
+    try:
+        n = float(raw_value)
+    except (TypeError, ValueError):
+        return None
+    if n <= 0:
+        return None
+    unit = (form.get("trial_link_expiry_unit") or "hours").strip().lower()
     multipliers = {"minutes": 60, "hours": 3600, "days": 86400}
     seconds = int(n * multipliers.get(unit, 3600))
     return max(60, seconds)
@@ -3099,6 +3134,7 @@ def create_build_config():
         embedded_key = request.form.get("embedded_key", "").strip()
         is_trial = 1 if request.form.get("is_trial") == "on" else 0
         trial_duration_seconds = _parse_trial_duration_form(request.form, default_seconds=86400)
+        trial_link_expiry_seconds = _parse_trial_link_expiry_form(request.form)
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", "5")))
         except ValueError:
@@ -3118,8 +3154,8 @@ def create_build_config():
                 _convert_to_ico(icon_file.read(), os.path.join(ICONS_DIR, icon_filename))
 
         conn.execute(
-            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, time.time())
+            "INSERT INTO build_configs (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_link_expiry_seconds, trial_max_per_subnet, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_link_expiry_seconds, trial_max_per_subnet, time.time())
         )
         conn.commit()
         conn.close()
@@ -3156,6 +3192,9 @@ def edit_build_config(config_id):
             request.form,
             default_seconds=config["trial_duration_seconds"] or 86400,
         )
+        # Always re-read from the form on edit so an admin can clear the
+        # field (returns None → NULL in DB → "never auto-purge by age").
+        trial_link_expiry_seconds = _parse_trial_link_expiry_form(request.form)
         try:
             trial_max_per_subnet = max(1, int(request.form.get("trial_max_per_subnet", str(config["trial_max_per_subnet"] or 5))))
         except ValueError:
@@ -3175,8 +3214,8 @@ def edit_build_config(config_id):
                 icon_filename = new_icon
 
         conn.execute(
-            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, is_trial=?, trial_duration_seconds=?, trial_max_per_subnet=?, updated_at=? WHERE id=?",
-            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_max_per_subnet, time.time(), config_id)
+            "UPDATE build_configs SET license_id=?, app_name=?, hardcoded_path=?, license_server_url=?, license_secret=?, icon_filename=?, embedded_key=?, is_trial=?, trial_duration_seconds=?, trial_link_expiry_seconds=?, trial_max_per_subnet=?, updated_at=? WHERE id=?",
+            (license_id, app_name, hardcoded_path, license_server_url, license_secret, icon_filename, embedded_key, is_trial, trial_duration_seconds, trial_link_expiry_seconds, trial_max_per_subnet, time.time(), config_id)
         )
         conn.commit()
         conn.close()
@@ -3187,6 +3226,13 @@ def edit_build_config(config_id):
         "SELECT id, license_key, note, status FROM licenses WHERE status IN ('active', 'pending', 'suspended') ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
+    # Safely read the new column (may not exist on a row from a brand-
+    # new install, but the migration runs at startup so this is just
+    # belt-and-braces).
+    try:
+        _link_expiry = config["trial_link_expiry_seconds"]
+    except (IndexError, KeyError):
+        _link_expiry = None
     config_dict = {
         "id": config["id"], "license_id": config["license_id"],
         "app_name": config["app_name"], "hardcoded_path": config["hardcoded_path"],
@@ -3195,6 +3241,7 @@ def edit_build_config(config_id):
         "embedded_key": config["embedded_key"] or "",
         "is_trial": bool(config["is_trial"]),
         "trial_duration_seconds": config["trial_duration_seconds"] or 86400,
+        "trial_link_expiry_seconds": _link_expiry,
         "trial_max_per_subnet": config["trial_max_per_subnet"] or 5,
     }
     return render_template("build_config_form.html", config=config_dict, licenses=licenses)
@@ -3219,12 +3266,12 @@ def _auto_purge_inactive_trial_configs(conn):
           every trial it ever minted has expired/been revoked/deleted, so
           the template itself is dead weight and was wasting build time, OR
 
-      (c) the config is older than its OWN configured `trial_duration_seconds`
-          (set on the Build config form). Per-user spec: the trial duration
-          is the single source of truth for both license lifetime AND link
-          availability — when the duration runs out, the download link/page
-          dies along with the license. A duration of NULL or 0 disables
-          this case for that specific config.
+      (c) the config is older than its OWN configured `trial_link_expiry_seconds`
+          (set on the Build config form, separate from `trial_duration_seconds`
+          which only controls license lifetime). When the link-expiry runs
+          out, the download page + launcher.exe + icon are deleted from
+          the server so nobody can download anymore. NULL or 0 = "never
+          auto-delete by age" — the link only dies via cases (a)/(b).
 
     Premium (non-trial) configs are intentionally left in place even when
     their linked license is inactive — the build code already skips them
@@ -3258,21 +3305,21 @@ def _auto_purge_inactive_trial_configs(conn):
            HAVING total > 0 AND active_n = 0""",
     ).fetchall()
 
-    # Case (c): trial config older than its OWN trial_duration_seconds.
-    # Per user spec: the duration on the build form is the single source
-    # of truth for both license lifetime AND link availability. So a
-    # trial template auto-deletes once (now - created_at) exceeds the
-    # duration it was configured with. NULL/<=0 duration is treated as
-    # "no age-based expiry" and falls through to cases (a)/(b) only.
+    # Case (c): trial config older than its OWN trial_link_expiry_seconds.
+    # Per user spec: this column is independent from trial_duration_seconds
+    # — admin sets it on the Build form to control how long the download
+    # link / launcher.exe stays alive on the server. NULL or <=0 means
+    # "no age-based expiry — link lives forever, only cases (a)/(b) apply".
+    # ABSOLUTELY no hardcoded 24h fallback per user requirement.
     now_ts = time.time()
     rows_c = conn.execute(
         """SELECT id, app_name, icon_filename
              FROM build_configs
             WHERE is_trial = 1
               AND created_at IS NOT NULL
-              AND trial_duration_seconds IS NOT NULL
-              AND trial_duration_seconds > 0
-              AND (? - created_at) > trial_duration_seconds""",
+              AND trial_link_expiry_seconds IS NOT NULL
+              AND trial_link_expiry_seconds > 0
+              AND (? - created_at) > trial_link_expiry_seconds""",
         (now_ts,),
     ).fetchall()
 
@@ -3508,9 +3555,10 @@ def api_trial_register():
     # Hard cap on trial duration. Even if the build_configs row says
     # something larger (admin set 7d when the column meant trial-license
     # duration in an older release), the per-user trial license never
-    # lives longer than 24h. The same `trial_duration_seconds` value is
-    # also used by _auto_purge_inactive_trial_configs case (c) to expire
-    # the download link, so license + link die together.
+    # lives longer than 24h. The download-link expiry is a SEPARATE
+    # per-build column (`trial_link_expiry_seconds`) — the admin can
+    # have, e.g., a 24h license but a 7-day link that keeps minting fresh
+    # 24h licenses, or vice-versa.
     TRIAL_LICENSE_HARD_CAP_SECONDS = 24 * 60 * 60
     duration = min(int(cfg["trial_duration_seconds"] or 86400),
                    TRIAL_LICENSE_HARD_CAP_SECONDS)
