@@ -3201,9 +3201,11 @@ def edit_build_config(config_id):
 
 
 _INACTIVE_LICENSE_STATUSES = ('expired', 'revoked', 'deleted', 'suspended')
-# Trial build configs are deleted automatically once they exceed this age,
-# regardless of whether anyone activated them. See _auto_purge_inactive_trial_configs.
-TRIAL_CONFIG_MAX_AGE_SECONDS = 24 * 60 * 60
+# Default trial build-config max age (seconds). The actual value used by
+# the auto-purge sweep is read from the `trial_link_expiry_seconds`
+# app_settings row at sweep time, which the admin can change from the
+# Trial Blocks page. Setting it to 0 disables age-based purging entirely.
+TRIAL_CONFIG_MAX_AGE_SECONDS = 24 * 60 * 60  # default only — see _get_trial_link_expiry_seconds
 
 
 def _auto_purge_inactive_trial_configs(conn):
@@ -3260,17 +3262,21 @@ def _auto_purge_inactive_trial_configs(conn):
            HAVING total > 0 AND active_n = 0""",
     ).fetchall()
 
-    # Case (c): trial config older than TRIAL_CONFIG_MAX_AGE_SECONDS,
-    # regardless of activation status. Per-user request: trial templates
-    # auto-expire after 24h so the build list and history don't accumulate
-    # stale entries. Use the build_configs.created_at column directly.
-    cutoff = time.time() - TRIAL_CONFIG_MAX_AGE_SECONDS
-    rows_c = conn.execute(
-        """SELECT id, app_name, icon_filename
-             FROM build_configs
-            WHERE is_trial = 1 AND created_at IS NOT NULL AND created_at < ?""",
-        (cutoff,),
-    ).fetchall()
+    # Case (c): trial config older than the configured link-expiry value.
+    # The expiry value is read from app_settings every sweep so admin
+    # changes (Trial Blocks page) take effect on the next sweep. Setting
+    # it to 0 turns case (c) off — configs only die via (a) or (b).
+    link_expiry = _get_trial_link_expiry_seconds()
+    if link_expiry > 0:
+        cutoff = time.time() - link_expiry
+        rows_c = conn.execute(
+            """SELECT id, app_name, icon_filename
+                 FROM build_configs
+                WHERE is_trial = 1 AND created_at IS NOT NULL AND created_at < ?""",
+            (cutoff,),
+        ).fetchall()
+    else:
+        rows_c = []
 
     seen = set()
     deleted = []
@@ -3391,6 +3397,30 @@ def _get_trial_cooldown_seconds() -> int:
 def _set_trial_cooldown_seconds(seconds: int) -> None:
     seconds = max(0, int(seconds))
     _set_setting("trial_cooldown_seconds", str(seconds))
+
+
+# How long a trial download link / build_config stays alive before the
+# auto-purge sweep deletes it. This used to be the hardcoded constant
+# TRIAL_CONFIG_MAX_AGE_SECONDS (24h); admin can now change it from the
+# Trial Blocks page. 0 = never auto-purge by age (configs still die via
+# linked-license-inactive or all-issued-trials-dead rules).
+TRIAL_LINK_EXPIRY_DEFAULT_SECONDS = 24 * 60 * 60
+
+
+def _get_trial_link_expiry_seconds() -> int:
+    raw = _get_setting("trial_link_expiry_seconds", "")
+    try:
+        v = int(raw)
+        if v < 0:
+            return 0
+        return v
+    except (TypeError, ValueError):
+        return TRIAL_LINK_EXPIRY_DEFAULT_SECONDS
+
+
+def _set_trial_link_expiry_seconds(seconds: int) -> None:
+    seconds = max(0, int(seconds))
+    _set_setting("trial_link_expiry_seconds", str(seconds))
 
 
 def _normalize_machine_hash(raw) -> str:
@@ -3761,12 +3791,16 @@ def trial_blocks_page():
         perm_count = sum(1 for b in blocks if b["is_permanent"])
     finally:
         conn.close()
+    link_expiry_s = _get_trial_link_expiry_seconds()
     return render_template(
         "trial_blocks.html",
         blocks=blocks,
         show_expired=show_expired,
         cooldown_seconds=cooldown_s,
         cooldown_human=format_duration(cooldown_s) if cooldown_s > 0 else "disabled",
+        link_expiry_seconds=link_expiry_s,
+        link_expiry_human=(format_duration(link_expiry_s) if link_expiry_s > 0
+                            else "disabled (links live forever)"),
         active_count=active_count,
         perm_count=perm_count,
         total_count=len(blocks),
@@ -3988,6 +4022,30 @@ def trial_blocks_settings():
             default_seconds=TRIAL_COOLDOWN_DEFAULT_SECONDS,
         )
     seconds = max(0, int(seconds))
+
+    # Same robust numeric-zero handling for the link-expiry field. The
+    # form lives on the same page but uses a separate <form>; only the
+    # field that was actually submitted gets updated, so absence of
+    # link_expiry_value means "user posted the cooldown form, leave the
+    # link expiry alone".
+    link_raw = (request.form.get("link_expiry_value") or "").strip()
+    has_link_field = link_raw != "" or (request.form.get("link_expiry_unit") is not None and
+                                        request.form.get("cooldown_value") is None)
+    new_link_expiry = None
+    if has_link_field:
+        try:
+            link_is_zero = (link_raw != "" and float(link_raw) == 0)
+        except ValueError:
+            link_is_zero = False
+        if link_is_zero:
+            new_link_expiry = 0
+        else:
+            new_link_expiry = _parse_duration_form(
+                request.form, "link_expiry",
+                default_seconds=TRIAL_LINK_EXPIRY_DEFAULT_SECONDS,
+            )
+        new_link_expiry = max(0, int(new_link_expiry))
+
     conn = get_db()
     try:
         conn.execute("BEGIN")
@@ -4001,11 +4059,20 @@ def trial_blocks_settings():
             " updated_at = excluded.updated_at",
             ("trial_cooldown_seconds", str(seconds), time.time()),
         )
-        _audit_trial_block(
-            "settings",
-            details=f"trial_cooldown_seconds: {prev} → {seconds}",
-            conn=conn,
-        )
+        details = f"trial_cooldown_seconds: {prev} → {seconds}"
+        if new_link_expiry is not None:
+            prev_link_row = conn.execute(
+                "SELECT value FROM app_settings WHERE key = 'trial_link_expiry_seconds'"
+            ).fetchone()
+            prev_link = prev_link_row["value"] if prev_link_row else "(unset)"
+            conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)"
+                " ON CONFLICT(key) DO UPDATE SET value = excluded.value,"
+                " updated_at = excluded.updated_at",
+                ("trial_link_expiry_seconds", str(new_link_expiry), time.time()),
+            )
+            details += f"; trial_link_expiry_seconds: {prev_link} → {new_link_expiry}"
+        _audit_trial_block("settings", details=details, conn=conn)
         conn.commit()
     except Exception:
         try: conn.execute("ROLLBACK")
@@ -4015,10 +4082,17 @@ def trial_blocks_settings():
     finally:
         try: conn.close()
         except Exception: pass
+    msgs = []
     if seconds <= 0:
-        flash("Auto-blocks disabled. Trials will no longer create cooldowns.", "success")
+        msgs.append("Auto-blocks disabled (trials will no longer create cooldowns)")
     else:
-        flash(f"Trial cooldown set to {format_duration(seconds)}.", "success")
+        msgs.append(f"Trial cooldown set to {format_duration(seconds)}")
+    if new_link_expiry is not None:
+        if new_link_expiry <= 0:
+            msgs.append("download links will no longer auto-expire by age")
+        else:
+            msgs.append(f"download-link expiry set to {format_duration(new_link_expiry)}")
+    flash(". ".join(msgs) + ".", "success")
     return redirect(url_for("trial_blocks_page"))
 
 
