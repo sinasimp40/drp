@@ -1987,11 +1987,35 @@ def edit_license(license_id):
 @app.route("/revoke/<int:license_id>", methods=["POST"])
 @require_admin
 def revoke_license(license_id):
+    # Look up the row first so we can:
+    #   1. log exactly what happened (admin reported revoked rows
+    #      "disappearing" from history -- without this log there's no way
+    #      to tell whether the click hit this endpoint at all),
+    #   2. give the operator a useful flash message when the id is bad
+    #      instead of silently flashing success on a no-op UPDATE.
     conn = get_db()
-    conn.execute("UPDATE licenses SET status = 'revoked' WHERE id = ?", (license_id,))
+    row = conn.execute(
+        "SELECT id, license_key, status FROM licenses WHERE id = ?",
+        (license_id,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        app.logger.warning("REVOKE no-op: license_id=%s not found in DB", license_id)
+        flash(f"License id {license_id} not found — nothing was changed", "error")
+        return redirect(request.referrer or url_for("dashboard"))
+
+    prev_status = row["status"]
+    cur = conn.execute(
+        "UPDATE licenses SET status = 'revoked' WHERE id = ?", (license_id,)
+    )
+    rowcount = cur.rowcount
     conn.commit()
     conn.close()
-    flash("License revoked", "success")
+    app.logger.info(
+        "REVOKE id=%s key=%s prev_status=%s rowcount=%s",
+        license_id, row["license_key"], prev_status, rowcount,
+    )
+    flash(f"License revoked (was: {prev_status})", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 
@@ -1999,10 +2023,28 @@ def revoke_license(license_id):
 @require_admin
 def delete_license(license_id):
     conn = get_db()
-    conn.execute("UPDATE licenses SET status = 'deleted' WHERE id = ?", (license_id,))
+    row = conn.execute(
+        "SELECT id, license_key, status FROM licenses WHERE id = ?",
+        (license_id,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        app.logger.warning("DELETE no-op: license_id=%s not found in DB", license_id)
+        flash(f"License id {license_id} not found — nothing was changed", "error")
+        return redirect(request.referrer or url_for("dashboard"))
+
+    prev_status = row["status"]
+    cur = conn.execute(
+        "UPDATE licenses SET status = 'deleted' WHERE id = ?", (license_id,)
+    )
+    rowcount = cur.rowcount
     conn.commit()
     conn.close()
-    flash("License deleted", "success")
+    app.logger.info(
+        "DELETE id=%s key=%s prev_status=%s rowcount=%s",
+        license_id, row["license_key"], prev_status, rowcount,
+    )
+    flash(f"License deleted (was: {prev_status})", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 
