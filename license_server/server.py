@@ -1821,7 +1821,9 @@ def history():
     now = time.time()
     expire_active_licenses(conn)
 
-    rows = conn.execute("SELECT * FROM licenses ORDER BY created_at DESC").fetchall()
+    rows = conn.execute(
+        "SELECT * FROM licenses ORDER BY COALESCE(last_heartbeat, activated_at, created_at) DESC"
+    ).fetchall()
     conn.close()
 
     licenses = []
@@ -1869,23 +1871,10 @@ def history():
             "strike_log": _parse_strike_log(
                 row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
             ),
-            # Surfaced to the history UI so the row can render a TRIAL
-            # badge next to the status badge and the type filter dropdown
-            # can hide/show trials vs premium licenses. The column was
-            # added in a migration (see is_trial ALTER TABLE), so we
-            # defensively check before reading in case an old DB hasn't
-            # been migrated yet. We coerce via int() so that a malformed
-            # legacy value like the string '0' (which is truthy in Python
-            # under bool()) is correctly treated as False.
             "is_trial": (
                 int(row["is_trial"] or 0) == 1
                 if "is_trial" in row.keys() else False
             ),
-            # Short machine fingerprint shown in the History "Machine"
-            # column. Empty string for licenses issued before launchers
-            # started sending the field. Truncated server-side? No — the
-            # template handles the slice so the full value can also be
-            # used for cross-references on the Trial Blocks page.
             "machine_hash": (
                 (row["machine_hash"] or "")
                 if "machine_hash" in row.keys() else ""
@@ -2461,7 +2450,9 @@ def api_history_data():
     now = time.time()
     expire_active_licenses(conn)
 
-    rows = conn.execute("SELECT * FROM licenses ORDER BY created_at DESC").fetchall()
+    rows = conn.execute(
+        "SELECT * FROM licenses ORDER BY COALESCE(last_heartbeat, activated_at, created_at) DESC"
+    ).fetchall()
     conn.close()
 
     licenses = []
@@ -2509,19 +2500,10 @@ def api_history_data():
             "strike_log": _parse_strike_log(
                 row["ip_strike_log_json"] if "ip_strike_log_json" in row.keys() else ""
             ),
-            # Mirrors the field added in the /history Jinja route so the
-            # auto-refresh tick keeps the TRIAL badge / type filter in
-            # sync. Forgetting to mirror new columns here previously
-            # caused the IP strike badge to vanish on first refresh —
-            # don't repeat that bug. int() coercion matches /history so
-            # a malformed legacy value like '0' is treated as False.
             "is_trial": (
                 int(row["is_trial"] or 0) == 1
                 if "is_trial" in row.keys() else False
             ),
-            # Surfaced so the History table can show a short machine
-            # fingerprint (first 12 chars) per license. Older licenses
-            # issued before the column existed will read as empty.
             "machine_hash": (
                 (row["machine_hash"] or "")
                 if "machine_hash" in row.keys() else ""
