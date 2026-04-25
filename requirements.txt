@@ -8,3 +8,10 @@ python-dotenv
 requests
 truststore>=0.10.0
 certifi>=2024.2.2
+certifi
+flask
+flask-socketio
+Pillow
+PySocks
+python-dotenv
+requests

@@ -24,12 +24,12 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd license_server && PORT=5000 BUNDLE_AUTOMATION_TOKEN=dev_test_bundle_token_2026 python server.py"
+args = "cd license_server && python server.py"
 waitForPort = 5000
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+packages = ["cacert", "freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
 
 [[ports]]
 localPort = 3842
@@ -38,10 +38,6 @@ externalPort = 80
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5050
-externalPort = 3002
 
 [[ports]]
 localPort = 23636
