@@ -216,8 +216,8 @@
                         {% endif %}
                     </td>
                     <td style="max-width:240px; color:#d0d0e0; font-size:12px;">{{ b.reason or '' }}</td>
-                    <td class="tb-mono">
-                        {% if b.license_key %}{{ b.license_key[:14] }}…{% else %}—{% endif %}
+                    <td class="tb-mono" style="white-space: nowrap;">
+                        {% if b.license_key %}<span title="{{ b.license_key }}">{{ b.license_key }}</span>{% else %}—{% endif %}
                     </td>
                     <td>
                         <div class="tb-actions">

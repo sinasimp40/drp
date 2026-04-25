@@ -3661,35 +3661,96 @@ def api_trial_register():
 
 def _require_same_origin_or_abort():
     """Lightweight CSRF defense for admin POST endpoints. Validates that
-    Origin or Referer (in that order) matches the request host. We rely
-    on the browser to send at least one of these for a fetch/form POST;
-    requests with neither header (curl with no flags, off-origin form
-    submissions) are rejected.
+    Origin or Referer matches the request host. We rely on the browser
+    to send at least one of these for a fetch/form POST; requests with
+    neither header (curl with no flags, off-origin form submissions)
+    are rejected.
+
+    Behind a reverse proxy (Cloudflare, nginx, Replit's TLS proxy, etc.)
+    `request.host` is the *internal* hostname the proxy forwards to,
+    while the browser-issued Origin/Referer carry the *public* hostname.
+    Without compensating, every admin POST gets rejected even though the
+    request is legitimately same-origin from the user's perspective. We
+    therefore accept ANY of these as the expected host:
+      - request.host                                  (no proxy)
+      - X-Forwarded-Host                              (typical proxy)
+      - SERVER_NAME / ADMIN_PUBLIC_HOST env vars      (admin override)
+
+    All four sources are trustworthy: Origin/Referer can only be set by
+    the user's actual browser, the X-Forwarded-Host header comes from
+    Mary's own reverse proxy that she controls, and the env vars are set
+    in her own server config.
 
     Returns None when the request is allowed; otherwise returns a tuple
     (response, status) the caller should return immediately. We don't
     raise so that we can still flash() a friendly message to the admin
     if they somehow bookmarked a stale form."""
-    host = request.host  # includes port; matches what Origin/Referer have
     origin = (request.headers.get("Origin") or "").strip()
     referer = (request.headers.get("Referer") or "").strip()
+
     def _host_of(url):
         try:
             from urllib.parse import urlparse
             return urlparse(url).netloc.lower()
         except Exception:
             return ""
-    expected = host.lower()
-    if origin:
-        if _host_of(origin) == expected:
-            return None
-    elif referer:
-        if _host_of(referer) == expected:
-            return None
-    # Reject. Logging the failed Origin/Referer helps Mary debug if a
-    # legitimate request gets blocked by a misconfigured reverse proxy.
+
+    # Build the set of acceptable hostnames we'll compare Origin/Referer
+    # against. Lowercased; "host:port" form preserved when present so an
+    # explicit-port deployment (http://localhost:5000) still matches.
+    expected_hosts = set()
+    if request.host:
+        expected_hosts.add(request.host.lower())
+
+    # X-Forwarded-Host is trusted ONLY when ADMIN_TRUST_PROXY=1 — the
+    # exact same flag that gates X-Forwarded-For in `_real_client_ip()`.
+    # Without this gate, a direct attacker could forge the header and
+    # widen the accepted-host set. Mary already sets this flag in
+    # production for IP-based cooldown blocking, so the new behavior
+    # piggybacks on her existing config without extra setup.
+    trust_proxy = os.environ.get("ADMIN_TRUST_PROXY", "").lower() in ("1", "true", "yes")
+    if trust_proxy:
+        xfh = (request.headers.get("X-Forwarded-Host") or "").strip()
+        if xfh:
+            # X-Forwarded-Host can itself be a comma-list when multiple
+            # proxies sit in front; accept every entry.
+            for h in xfh.split(","):
+                h = h.strip().lower()
+                if h:
+                    expected_hosts.add(h)
+
+    # Server-admin-set env vars are always honored — they come from
+    # Mary's own config, not from request headers, so they're safe to
+    # trust regardless of proxy-trust setting.
+    for env_key in ("ADMIN_PUBLIC_HOST", "SERVER_NAME"):
+        v = (os.environ.get(env_key) or "").strip().lower()
+        if v:
+            expected_hosts.add(v)
+            # Accept "host" form too if env var was given as "host:port"
+            if ":" in v:
+                expected_hosts.add(v.split(":", 1)[0])
+
+    def _matches(url):
+        if not url:
+            return False
+        h = _host_of(url)
+        if not h:
+            return False
+        if h in expected_hosts:
+            return True
+        # Also try the host-without-port form against the bare-host set.
+        if ":" in h and h.split(":", 1)[0] in expected_hosts:
+            return True
+        return False
+
+    if _matches(origin) or _matches(referer):
+        return None
+
+    # Reject. Logging the failed Origin/Referer + the set of hosts we
+    # WOULD have accepted helps Mary diagnose proxy misconfiguration.
     print(f"[csrf] reject {request.method} {request.path} "
-          f"host={host} origin={origin!r} referer={referer!r}", flush=True)
+          f"origin={origin!r} referer={referer!r} "
+          f"expected={sorted(expected_hosts)!r}", flush=True)
     return ("Cross-origin request rejected", 403)
 
 
