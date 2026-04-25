@@ -169,75 +169,19 @@
 
 {% block extra_head %}
 <style>
-    /* Full-width layout override for history page */
-    .content { padding: 16px 12px !important; }
-    .content-inner { max-width: 100% !important; }
-
     .scroll-table {
-        overflow-x: hidden;
+        overflow-x: auto;
         overflow-y: auto;
-        max-height: calc(100vh - 160px);
+        max-height: calc(100vh - 280px);
         min-height: 320px;
-        width: 100%;
     }
-    .scroll-table table {
-        margin: 0;
-        width: 100%;
-        table-layout: fixed;
-    }
+    .scroll-table table { margin: 0; }
     .scroll-table thead th {
         position: sticky;
         top: 0;
         z-index: 1;
         background: var(--panel);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
-    /* Column widths */
-    #history-licenses-table th:nth-child(1),
-    #history-licenses-table td:nth-child(1) { width: 130px; }   /* Key */
-    #history-licenses-table th:nth-child(2),
-    #history-licenses-table td:nth-child(2) { width: 120px; }   /* Status */
-    #history-licenses-table th:nth-child(3),
-    #history-licenses-table td:nth-child(3) { width: 52px; }    /* Duration */
-    #history-licenses-table th:nth-child(4),
-    #history-licenses-table td:nth-child(4) { width: 88px; }    /* Created */
-    #history-licenses-table th:nth-child(5),
-    #history-licenses-table td:nth-child(5) { width: 88px; }    /* Activated */
-    #history-licenses-table th:nth-child(6),
-    #history-licenses-table td:nth-child(6) { width: 88px; }    /* Expires */
-    #history-licenses-table th:nth-child(7),
-    #history-licenses-table td:nth-child(7) { width: 160px; }   /* IP */
-    #history-licenses-table th:nth-child(8),
-    #history-licenses-table td:nth-child(8) { width: 90px; }    /* Machine */
-    #history-licenses-table th:nth-child(9),
-    #history-licenses-table td:nth-child(9) { width: 44px; }    /* Ver */
-    #history-licenses-table th:nth-child(10),
-    #history-licenses-table td:nth-child(10) { width: auto; }   /* Note — fills remaining space */
-    #history-licenses-table th:nth-child(11),
-    #history-licenses-table td:nth-child(11) { width: 90px; }   /* Actions */
-
-    /* Truncate overflowing text in all cells */
-    #history-licenses-table td {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 0;
-    }
-    /* IP and Note cells can wrap */
-    #history-licenses-table td:nth-child(7),
-    #history-licenses-table td:nth-child(10) {
-        white-space: normal;
-        word-break: break-word;
-    }
-    /* Actions cell: no clip */
-    #history-licenses-table td:nth-child(11) {
-        overflow: visible;
-        white-space: nowrap;
-        text-align: right;
-    }
-
     .filter-input {
         background: var(--panel-2);
         color: var(--text);
@@ -245,14 +189,14 @@
         border-radius: 6px;
         padding: 7px 12px;
         font-size: 13px;
-        min-width: 200px;
+        min-width: 240px;
         outline: none;
         font-family: inherit;
     }
     .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,140,51,0.12); }
     @media (max-width: 560px) { .filter-input { min-width: 0; width: 100%; } }
     .filter-select {
-        min-width: 140px;
+        min-width: 150px;
         cursor: pointer;
         padding-right: 24px;
     }
@@ -269,7 +213,6 @@
         gap: 4px;
         opacity: 0.4;
         transition: opacity 0.15s;
-        justify-content: flex-end;
     }
     tr:hover .row-actions { opacity: 1; }
     .icon-btn {

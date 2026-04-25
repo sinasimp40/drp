@@ -662,6 +662,11 @@ def init_db():
         # different network). Nullable for backwards compatibility with
         # licenses created before this column existed.
         ("machine_hash", "ALTER TABLE licenses ADD COLUMN machine_hash TEXT", None),
+        # Tracks when any admin action last touched this row (revoke,
+        # delete, edit, unsuspend). Lets the History page sort by
+        # "most recently acted on" so a revoked 7-day-old license
+        # floats to the top immediately after the action.
+        ("modified_at", "ALTER TABLE licenses ADD COLUMN modified_at REAL", None),
     ):
         try:
             conn.execute(f"SELECT {col} FROM licenses LIMIT 1")
@@ -1822,7 +1827,7 @@ def history():
     expire_active_licenses(conn)
 
     rows = conn.execute(
-        "SELECT * FROM licenses ORDER BY COALESCE(last_heartbeat, activated_at, created_at) DESC"
+        "SELECT * FROM licenses ORDER BY COALESCE(modified_at, created_at) DESC"
     ).fetchall()
     conn.close()
 
@@ -2029,8 +2034,8 @@ def edit_license(license_id):
 
     # Apply
     conn.execute(
-        "UPDATE licenses SET note = ?, duration_seconds = ?, expires_at = ?, status = ? WHERE id = ?",
-        (note, int(new_duration_seconds), new_expires_at, new_status, license_id)
+        "UPDATE licenses SET note = ?, duration_seconds = ?, expires_at = ?, status = ?, modified_at = ? WHERE id = ?",
+        (note, int(new_duration_seconds), new_expires_at, new_status, now, license_id)
     )
     conn.commit()
     conn.close()
@@ -2093,7 +2098,8 @@ def revoke_license(license_id):
 
     prev_status = row["status"]
     cur = conn.execute(
-        "UPDATE licenses SET status = 'revoked' WHERE id = ?", (license_id,)
+        "UPDATE licenses SET status = 'revoked', modified_at = ? WHERE id = ?",
+        (time.time(), license_id),
     )
     rowcount = cur.rowcount
     conn.commit()
@@ -2122,7 +2128,8 @@ def delete_license(license_id):
 
     prev_status = row["status"]
     cur = conn.execute(
-        "UPDATE licenses SET status = 'deleted' WHERE id = ?", (license_id,)
+        "UPDATE licenses SET status = 'deleted', modified_at = ? WHERE id = ?",
+        (time.time(), license_id),
     )
     rowcount = cur.rowcount
     conn.commit()
@@ -2240,15 +2247,15 @@ def unsuspend_license(license_id):
 
     if remaining > 0:
         conn.execute(
-            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, last_ip = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
-            (int(remaining), license_id)
+            "UPDATE licenses SET status = 'pending', registered_ip = NULL, activated_at = NULL, expires_at = NULL, last_heartbeat = NULL, last_ip = NULL, duration_seconds = ?, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '', modified_at = ? WHERE id = ?",
+            (int(remaining), now, license_id)
         )
         remaining_text = format_duration(remaining)
         flash(f"License unsuspended — {remaining_text} remaining. User can re-activate.", "success")
     else:
         conn.execute(
-            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, last_ip = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '' WHERE id = ?",
-            (license_id,)
+            "UPDATE licenses SET status = 'expired', registered_ip = NULL, last_heartbeat = NULL, last_ip = NULL, suspended_at = NULL, suspended_reason = '', suspended_previous_ip = '', suspended_new_ip = '', ip_strikes_json = '', modified_at = ? WHERE id = ?",
+            (now, license_id)
         )
         flash("License unsuspended but had no time remaining — marked as expired.", "warning")
 
@@ -2451,7 +2458,7 @@ def api_history_data():
     expire_active_licenses(conn)
 
     rows = conn.execute(
-        "SELECT * FROM licenses ORDER BY COALESCE(last_heartbeat, activated_at, created_at) DESC"
+        "SELECT * FROM licenses ORDER BY COALESCE(modified_at, created_at) DESC"
     ).fetchall()
     conn.close()
 
