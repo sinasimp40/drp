@@ -72,17 +72,18 @@ You should see "Ok."
 
 ## Step 5: Set your passwords AND start the server (one line)
 
-Replace the word `admin` below with whatever you want to use, then
+Replace the word `admin` below with whatever you want to use, and
+replace `dprs.b-cdn.net` with your actual CDN/public domain, then
 copy the whole line, paste it into the Command Prompt (after you have
 `cd`'d into the license_server folder — see Step 6), and press Enter:
 
 ```
-cmd /v:on /c "set "X=admin" && set "LICENSE_ADMIN_PASSWORD=!X!" && set "LICENSE_SHARED_SECRET=!X!" && set "BUNDLE_AUTOMATION_TOKEN=!X!" && set "LICENSE_PORT=3842" && python server.py"
+cmd /v:on /c "set "X=admin" && set "LICENSE_ADMIN_PASSWORD=!X!" && set "LICENSE_SHARED_SECRET=!X!" && set "BUNDLE_AUTOMATION_TOKEN=!X!" && set "LICENSE_PORT=3842" && set "ADMIN_TRUST_PROXY=1" && set "ADMIN_PUBLIC_HOST=dprs.b-cdn.net" && python server.py"
 ```
 
 That uses `admin` for all three (admin password, shared secret, and
-bundle token), sets the port to 3842, and starts the server — all in
-one shot.
+bundle token), sets the port to 3842, enables CDN/proxy trust, sets
+your public host, and starts the server — all in one shot.
 
 NOTE: The `cmd /v:on /c` prefix and the `!X!` (instead of `%X%`) are
 required. Without them, Windows expands `%X%` BEFORE `set X=admin`
@@ -99,6 +100,15 @@ the "Update Roblox bundle now" button on the admin page. Without it,
 the button will fail with "Builder config error". Pick any long random
 string (the example above works fine). You only need to remember it
 if you ever run bundle_automation\build_and_upload.py by hand.
+
+WHAT IS ADMIN_TRUST_PROXY and ADMIN_PUBLIC_HOST?
+Set ADMIN_TRUST_PROXY=1 when your server sits behind a CDN or reverse
+proxy (BunnyCDN, Cloudflare, nginx, etc.). This tells the server to
+trust forwarded headers from the proxy instead of the raw connection IP.
+Set ADMIN_PUBLIC_HOST to your public domain (e.g. dprs.b-cdn.net) so
+the server accepts form submissions that come through your CDN. Without
+these two settings, edit/delete/save actions in the admin panel will be
+rejected with "Cross-origin request rejected" when accessed via CDN.
 
 
 ## Step 6: Go to the folder and start the server
@@ -150,7 +160,7 @@ C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppDirectory "C:\LicenseServe
 (press Enter)
 
 ```
-C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=admin" "LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024" "LICENSE_PORT=3842" "BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026"
+C:\nssm\nssm-2.24\win64\nssm.exe set LicenseServer AppEnvironmentExtra "LICENSE_ADMIN_PASSWORD=admin" "LICENSE_SHARED_SECRET=DENFI_LICENSE_SECRET_KEY_2024" "LICENSE_PORT=3842" "BUNDLE_AUTOMATION_TOKEN=denfi_bundle_secret_2026" "ADMIN_TRUST_PROXY=1" "ADMIN_PUBLIC_HOST=dprs.b-cdn.net"
 ```
 (press Enter)
 
