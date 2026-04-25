@@ -1,0 +1,130 @@
+[telegram-backup] truststore (system CA store): not_installed
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.71.2:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /zxc1 HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:11:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /zxc1 HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:12:40] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+127.0.0.1 - - [24/Apr/2026 12:13:03] "[32mPOST /zxc1 HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:13:03] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:13:03] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:13:27] "[32mPOST /zxc1 HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:13:27] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:35] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:35] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 127.0.0.1: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:14:36] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+127.0.0.1 - - [24/Apr/2026 12:15:14] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:15:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 12:15:14] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "GET /trial_blocks HTTP/1.1" 200 -
+[csrf] reject POST /trial_blocks/settings host=c42ddf7a-6292-4ca5-9d9f-6bce1537184f-00-3piw4ju7ph4na.janeway.replit.dev origin='' referer=''
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /trial_blocks/settings HTTP/1.1[0m" 403 -
+[csrf] reject POST /trial_blocks/settings host=c42ddf7a-6292-4ca5-9d9f-6bce1537184f-00-3piw4ju7ph4na.janeway.replit.dev origin='https://evil.com' referer=''
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /trial_blocks/settings HTTP/1.1[0m" 403 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/add HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[32mPOST /trial_blocks/settings HTTP/1.1[0m" 302 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:21] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial-auth] 403 /api/trial_register from 34.74.147.34: Invalid signature
+127.0.0.1 - - [24/Apr/2026 12:16:41] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 403 -
+[trial] issued 91649-439D8-584DA-3B751 to 34.74.147.34 hash=dddddddddddd cfg=1 duration=86400s cooldown=259200s
+127.0.0.1 - - [24/Apr/2026 12:17:11] "POST /api/trial_register HTTP/1.1" 200 -
+[trial] issued 06C6B-4A167-304B7-994DB to 34.74.147.34 hash=eeeeeeeeeeee cfg=1 duration=86400s cooldown=259200s
+127.0.0.1 - - [24/Apr/2026 12:17:12] "POST /api/trial_register HTTP/1.1" 200 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -
+[trial] BLOCKED ip=34.74.147.34 hash=eeeeeeeeeeee block_id=7 wait_s=259199
+127.0.0.1 - - [24/Apr/2026 12:17:12] "[31m[1mPOST /api/trial_register HTTP/1.1[0m" 429 -

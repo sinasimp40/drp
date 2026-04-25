@@ -1,0 +1,54 @@
+[telegram-backup] truststore (system CA store): not_installed
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.71.2:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [24/Apr/2026 13:29:49] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:29:49] "GET /create HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:30:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:30:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:31:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:31:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:32:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:32:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:33:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:33:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:34:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:34:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:35:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:35:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:36:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:36:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:37:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:37:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:38:04] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:38:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:05] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:39:05] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:13] "[32mGET /trial_blocks HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:39:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:19] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:39:20] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:21] "GET /api/admin/public_base_url HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:26] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:34] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:37] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:42] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:47] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:52] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:39:57] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:02] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:07] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:12] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:17] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:22] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:31] "GET /api/dashboard_data HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:33] "GET /trial_blocks HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:40:35] "GET /create HTTP/1.1" 200 -

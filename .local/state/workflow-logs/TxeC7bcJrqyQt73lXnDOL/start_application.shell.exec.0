@@ -1,0 +1,40 @@
+[telegram-backup] truststore (system CA store): not_installed
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.71.2:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [24/Apr/2026 13:05:59] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "GET /build_config/create HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "[32mPOST /build_config/create HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "[32mPOST /build_config/create HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "[32mPOST /build_config/create HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "GET /build_config/28/edit HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "GET /build_config/29/edit HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:05:59] "[32mPOST /build_config/29/edit HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:08:30] "[32mGET /build_config/create HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:08:31] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:38] "POST / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:43] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:08:43] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:44] "GET /api/admin/public_base_url HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:46] "GET /trial_blocks HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:47] "GET /builds HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:48] "GET /socket.io/?EIO=4&transport=polling&t=Ps_csmN HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:48] "GET /api/build_status_all HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:48] "GET /api/launcher_info HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "POST /socket.io/?EIO=4&transport=polling&t=Ps_cspv&sid=XsB3o582voYdTcm6AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "GET /socket.io/?EIO=4&transport=polling&t=Ps_cspw&sid=XsB3o582voYdTcm6AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "POST /socket.io/?EIO=4&transport=polling&t=Ps_cs-U&sid=XsB3o582voYdTcm6AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "GET /socket.io/?EIO=4&transport=polling&t=Ps_cs-P&sid=XsB3o582voYdTcm6AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:08:49] "GET /build_config/create HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:10:25] "[32mGET /build_config/create HTTP/1.1[0m" 302 -
+127.0.0.1 - - [24/Apr/2026 13:10:25] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 13:10:29] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
