@@ -3746,8 +3746,20 @@ def _require_same_origin_or_abort():
     if _matches(origin) or _matches(referer):
         return None
 
+    # When both Origin and Referer are absent the CDN/proxy stripped them
+    # before forwarding (BunnyCDN and several other CDNs do this).  We can
+    # still allow the request safely when ADMIN_TRUST_PROXY=1 is set because:
+    #   1. The session cookie is SameSite=Lax — browsers won't send it on
+    #      cross-site POST requests, so real CSRF attacks can't authenticate.
+    #   2. The admin is already verified by @require_admin above.
+    #   3. The admin explicitly opted into proxy-trust mode.
+    if not origin and not referer and trust_proxy:
+        print(f"[csrf] allow {request.method} {request.path} "
+              f"(no Origin/Referer — stripped by proxy; trust_proxy=True)", flush=True)
+        return None
+
     # Reject. Logging the failed Origin/Referer + the set of hosts we
-    # WOULD have accepted helps Mary diagnose proxy misconfiguration.
+    # WOULD have accepted helps diagnose proxy misconfiguration.
     print(f"[csrf] reject {request.method} {request.path} "
           f"origin={origin!r} referer={referer!r} "
           f"expected={sorted(expected_hosts)!r}", flush=True)
