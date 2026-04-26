@@ -3576,15 +3576,21 @@ def api_trial_register():
         if block is not None:
             conn.execute("ROLLBACK")
             conn.close()
+            # SECURITY: NEVER expose the cooldown duration or unblock time to
+            # the client. The user must not know when their trial reopens —
+            # that information is only for the admin (Trial Blocks page +
+            # server logs below). Always return the same generic message
+            # whether the block is permanent or time-limited, and never
+            # include retry_after_seconds in the response payload.
+            err = "Your free trial is no longer available. Contact the developer for a full license."
+            # Server-side log keeps the full timing data for the admin.
             if block["unblocks_at"] is None:
-                err = "Your trial has been permanently blocked. Contact support."
-                wait_s = -1  # sentinel
+                wait_log = "permanent"
             else:
-                wait_s = max(0, int(block["unblocks_at"] - time.time()))
-                err = f"Trial already used. Try again in {format_duration(wait_s)}."
+                wait_log = f"{max(0, int(block['unblocks_at'] - time.time()))}s"
             print(f"[trial] BLOCKED ip={client_ip} hash={machine_hash[:12] or '-'} "
-                  f"block_id={block['id']} wait_s={wait_s}", flush=True)
-            resp = {"valid": False, "error": err, "retry_after_seconds": wait_s}
+                  f"block_id={block['id']} wait={wait_log}", flush=True)
+            resp = {"valid": False, "error": err}
             return jsonify({"data": resp, "signature": sign_response_with_secret(resp, TRIAL_REGISTER_SECRET)}), 429
 
         rows = conn.execute(

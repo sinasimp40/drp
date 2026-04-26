@@ -2895,6 +2895,10 @@ def _is_trial_exhaustion_reason(error_msg):
     exhaustion_phrases = (
         "expired", "revoked", "deleted", "not found",
         "quota", "limit", "rate",
+        # Generic "trial used / cooldown active" message from the server.
+        # Wording is intentionally vague server-side to avoid leaking the
+        # cooldown timing — see /api/trial_register in license_server/server.py.
+        "no longer available",
     )
     return any(p in lower for p in exhaustion_phrases)
 
