@@ -6,7 +6,7 @@
     <title>Splash Preview — New Direction</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'RobloxFont';
@@ -75,9 +75,7 @@
         .design-tag.checkpoint { color: #6ed1ff; border-color: #1f4f73; }
         .design-tag.ticket     { color: #ffd97a; border-color: #6b4f1c; }
         .design-tag.crate         { color: #ffaa6e; border-color: #6b3a1c; }
-        .design-tag.aurora        { color: #b9d4ff; border-color: #2a3a66; }
-        .design-tag.polaroid      { color: #f0e0bb; border-color: #6a5a3a; }
-        .design-tag.constellation { color: #ffd9a8; border-color: #6b4a2a; }
+        .design-tag.vinyl         { color: #ffb88a; border-color: #5a3a22; background: rgba(255,150,80,0.06); }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -2322,271 +2320,206 @@
         }
 
         /* ============================================================
-           AURORA — atmospheric / premium calm
+           VINYL — square 480x480 splash designed as a real spinning record
+           Completely different concept: not a UI window, but a physical
+           object metaphor. Square aspect (vs everyone else's widescreen),
+           circular subject, continuous spin + tonearm that tracks progress.
            ============================================================ */
-        .splash-aurora {
+        .splash-vinyl {
             position: relative;
-            width: 600px; height: 380px;
-            background: radial-gradient(ellipse at top, #1a2b4f 0%, #0a1126 60%, #050811 100%);
-            border-radius: 14px;
-            overflow: hidden;
-            color: #e6eefb;
-            font-family: 'Inter', sans-serif;
-        }
-        .splash-aurora .aurora-band {
-            position: absolute; top: -10%; left: -20%; right: -20%; height: 65%;
+            width: 480px; height: 480px;
             background:
-                radial-gradient(ellipse 50% 70% at 30% 30%, rgba(120,255,200,0.20), transparent 60%),
-                radial-gradient(ellipse 45% 65% at 70% 20%, rgba(180,140,255,0.18), transparent 60%),
-                radial-gradient(ellipse 60% 50% at 50% 35%, rgba(255,170,120,0.10), transparent 70%);
-            filter: blur(24px);
-            animation: aurora-shift 14s ease-in-out infinite alternate;
-        }
-        @keyframes aurora-shift {
-            0%   { transform: translateX(-30px) translateY(0); }
-            100% { transform: translateX(30px)  translateY(-12px); }
-        }
-        .splash-aurora .stars {
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(1.5px 1.5px at 10% 70%, #fff, transparent),
-                radial-gradient(1px 1px at 25% 80%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 45% 60%, #fff, transparent),
-                radial-gradient(1px 1px at 70% 75%, rgba(255,255,255,0.7), transparent),
-                radial-gradient(1px 1px at 85% 65%, #fff, transparent),
-                radial-gradient(1px 1px at 92% 90%, #fff, transparent),
-                radial-gradient(1px 1px at 5% 90%, rgba(255,255,255,0.6), transparent);
-        }
-        .splash-aurora .horizon-line {
-            position: absolute; left: 30px; right: 30px; bottom: 90px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(180,200,255,0.25), transparent);
-        }
-        .splash-aurora .logo-wrap {
-            position: absolute; top: 86px; left: 0; right: 0;
-            display: flex; justify-content: center;
-        }
-        .splash-aurora .logo-wrap img {
-            width: 84px; height: 84px; object-fit: contain;
-            opacity: 0.95;
-            filter: drop-shadow(0 0 18px rgba(160,200,255,0.4));
-        }
-        .splash-aurora .title {
-            position: absolute; top: 196px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 400;
-            font-size: 44px;
-            letter-spacing: 6px;
-            color: #f5f7ff;
-        }
-        .splash-aurora .subtitle {
-            position: absolute; top: 254px; left: 0; right: 0;
-            text-align: center;
-            font-size: 10px;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            color: #8aa3d1;
-        }
-        .splash-aurora .status-row {
-            position: absolute; bottom: 36px; left: 0; right: 0;
-            text-align: center;
-            font-size: 12px;
-            color: #a8bbe0;
-            font-style: italic;
-            letter-spacing: 0.5px;
-        }
-        .splash-aurora .progress-thread {
-            position: absolute; left: 80px; right: 80px; bottom: 18px;
-            height: 1px;
-            background: rgba(160,180,220,0.12);
-        }
-        .splash-aurora .progress-thread-fill {
-            position: absolute; top: -1px; left: 0; height: 3px; width: 0%;
-            background: linear-gradient(90deg, transparent, #b9d4ff, #ffffff, #b9d4ff, transparent);
-            box-shadow: 0 0 10px rgba(200,220,255,0.6);
-            transition: width 0.5s ease;
-        }
-
-        /* ============================================================
-           POLAROID — vintage instant photo on a desk
-           ============================================================ */
-        .splash-polaroid {
-            position: relative;
-            width: 600px; height: 380px;
-            background: radial-gradient(ellipse at center, #2a2520 0%, #14110d 80%);
+                radial-gradient(ellipse at 30% 20%, rgba(255,200,140,0.08) 0%, transparent 55%),
+                linear-gradient(135deg, #2a1a0e 0%, #1a0f08 55%, #0d0703 100%);
             border-radius: 14px;
             overflow: hidden;
+            color: #f6e7d0;
             font-family: 'Inter', sans-serif;
         }
-        .splash-polaroid .desk-grain {
+        .splash-vinyl .felt {
             position: absolute; inset: 0;
-            background-image: radial-gradient(rgba(255,200,140,0.04) 1px, transparent 1px);
-            background-size: 4px 4px;
-        }
-        .splash-polaroid .stamp {
-            position: absolute; top: 18px; right: 18px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,180,120,0.5);
-            border: 1px dashed rgba(255,180,120,0.4);
-            padding: 4px 8px;
-            transform: rotate(-8deg);
-            letter-spacing: 2px;
-        }
-        .splash-polaroid .card {
-            position: absolute; top: 36px; left: 50%;
-            transform: translateX(-50%) rotate(-3deg);
-            width: 260px; height: 290px;
-            background: #f7f1e6;
-            padding: 16px 16px 0;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.55), 0 2px 0 rgba(0,0,0,0.2);
-            border-radius: 2px;
-        }
-        .splash-polaroid .photo {
-            width: 100%; height: 220px;
-            background: linear-gradient(180deg, #1d1d22, #0c0c10);
-            display: flex; align-items: center; justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .splash-polaroid .photo img {
-            width: 110px; height: 110px; object-fit: contain;
-        }
-        .splash-polaroid .develop-shade {
-            position: absolute; inset: 0;
-            background: linear-gradient(180deg, rgba(247,241,230,0.92) 0%, rgba(247,241,230,0.78) 100%);
-            transition: opacity 1.2s ease;
+            background-image:
+                repeating-linear-gradient(45deg, transparent 0 2px, rgba(255,255,255,0.015) 2px 3px),
+                repeating-linear-gradient(-45deg, transparent 0 2px, rgba(0,0,0,0.05) 2px 3px);
             pointer-events: none;
         }
-        .splash-polaroid .caption {
-            text-align: center;
-            margin-top: 12px;
-            font-family: 'Caveat', cursive;
-            font-weight: 500;
-            font-size: 24px;
-            color: #2a2520;
-            letter-spacing: 1px;
-        }
-        .splash-polaroid .tape {
+        .splash-vinyl .corner-info {
             position: absolute;
-            width: 70px; height: 18px;
-            background: rgba(255,235,180,0.55);
-            border: 1px solid rgba(255,220,150,0.4);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            top: 18px; left: 22px;
+            font-size: 9px;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.55);
+            z-index: 5;
         }
-        .splash-polaroid .tape.tl { top: -6px; left: -10px;  transform: rotate(-30deg); }
-        .splash-polaroid .tape.tr { top: -6px; right: -10px; transform: rotate(28deg); }
-        .splash-polaroid .status-row {
-            position: absolute; bottom: 30px; left: 32px; right: 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            font-family: 'Caveat', cursive;
-            font-size: 18px;
-            color: #ddd0b8;
+        .splash-vinyl .corner-info b {
+            color: #ff9d4d;
+            font-weight: 800;
+            margin-right: 8px;
         }
-        .splash-polaroid .status-row .pct { color: #ffaa6e; font-weight: 700; }
-        .splash-polaroid .roll {
-            position: absolute; left: 32px; right: 32px; bottom: 14px;
-            height: 6px;
-            background: repeating-linear-gradient(90deg, #2a2218 0 6px, transparent 6px 12px);
-            border-radius: 1px;
-            opacity: 0.7;
+        .splash-vinyl .disc {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 360px; height: 360px;
+            margin-left: -180px; margin-top: -180px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, #1c1c1c 0%, #0a0a0a 60%, #050505 100%);
+            box-shadow:
+                0 14px 40px rgba(0,0,0,0.6),
+                inset 0 0 30px rgba(0,0,0,0.4);
+            animation: vinyl-spin 4s linear infinite;
         }
-
-        /* ============================================================
-           CONSTELLATION — night sky + drawn constellation lines
-           ============================================================ */
-        .splash-constellation {
-            position: relative;
-            width: 600px; height: 380px;
-            background: radial-gradient(ellipse at 50% 80%, #14163a 0%, #06070f 70%);
-            border-radius: 14px;
-            overflow: hidden;
-            color: #e8eafd;
-            font-family: 'Inter', sans-serif;
+        @keyframes vinyl-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
-        .splash-constellation .stars-deep {
-            position: absolute; inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 8% 18%, #fff, transparent),
-                radial-gradient(1px 1px at 22% 30%, rgba(255,255,255,0.7), transparent),
-                radial-gradient(2px 2px at 38% 12%, #fff, transparent),
-                radial-gradient(1px 1px at 55% 25%, rgba(255,220,180,0.85), transparent),
-                radial-gradient(1px 1px at 72% 18%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 88% 28%, #fff, transparent),
-                radial-gradient(1px 1px at 12% 60%, rgba(180,200,255,0.7), transparent),
-                radial-gradient(1px 1px at 30% 85%, #fff, transparent),
-                radial-gradient(1px 1px at 65% 80%, rgba(255,200,160,0.6), transparent),
-                radial-gradient(1.5px 1.5px at 90% 70%, #fff, transparent);
-        }
-        .splash-constellation .const-svg {
-            position: absolute; inset: 0; width: 100%; height: 100%;
+        .splash-vinyl .disc::before {
+            content: ''; position: absolute; inset: 14px;
+            border-radius: 50%;
+            background: repeating-radial-gradient(circle at center,
+                rgba(255,255,255,0.028) 0px,
+                rgba(255,255,255,0.028) 1px,
+                transparent 1px,
+                transparent 4px);
             pointer-events: none;
         }
-        .splash-constellation .const-svg circle.node {
-            fill: #ffd9a8;
-            filter: drop-shadow(0 0 4px #ffaa6e);
+        .splash-vinyl .disc::after {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 50%;
+            background: conic-gradient(from 90deg,
+                transparent 0deg,
+                rgba(255,255,255,0.07) 45deg,
+                transparent 90deg,
+                transparent 270deg,
+                rgba(255,255,255,0.05) 315deg,
+                transparent 360deg);
+            pointer-events: none;
         }
-        .splash-constellation .const-svg path.line {
-            stroke: rgba(255,170,80,0.55); stroke-width: 1; fill: none;
-            stroke-dasharray: 800; stroke-dashoffset: 800;
-            animation: const-draw 7s ease-in-out infinite;
-        }
-        @keyframes const-draw {
-            0%   { stroke-dashoffset: 800; opacity: 0.15; }
-            55%  { stroke-dashoffset: 0;   opacity: 1; }
-            100% { stroke-dashoffset: 0;   opacity: 0.45; }
-        }
-        .splash-constellation .logo-wrap {
-            position: absolute; top: 110px; left: 0; right: 0;
-            display: flex; justify-content: center;
-        }
-        .splash-constellation .logo-wrap img {
-            width: 76px; height: 76px; object-fit: contain;
-            animation: north-star-pulse 3.4s ease-in-out infinite;
-        }
-        @keyframes north-star-pulse {
-            0%, 100% { filter: drop-shadow(0 0 16px rgba(255,200,140,0.5)); }
-            50%      { filter: drop-shadow(0 0 30px rgba(255,220,160,0.95)); }
-        }
-        .splash-constellation .title {
-            position: absolute; top: 208px; left: 0; right: 0;
-            text-align: center;
-            font-family: 'Playfair Display', serif;
-            font-weight: 500;
-            font-size: 30px;
-            letter-spacing: 8px;
+        .splash-vinyl .disc-label {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 132px; height: 132px;
+            margin-left: -66px; margin-top: -66px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 25%, #ff8a3d 0%, #ff5e1f 45%, #b8320a 100%);
+            box-shadow:
+                inset 0 0 0 2px rgba(255,255,255,0.10),
+                inset 0 -6px 14px rgba(0,0,0,0.32);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             color: #fff;
-        }
-        .splash-constellation .coords {
-            position: absolute; top: 260px; left: 0; right: 0;
             text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 3px;
-            color: #8a9bc4;
-            text-transform: uppercase;
+            padding: 0 10px;
+            z-index: 2;
         }
-        .splash-constellation .status-row {
-            position: absolute; bottom: 32px; left: 32px; right: 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
+        .splash-vinyl .disc-label img {
+            max-width: 38px; max-height: 38px;
+            object-fit: contain;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            margin-bottom: 5px;
+        }
+        .splash-vinyl .vinyl-title {
             font-size: 11px;
-            color: #c8d2ee;
-            letter-spacing: 0.5px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+            white-space: nowrap; overflow: hidden; max-width: 100%;
         }
-        .splash-constellation .star-count { color: #ffd9a8; }
-        .splash-constellation .meteor-track {
-            position: absolute; left: 32px; right: 32px; bottom: 14px;
-            height: 1px;
-            background: rgba(180,200,255,0.10);
+        .splash-vinyl .vinyl-sub {
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: 0.30em;
+            margin-top: 4px;
+            color: rgba(255,255,255,0.78);
         }
-        .splash-constellation .meteor-fill {
-            position: absolute; top: -1px; left: 0; height: 3px; width: 0%;
-            background: linear-gradient(90deg, transparent, #ffd9a8, #fff, transparent);
-            box-shadow: 0 0 8px rgba(255,220,160,0.7);
-            transition: width 0.4s ease;
+        .splash-vinyl .pin {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 10px; height: 10px;
+            margin-left: -5px; margin-top: -5px;
+            border-radius: 50%;
+            background: #050505;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+            z-index: 3;
         }
+        .splash-vinyl .tonearm {
+            position: absolute;
+            top: 42px; right: 38px;
+            width: 220px; height: 22px;
+            transform-origin: right center;
+            transform: rotate(12deg);
+            transition: transform 0.6s ease;
+            z-index: 4;
+            pointer-events: none;
+        }
+        .splash-vinyl .tonearm .arm {
+            position: absolute; left: 22px; right: 22px;
+            top: 50%; height: 4px;
+            margin-top: -2px;
+            background: linear-gradient(180deg, #d8d8da, #8a8a90 55%, #5a5a60);
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .splash-vinyl .tonearm .pivot {
+            position: absolute; right: 0; top: 50%;
+            width: 22px; height: 22px;
+            margin-top: -11px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #d0d0d4, #5a5a60);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.55), inset 0 -2px 4px rgba(0,0,0,0.35);
+        }
+        .splash-vinyl .tonearm .needle {
+            position: absolute; left: 0; top: 50%;
+            width: 22px; height: 12px;
+            margin-top: -6px;
+            background: linear-gradient(180deg, #3a3a3e, #1a1a1e);
+            clip-path: polygon(0 50%, 100% 0, 100% 100%);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.6);
+        }
+        .splash-vinyl .status-pill {
+            position: absolute;
+            left: 50%; bottom: 24px;
+            transform: translateX(-50%);
+            padding: 9px 18px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.10);
+            display: flex; align-items: center; gap: 12px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.85);
+            z-index: 6;
+            white-space: nowrap;
+        }
+        .splash-vinyl .status-pill .live-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #ff5e1f;
+            box-shadow: 0 0 9px rgba(255,94,31,0.85);
+            animation: vinyl-blink 1.4s ease-in-out infinite;
+        }
+        @keyframes vinyl-blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.35; transform: scale(0.8); }
+        }
+        .splash-vinyl .status-pill #vinyl-status {
+            transition: opacity 0.2s ease;
+        }
+        .splash-vinyl .status-pill .vinyl-time {
+            font-family: 'JetBrains Mono', monospace;
+            color: #ff9d4d;
+            font-weight: 700;
+        }
+        .splash-vinyl .rbx-stamp {
+            top: auto;
+            left: auto;
+            right: 14px;
+            bottom: 14px;
+        }
+
 
 
     </style>
@@ -2596,7 +2529,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Twelve designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Ticket</strong>, <strong>Crate</strong>, <strong>Aurora</strong>, <strong>Polaroid</strong>, <strong>Constellation</strong>.<br>
+            Ten designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Ticket</strong>, <strong>Crate</strong>, <strong>Vinyl</strong> (new — square 480×480 spinning vinyl record, totally different shape and concept).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -3110,125 +3043,47 @@
     </section>
 
     <!-- ====================================================
-         AURORA — atmospheric / calm premium
+         VINYL — square 480x480 splash as a spinning record
          ==================================================== -->
-    <section class="design-section">
+    <section class="design-section" id="vinyl">
         <div class="design-head">
-            <span class="design-tag aurora">NEW · 10</span>
-            <span class="design-name">Aurora</span>
+            <span class="design-tag vinyl">NEW · 10</span>
+            <span class="design-name">Vinyl</span>
         </div>
         <div class="design-desc">
-            Calm and premium. A soft, slow-drifting aurora ribbon glows across the upper third of the screen against a deep midnight-blue sky dotted with stars. The logo sits centered with a subtle blue halo, the title is a thin Cormorant serif in spaced caps, and a bright meteor-like progress thread sweeps the bottom. Feels like a meditative weather app or a high-end audio device booting — confident through atmosphere, not animation.
+            A completely different shape and concept. The splash isn't a window — it's a square wooden-tabletop frame holding an actual spinning vinyl record, with the app logo as the center label. A real tonearm at the top sweeps slowly across the disc as the launcher loads (the further it travels, the more progress is done). A status pill at the bottom shows what's playing. Square 480 × 480 instead of widescreen, round subject instead of rectangular UI, physical-object metaphor instead of HUD chrome. Warm, tactile, nostalgic — feels like opening a music app, not a software installer.
         </div>
         <div class="design-stage">
-            <div class="splash-aurora">
+            <div class="splash-vinyl">
+                <div class="felt"></div>
                 <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
-                <div class="aurora-band"></div>
-                <div class="stars"></div>
-                <div class="horizon-line"></div>
+                <div class="corner-info"><b>SIDE A</b>33⅓ RPM</div>
 
-                {% if splash_file %}
-                <div class="logo-wrap"><img src="/splash_logo_file" alt="Logo"></div>
-                {% endif %}
-
-                <div class="title" id="aurora-title">{{ app_name or 'ROBLOX' }}</div>
-                <div class="subtitle">Portable · Premium</div>
-                <div class="status-row" id="aurora-status">aligning the horizon…</div>
-
-                <div class="progress-thread">
-                    <div class="progress-thread-fill" id="aurora-fill"></div>
-                </div>
-            </div>
-        </div>
-        <div class="design-meta">600 × 380 &nbsp;|&nbsp; drifting aurora · serif title · meteor thread</div>
-    </section>
-
-    <!-- ====================================================
-         POLAROID — vintage instant photo on a desk
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag polaroid">NEW · 11</span>
-            <span class="design-name">Polaroid</span>
-        </div>
-        <div class="design-desc">
-            Tactile and warm. The launcher pretends to be an instant photo developing on a dark desk — a slightly tilted Polaroid card with tape strips holding it down, the logo as the photo (slowly fading in from a milky shade as it "develops"), and a handwritten caption underneath in Caveat. Status text reads like a quick note, the progress strip looks like film perforations. A friendly counter-point to all the dark glass and neon designs.
-        </div>
-        <div class="design-stage">
-            <div class="splash-polaroid">
-                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
-                <div class="desk-grain"></div>
-                <div class="stamp">DEV-BUILD · 2026</div>
-
-                <div class="card">
-                    <div class="tape tl"></div>
-                    <div class="tape tr"></div>
-                    <div class="photo">
+                <div class="disc">
+                    <div class="disc-label">
                         {% if splash_file %}
                         <img src="/splash_logo_file" alt="Logo">
                         {% endif %}
-                        <div class="develop-shade" id="polaroid-shade"></div>
+                        <div class="vinyl-title" id="vinyl-title">{{ app_name or 'ROBLOX' }}</div>
+                        <div class="vinyl-sub">PORTABLE</div>
                     </div>
-                    <div class="caption" id="polaroid-caption">{{ app_name or 'Roblox' }} — portable</div>
+                    <div class="pin"></div>
                 </div>
 
-                <div class="status-row">
-                    <span id="polaroid-status">developing the picture…</span>
-                    <span class="pct" id="polaroid-pct">0%</span>
+                <div class="tonearm" id="vinyl-tonearm">
+                    <div class="needle"></div>
+                    <div class="arm"></div>
+                    <div class="pivot"></div>
                 </div>
-                <div class="roll"></div>
-            </div>
-        </div>
-        <div class="design-meta">600 × 380 &nbsp;|&nbsp; tilted polaroid · developing photo · handwritten caption</div>
-    </section>
 
-    <!-- ====================================================
-         CONSTELLATION — night sky with drawn constellation
-         ==================================================== -->
-    <section class="design-section">
-        <div class="design-head">
-            <span class="design-tag constellation">NEW · 12</span>
-            <span class="design-name">Constellation</span>
-        </div>
-        <div class="design-desc">
-            Quiet, cinematic, and a little magical. A starfield with a hand-drawn constellation slowly tracing itself between glowing waypoint stars. The logo lives at the very center as a brighter "north star" with a soft pulse. Title in Playfair serif, status as cosmic-coordinate mono text, progress shown as both a star count ("12 / 48 stars") and a meteor-trail bar at the bottom. Reads as confident and mysterious instead of utilitarian.
-        </div>
-        <div class="design-stage">
-            <div class="splash-constellation">
-                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
-                <div class="stars-deep"></div>
-                <svg class="const-svg" viewBox="0 0 600 380" preserveAspectRatio="none">
-                    <path class="line" d="M 90 80 L 180 60 L 250 110 L 320 70 L 420 90 L 500 60 M 250 110 L 300 190 L 240 240 L 360 250 L 420 90 M 360 250 L 460 290 L 540 240" />
-                    <circle class="node" cx="90"  cy="80"  r="2.5" />
-                    <circle class="node" cx="180" cy="60"  r="2"   />
-                    <circle class="node" cx="250" cy="110" r="3"   />
-                    <circle class="node" cx="320" cy="70"  r="2"   />
-                    <circle class="node" cx="420" cy="90"  r="2.5" />
-                    <circle class="node" cx="500" cy="60"  r="2"   />
-                    <circle class="node" cx="300" cy="190" r="2"   />
-                    <circle class="node" cx="240" cy="240" r="2"   />
-                    <circle class="node" cx="360" cy="250" r="2.5" />
-                    <circle class="node" cx="460" cy="290" r="2"   />
-                    <circle class="node" cx="540" cy="240" r="2"   />
-                </svg>
-
-                {% if splash_file %}
-                <div class="logo-wrap"><img src="/splash_logo_file" alt="Logo"></div>
-                {% endif %}
-
-                <div class="title" id="const-title">{{ app_name or 'ROBLOX' }}</div>
-                <div class="coords" id="const-coords">RA 04ʰ 32ᵐ &nbsp; · &nbsp; DEC +16°</div>
-
-                <div class="status-row">
-                    <span id="const-status">charting the sky…</span>
-                    <span class="star-count"><span id="const-stars">0</span> / 48 stars</span>
-                </div>
-                <div class="meteor-track">
-                    <div class="meteor-fill" id="const-fill"></div>
+                <div class="status-pill">
+                    <span class="live-dot"></span>
+                    <span id="vinyl-status">cueing track…</span>
+                    <span class="vinyl-time" id="vinyl-time">0:00 / 1:00</span>
                 </div>
             </div>
         </div>
-        <div class="design-meta">600 × 380 &nbsp;|&nbsp; starfield · constellation draw-in · pulsing north star</div>
+        <div class="design-meta">480 × 480 (SQUARE) &nbsp;|&nbsp; spinning vinyl record · tonearm tracks progress · object metaphor</div>
     </section>
 
     <script>
@@ -3776,141 +3631,48 @@
             }
         })();
 
-        // ----- AURORA -----
-        var auroraStatuses = [
-            'aligning the horizon…',
-            'gathering starlight',
-            'unfolding the launcher',
-            'tuning the night air',
-            'almost there'
+        // ----- VINYL -----
+        var vinylStatuses = [
+            'cueing track…',
+            'spinning up disc',
+            'reading inner groove',
+            'syncing portable bundle',
+            'almost ready'
         ];
-        var auFill = document.getElementById('aurora-fill');
-        var auStat = document.getElementById('aurora-status');
-        var auPct = 0, auIdx = 0;
+        var vyStat = document.getElementById('vinyl-status');
+        var vyTime = document.getElementById('vinyl-time');
+        var vyArm  = document.getElementById('vinyl-tonearm');
+        var vyIdx = 0;
+        var vySec = 0;
         setInterval(function() {
-            auPct = (auPct + 4) % 105;
-            if (auFill) auFill.style.width = Math.min(100, auPct) + '%';
-        }, 220);
-        setInterval(function() {
-            if (!auStat) return;
-            auIdx = (auIdx + 1) % auroraStatuses.length;
-            auStat.style.opacity = '0.3';
-            setTimeout(function() {
-                auStat.textContent = auroraStatuses[auIdx];
-                auStat.style.opacity = '1';
-            }, 220);
-        }, 2400);
-        // Auto-fit aurora title
-        (function() {
-            var t = document.getElementById('aurora-title');
-            if (!t) return;
-            var maxW = 540;
-            var size = parseFloat(getComputedStyle(t).fontSize);
-            var spacing = parseFloat(getComputedStyle(t).letterSpacing) || 0;
-            var guard = 0;
-            while (size >= 18 && t.scrollWidth > maxW && guard++ < 40) {
-                size -= 2;
-                spacing = Math.max(0, spacing - 0.4);
-                t.style.fontSize = size + 'px';
-                t.style.letterSpacing = spacing + 'px';
+            vySec = (vySec + 1) % 61;
+            if (vyTime) {
+                vyTime.textContent = '0:' + (vySec < 10 ? '0' : '') + vySec + ' / 1:00';
             }
-        })();
-
-        // ----- POLAROID -----
-        var polaroidStatuses = [
-            'developing the picture…',
-            'hanging it up to dry',
-            'writing the caption',
-            'finding the right pen',
-            'ready to share'
-        ];
-        var poStat = document.getElementById('polaroid-status');
-        var poPct  = document.getElementById('polaroid-pct');
-        var poShade = document.getElementById('polaroid-shade');
-        var poVal = 0, poIdx = 0;
-        setInterval(function() {
-            poVal += 3;
-            if (poVal > 100) poVal = 0;
-            if (poPct) poPct.textContent = Math.min(100, poVal) + '%';
-            if (poShade) poShade.style.opacity = String(Math.max(0, 1 - (poVal / 100)));
-        }, 240);
-        setInterval(function() {
-            if (!poStat) return;
-            poIdx = (poIdx + 1) % polaroidStatuses.length;
-            poStat.style.opacity = '0.4';
-            setTimeout(function() {
-                poStat.textContent = polaroidStatuses[poIdx];
-                poStat.style.opacity = '1';
-            }, 220);
-        }, 2400);
-        // Auto-fit polaroid caption
-        (function() {
-            var t = document.getElementById('polaroid-caption');
-            if (!t) return;
-            var maxW = 240;
-            var size = parseFloat(getComputedStyle(t).fontSize);
-            var guard = 0;
-            while (size >= 12 && t.scrollWidth > maxW && guard++ < 30) {
-                size -= 1;
-                t.style.fontSize = size + 'px';
+            if (vyArm) {
+                var deg = 12 + (vySec / 60) * 18;
+                vyArm.style.transform = 'rotate(' + deg + 'deg)';
             }
-        })();
-
-        // ----- CONSTELLATION -----
-        var constStatuses = [
-            'charting the sky…',
-            'connecting the waypoints',
-            'naming the new star',
-            'plotting your route',
-            'sky aligned — opening launcher'
-        ];
-        var coordSamples = [
-            'RA 04ʰ 32ᵐ · DEC +16°',
-            'RA 12ʰ 18ᵐ · DEC −04°',
-            'RA 21ʰ 47ᵐ · DEC +38°',
-            'RA 06ʰ 02ᵐ · DEC −12°'
-        ];
-        var coStat   = document.getElementById('const-status');
-        var coStars  = document.getElementById('const-stars');
-        var coCoords = document.getElementById('const-coords');
-        var coFill   = document.getElementById('const-fill');
-        var coIdx = 0, coCount = 0, coCoIdx = 0;
+        }, 1000);
         setInterval(function() {
-            coCount = (coCount + 1) % 49;
-            if (coStars) coStars.textContent = String(coCount);
-            if (coFill)  coFill.style.width = ((coCount / 48) * 100) + '%';
-        }, 200);
-        setInterval(function() {
-            if (!coStat) return;
-            coIdx = (coIdx + 1) % constStatuses.length;
-            coStat.style.opacity = '0.3';
+            if (!vyStat) return;
+            vyIdx = (vyIdx + 1) % vinylStatuses.length;
+            vyStat.style.opacity = '0.4';
             setTimeout(function() {
-                coStat.textContent = constStatuses[coIdx];
-                coStat.style.opacity = '1';
-            }, 220);
-        }, 2600);
-        setInterval(function() {
-            if (!coCoords) return;
-            coCoIdx = (coCoIdx + 1) % coordSamples.length;
-            coCoords.style.opacity = '0.4';
-            setTimeout(function() {
-                coCoords.textContent = coordSamples[coCoIdx];
-                coCoords.style.opacity = '1';
-            }, 220);
-        }, 3400);
-        // Auto-fit constellation title
+                vyStat.textContent = vinylStatuses[vyIdx];
+                vyStat.style.opacity = '1';
+            }, 200);
+        }, 2800);
+        // Auto-fit vinyl title
         (function() {
-            var t = document.getElementById('const-title');
+            var t = document.getElementById('vinyl-title');
             if (!t) return;
-            var maxW = 540;
+            var maxW = 110;
             var size = parseFloat(getComputedStyle(t).fontSize);
-            var spacing = parseFloat(getComputedStyle(t).letterSpacing) || 0;
             var guard = 0;
-            while (size >= 18 && t.scrollWidth > maxW && guard++ < 40) {
-                size -= 2;
-                spacing = Math.max(0, spacing - 0.5);
+            while (size >= 7 && t.scrollWidth > maxW && guard++ < 25) {
+                size -= 0.5;
                 t.style.fontSize = size + 'px';
-                t.style.letterSpacing = spacing + 'px';
             }
         })();
 

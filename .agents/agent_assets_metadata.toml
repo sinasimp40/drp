@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "P9OTTy9aZkiUvQLwyDkWk"
+uri = "file://license_server/static/cinema_hero.png"
+type = "image"
+title = "cinematic mountain dusk hero"
