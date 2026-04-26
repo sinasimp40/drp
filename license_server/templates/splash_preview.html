@@ -3269,14 +3269,8 @@
             <div class="splash-inferno">
                 <div class="ember-overlay"></div>
                 <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
-                <div class="inferno-logo">
-                    <!-- Inferno always uses the iconic orange Roblox O to match the brand key-art -->
-                    <img src="/static/splash_logo.png" alt="Roblox">
-                </div>
-                <div class="inferno-title-wrap">
-                    <span class="inferno-title-stroke">{{ app_name or 'ROBLOX' }}</span>
-                    <span class="inferno-title-fill">{{ app_name or 'ROBLOX' }}</span>
-                </div>
+                <!-- Logo and ROBLOX wordmark are already baked into the backdrop image,
+                     so no HTML overlay is needed here — only the dynamic launcher chrome. -->
                 <div class="preloading" id="inferno-preload">PRELOADING…</div>
                 <div class="progress">
                     <div class="progress-fill" id="inferno-fill"></div>
