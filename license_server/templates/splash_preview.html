@@ -14,6 +14,12 @@
             font-weight: 700;
             font-display: block;
         }
+        @font-face {
+            font-family: 'RobloxLogo';
+            src: url('/static/fonts/Roblox.ttf') format('truetype');
+            font-weight: 900;
+            font-display: block;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -76,6 +82,7 @@
         .design-tag.ticket     { color: #ffd97a; border-color: #6b4f1c; }
         .design-tag.crate         { color: #ffaa6e; border-color: #6b3a1c; }
         .design-tag.vinyl         { color: #ffb88a; border-color: #5a3a22; background: rgba(255,150,80,0.06); }
+        .design-tag.inferno       { color: #ff8a3d; border-color: #5a2e14; background: rgba(255,94,31,0.10); }
         .design-name {
             font-size: 22px;
             font-weight: 600;
@@ -2522,6 +2529,167 @@
 
 
 
+        /* ============================================================
+           INFERNO — 4K cinematic key-art splash
+           Real generated black & orange lava artwork as the backdrop;
+           crisp HTML/CSS overlay for logo, wordmark, progress, features.
+           ============================================================ */
+        .splash-inferno {
+            position: relative;
+            width: 720px; height: 405px;
+            background: url('/static/inferno_bg.png') center center / cover no-repeat, #000;
+            border-radius: 14px;
+            overflow: hidden;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+        }
+        .splash-inferno .ember-overlay {
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 35%, rgba(255,140,40,0.10) 0%, transparent 50%),
+                linear-gradient(180deg, rgba(0,0,0,0.0) 60%, rgba(0,0,0,0.45) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .splash-inferno .rbx-stamp {
+            top: 12px; right: 14px;
+            left: auto; bottom: auto;
+            z-index: 5;
+        }
+        .splash-inferno .inferno-logo {
+            position: absolute;
+            left: 50%; top: 14%;
+            transform: translateX(-50%);
+            width: 120px; height: 120px;
+            z-index: 3;
+            filter: drop-shadow(0 0 22px rgba(255,140,40,0.85)) drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+            animation: inferno-pulse 3.6s ease-in-out infinite;
+        }
+        @keyframes inferno-pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); filter: drop-shadow(0 0 22px rgba(255,140,40,0.85)) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+            50%      { transform: translateX(-50%) scale(1.04); filter: drop-shadow(0 0 32px rgba(255,180,80,1)) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+        }
+        .splash-inferno .inferno-logo img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        .splash-inferno .inferno-title-wrap {
+            position: absolute;
+            left: 50%; top: 47%;
+            transform: translateX(-50%);
+            font-family: 'RobloxLogo', 'RobloxFont', 'Inter', sans-serif;
+            font-size: 76px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            line-height: 1;
+            z-index: 4;
+            white-space: nowrap;
+        }
+        .splash-inferno .inferno-title-stroke,
+        .splash-inferno .inferno-title-fill {
+            display: inline-block;
+        }
+        .splash-inferno .inferno-title-stroke {
+            position: absolute; left: 0; top: 0;
+            color: transparent;
+            -webkit-text-stroke: 5px #0c0603;
+            text-stroke: 5px #0c0603;
+            text-shadow: 0 8px 22px rgba(0,0,0,0.75);
+        }
+        .splash-inferno .inferno-title-fill {
+            position: relative;
+            background: linear-gradient(180deg, #fff5d8 0%, #ffc080 32%, #ff7a30 66%, #c4360b 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        .splash-inferno .preloading {
+            position: absolute;
+            left: 50%; top: 70%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.36em;
+            color: #ffb88a;
+            text-transform: uppercase;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+            z-index: 4;
+            transition: opacity 0.2s ease;
+        }
+        .splash-inferno .progress {
+            position: absolute;
+            left: 50%; top: 78%;
+            transform: translateX(-50%);
+            width: 380px; height: 4px;
+            background: rgba(255,255,255,0.14);
+            border-radius: 2px;
+            overflow: hidden;
+            z-index: 4;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .splash-inferno .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8a3d 0%, #ff5e1f 100%);
+            box-shadow: 0 0 14px rgba(255,94,31,0.8);
+            width: 56%;
+            border-radius: 2px;
+            transition: width 0.25s ease;
+        }
+        .splash-inferno .pct {
+            position: absolute;
+            left: 50%; top: 82%;
+            transform: translateX(-50%);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ff9d4d;
+            font-weight: 700;
+            z-index: 4;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+        }
+        .splash-inferno .features {
+            position: absolute;
+            left: 24px; right: 24px; bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 4;
+        }
+        .splash-inferno .feature {
+            display: flex; align-items: flex-start; gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+            min-width: 140px;
+        }
+        .splash-inferno .feature .icon {
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            color: #ff9d4d;
+            flex-shrink: 0;
+        }
+        .splash-inferno .feature .icon svg {
+            width: 100%; height: 100%;
+            fill: none;
+            stroke: #ff9d4d;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .splash-inferno .feature .icon svg .filled { fill: #ff9d4d; stroke: none; }
+        .splash-inferno .feature .ftxt .h {
+            font-size: 11px;
+            font-weight: 800;
+            color: #ff9d4d;
+            letter-spacing: 0.14em;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+        .splash-inferno .feature .ftxt .b {
+            font-size: 9px;
+            color: rgba(255,255,255,0.78);
+            line-height: 1.35;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -2529,7 +2697,7 @@
     <div class="page-head">
         <h1>Splash Designs</h1>
         <p>
-            Ten designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Ticket</strong>, <strong>Crate</strong>, <strong>Vinyl</strong> (new — square 480×480 spinning vinyl record, totally different shape and concept).<br>
+            Eleven designs: <strong>Marquee</strong>, <strong>Horizon</strong>, <strong>Console</strong>, <strong>Playhouse</strong>, <strong>Sandbox</strong>, <strong>Play</strong>, <strong>Checkpoint</strong>, <strong>Ticket</strong>, <strong>Crate</strong>, <strong>Vinyl</strong>, <strong>Inferno</strong> (new — 4K cinematic black &amp; orange lava key-art with crisp text overlay).<br>
             Nothing has been changed in the launcher yet — pick one and tell me to apply it.<br>
             Try a different name with <code>?app_name=YourApp</code>
         </p>
@@ -3084,6 +3252,68 @@
             </div>
         </div>
         <div class="design-meta">480 × 480 (SQUARE) &nbsp;|&nbsp; spinning vinyl record · tonearm tracks progress · object metaphor</div>
+    </section>
+
+    <!-- ====================================================
+         INFERNO — 4K cinematic key-art splash
+         ==================================================== -->
+    <section class="design-section" id="inferno">
+        <div class="design-head">
+            <span class="design-tag inferno">NEW · 11</span>
+            <span class="design-name">Inferno</span>
+        </div>
+        <div class="design-desc">
+            Premium 4K cinematic key-art splash. The background is a real AI-generated render — pitch-black scene with a massive molten lava core, dark obsidian Roblox cubes with cracked glowing veins floating through the air, polished basalt floor with lava cracks, and thousands of orange embers. The Roblox logo pulses softly over the lava core, the wordmark sits over it in the chunky brand font with a dark outline and amber→orange→red gradient fill, and a thin live progress bar with a "PRELOADING…" label cycles below. Four feature columns at the bottom (SAFE · FAST · COMMUNITY · CREATE) match the look the user wanted from the reference. Text is HTML/CSS overlay, so it's pin-sharp at any zoom and updates dynamically with <code>?app_name=…</code>.
+        </div>
+        <div class="design-stage">
+            <div class="splash-inferno">
+                <div class="ember-overlay"></div>
+                <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
+                <div class="inferno-logo">
+                    {% if splash_file %}
+                    <img src="/splash_logo_file" alt="Logo">
+                    {% else %}
+                    <img src="/static/splash_logo.png" alt="Logo">
+                    {% endif %}
+                </div>
+                <div class="inferno-title-wrap">
+                    <span class="inferno-title-stroke">{{ app_name or 'ROBLOX' }}</span>
+                    <span class="inferno-title-fill">{{ app_name or 'ROBLOX' }}</span>
+                </div>
+                <div class="preloading" id="inferno-preload">PRELOADING…</div>
+                <div class="progress">
+                    <div class="progress-fill" id="inferno-fill"></div>
+                </div>
+                <div class="pct" id="inferno-pct">56%</div>
+                <div class="features">
+                    <div class="feature">
+                        <div class="icon">
+                            <svg viewBox="0 0 24 24"><path d="M12 2 L20 5 V12 C20 17 16 21 12 22 C8 21 4 17 4 12 V5 Z"/><path d="M8 12 L11 15 L16 9"/></svg>
+                        </div>
+                        <div class="ftxt"><div class="h">Safe</div><div class="b">Your experience<br>is our priority</div></div>
+                    </div>
+                    <div class="feature">
+                        <div class="icon">
+                            <svg viewBox="0 0 24 24"><path class="filled" d="M13 2 L4 14 H11 L9 22 L20 10 H13 Z"/></svg>
+                        </div>
+                        <div class="ftxt"><div class="h">Fast</div><div class="b">Optimized for the<br>best performance</div></div>
+                    </div>
+                    <div class="feature">
+                        <div class="icon">
+                            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20"/><path d="M14 20 C14 17 16 15 18 15 C19.5 15 21 16 21 20"/></svg>
+                        </div>
+                        <div class="ftxt"><div class="h">Community</div><div class="b">Millions of players.<br>Endless possibilities</div></div>
+                    </div>
+                    <div class="feature">
+                        <div class="icon">
+                            <svg viewBox="0 0 24 24"><path d="M9 6 L3 12 L9 18"/><path d="M15 6 L21 12 L15 18"/><path d="M14 4 L10 20"/></svg>
+                        </div>
+                        <div class="ftxt"><div class="h">Create</div><div class="b">Build the future.<br>Be anything</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="design-meta">720 × 405 (16:9 CINEMATIC) &nbsp;|&nbsp; AI-generated lava key-art · crisp HTML overlay · pulsing logo · live progress</div>
     </section>
 
     <script>
@@ -3675,6 +3905,29 @@
                 t.style.fontSize = size + 'px';
             }
         })();
+
+        // ----- INFERNO -----
+        var infFill = document.getElementById('inferno-fill');
+        var infPct  = document.getElementById('inferno-pct');
+        var infPre  = document.getElementById('inferno-preload');
+        var infMsgs = ['PRELOADING…', 'INITIALIZING…', 'LOADING ASSETS…', 'ALMOST READY…'];
+        var infPctV = 0;
+        var infMsgI = 0;
+        setInterval(function() {
+            infPctV = (infPctV + 1) % 101;
+            if (infFill) infFill.style.width = infPctV + '%';
+            if (infPct)  infPct.textContent = infPctV + '%';
+            if (infPre && infPctV !== 0 && infPctV % 25 === 0) {
+                infMsgI = (infMsgI + 1) % infMsgs.length;
+                infPre.style.opacity = '0.4';
+                (function(msg) {
+                    setTimeout(function() {
+                        infPre.textContent = msg;
+                        infPre.style.opacity = '1';
+                    }, 200);
+                })(infMsgs[infMsgI]);
+            }
+        }, 80);
 
 
     })();
