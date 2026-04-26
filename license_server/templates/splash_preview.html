@@ -6,7 +6,7 @@
     <title>Splash Preview — New Direction</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Bungee&family=Bowlby+One&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'RobloxFont';
@@ -2605,16 +2605,60 @@
             -webkit-text-fill-color: transparent;
             color: transparent;
         }
+        /* Chunky "DENFI ROBLOX" wordmark — sits in front of the lava O,
+           hard orange→red gradient with thick dark outline + bottom drop = button look */
+        .splash-inferno .denfi-title {
+            position: absolute;
+            left: 50%; top: 175px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            z-index: 5;
+            font-family: 'Bungee', 'Bowlby One', 'Impact', sans-serif;
+            font-size: 64px;
+            line-height: 1;
+            letter-spacing: 2px;
+        }
+        .splash-inferno .denfi-stroke,
+        .splash-inferno .denfi-fill {
+            display: inline-block;
+        }
+        .splash-inferno .denfi-stroke {
+            position: absolute; left: 0; top: 0;
+            color: transparent;
+            -webkit-text-stroke: 7px #150803;
+            text-shadow:
+                0 6px 0 rgba(0,0,0,0.55),
+                0 0 32px rgba(255,90,30,0.55);
+        }
+        .splash-inferno .denfi-fill {
+            position: relative;
+            background: linear-gradient(180deg, #ffe4a8 0%, #ff9a3a 32%, #ff5e1f 66%, #b9320b 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        /* PRELOADING styled as a glowing pill button */
         .splash-inferno .preloading {
             position: absolute;
-            left: 50%; top: 290px;
+            left: 50%; top: 268px;
             transform: translateX(-50%);
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 0.36em;
-            color: #ffb88a;
+            font-family: 'Bungee', 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.32em;
+            color: #fff5e6;
             text-transform: uppercase;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.6);
+            padding: 7px 26px 6px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, #ff8a3c 0%, #d24414 100%);
+            border: 2px solid #4a1606;
+            box-shadow:
+                0 4px 0 #4a1606,
+                0 6px 18px rgba(0,0,0,0.55),
+                inset 0 1px 0 rgba(255,220,180,0.55),
+                0 0 26px rgba(255,120,40,0.55);
+            text-shadow: 0 1px 0 rgba(0,0,0,0.45);
             z-index: 4;
             transition: opacity 0.2s ease;
         }
@@ -2622,19 +2666,19 @@
             position: absolute;
             left: 50%; top: 320px;
             transform: translateX(-50%);
-            width: 380px; height: 5px;
-            background: rgba(0,0,0,0.55);
-            border-radius: 3px;
+            width: 420px; height: 6px;
+            background: rgba(0,0,0,0.65);
+            border-radius: 4px;
             overflow: hidden;
             z-index: 4;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
         }
         .splash-inferno .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #ff8a3d 0%, #ff5e1f 100%);
-            box-shadow: 0 0 14px rgba(255,94,31,0.8);
+            background: linear-gradient(90deg, #ffb060 0%, #ff7a30 50%, #ff4a14 100%);
+            box-shadow: 0 0 18px rgba(255,94,31,0.95);
             width: 56%;
-            border-radius: 2px;
+            border-radius: 3px;
             transition: width 0.25s ease;
         }
         .splash-inferno .pct {
@@ -2643,52 +2687,10 @@
             transform: translateX(-50%);
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            color: #ff9d4d;
+            color: #ffb070;
             font-weight: 700;
             z-index: 4;
             text-shadow: 0 1px 4px rgba(0,0,0,0.95);
-        }
-        .splash-inferno .features {
-            position: absolute;
-            left: 24px; right: 24px; bottom: 18px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 4;
-        }
-        .splash-inferno .feature {
-            display: flex; align-items: flex-start; gap: 8px;
-            color: rgba(255,255,255,0.9);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.85);
-            min-width: 140px;
-        }
-        .splash-inferno .feature .icon {
-            width: 22px; height: 22px;
-            display: flex; align-items: center; justify-content: center;
-            color: #ff9d4d;
-            flex-shrink: 0;
-        }
-        .splash-inferno .feature .icon svg {
-            width: 100%; height: 100%;
-            fill: none;
-            stroke: #ff9d4d;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .splash-inferno .feature .icon svg .filled { fill: #ff9d4d; stroke: none; }
-        .splash-inferno .feature .ftxt .h {
-            font-size: 11px;
-            font-weight: 800;
-            color: #ff9d4d;
-            letter-spacing: 0.14em;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-        }
-        .splash-inferno .feature .ftxt .b {
-            font-size: 9px;
-            color: rgba(255,255,255,0.78);
-            line-height: 1.35;
-            font-weight: 500;
         }
     </style>
 </head>
@@ -3263,48 +3265,24 @@
             <span class="design-name">Inferno</span>
         </div>
         <div class="design-desc">
-            Premium 4K cinematic key-art splash. The background is a real AI-generated render — pitch-black scene with a massive molten lava core, dark obsidian Roblox cubes with cracked glowing veins floating through the air, polished basalt floor with lava cracks, and thousands of orange embers. The Roblox logo pulses softly over the lava core, the wordmark sits over it in the chunky brand font with a dark outline and amber→orange→red gradient fill, and a thin live progress bar with a "PRELOADING…" label cycles below. Four feature columns at the bottom (SAFE · FAST · COMMUNITY · CREATE) match the look the user wanted from the reference. Text is HTML/CSS overlay, so it's pin-sharp at any zoom and updates dynamically with <code>?app_name=…</code>.
+            Premium 4K cinematic key-art splash on the dark lava backdrop. The wordmark <strong>"DENFI {{ app_name or 'ROBLOX' }}"</strong> is rendered in the chunky Bungee display face with a thick dark outline and amber→orange→red gradient fill so it reads like a 3D button sitting in front of the lava O. Below it, a glowing orange <strong>PRELOADING</strong> pill button cycles status messages above a live progress bar with percentage. Clean and focused — no feature columns, no logo overlay, just the wordmark, the button, and the progress. Updates dynamically with <code>?app_name=…</code>.
         </div>
         <div class="design-stage">
             <div class="splash-inferno">
                 <div class="ember-overlay"></div>
                 <div class="rbx-stamp"><span class="label">ROBLOX</span><span class="ver">version-4f6a73b9c1d8</span></div>
-                <!-- Logo and ROBLOX wordmark are already baked into the backdrop image,
-                     so no HTML overlay is needed here — only the dynamic launcher chrome. -->
+                <div class="denfi-title">
+                    <span class="denfi-stroke">DENFI {{ app_name or 'ROBLOX' }}</span>
+                    <span class="denfi-fill">DENFI {{ app_name or 'ROBLOX' }}</span>
+                </div>
                 <div class="preloading" id="inferno-preload">PRELOADING…</div>
                 <div class="progress">
                     <div class="progress-fill" id="inferno-fill"></div>
                 </div>
                 <div class="pct" id="inferno-pct">56%</div>
-                <div class="features">
-                    <div class="feature">
-                        <div class="icon">
-                            <svg viewBox="0 0 24 24"><path d="M12 2 L20 5 V12 C20 17 16 21 12 22 C8 21 4 17 4 12 V5 Z"/><path d="M8 12 L11 15 L16 9"/></svg>
-                        </div>
-                        <div class="ftxt"><div class="h">Safe</div><div class="b">Your experience<br>is our priority</div></div>
-                    </div>
-                    <div class="feature">
-                        <div class="icon">
-                            <svg viewBox="0 0 24 24"><path class="filled" d="M13 2 L4 14 H11 L9 22 L20 10 H13 Z"/></svg>
-                        </div>
-                        <div class="ftxt"><div class="h">Fast</div><div class="b">Optimized for the<br>best performance</div></div>
-                    </div>
-                    <div class="feature">
-                        <div class="icon">
-                            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20"/><path d="M14 20 C14 17 16 15 18 15 C19.5 15 21 16 21 20"/></svg>
-                        </div>
-                        <div class="ftxt"><div class="h">Community</div><div class="b">Millions of players.<br>Endless possibilities</div></div>
-                    </div>
-                    <div class="feature">
-                        <div class="icon">
-                            <svg viewBox="0 0 24 24"><path d="M9 6 L3 12 L9 18"/><path d="M15 6 L21 12 L15 18"/><path d="M14 4 L10 20"/></svg>
-                        </div>
-                        <div class="ftxt"><div class="h">Create</div><div class="b">Build the future.<br>Be anything</div></div>
-                    </div>
-                </div>
             </div>
         </div>
-        <div class="design-meta">720 × 405 (16:9 CINEMATIC) &nbsp;|&nbsp; AI-generated lava key-art · crisp HTML overlay · pulsing logo · live progress</div>
+        <div class="design-meta">720 × 405 (16:9 CINEMATIC) &nbsp;|&nbsp; lava key-art backdrop · DENFI wordmark · PRELOADING pill button · live progress</div>
     </section>
 
     <script>
