@@ -29,7 +29,7 @@ waitForPort = 5000
 
 [nix]
 channel = "stable-25_05"
-packages = ["cacert", "freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+packages = ["cacert", "freetype", "iana-etc", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
 
 [[ports]]
 localPort = 3842
@@ -38,10 +38,6 @@ externalPort = 80
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5050
-externalPort = 3002
 
 [[ports]]
 localPort = 23636

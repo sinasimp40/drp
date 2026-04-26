@@ -15,3 +15,11 @@ Pillow
 PySocks
 python-dotenv
 requests
+certifi
+eventlet
+flask
+flask-socketio
+Pillow
+PySocks
+python-dotenv
+requests
