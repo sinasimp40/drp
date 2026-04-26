@@ -2568,15 +2568,15 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     #      folders left behind when an uninstaller is missing or broken.
     #      Silently skipped if we lack admin rights.
     #
-    # NOTE: We deliberately do NOT wipe %LocalAppData%\Roblox\ here. Even
-    # though we launch RobloxPlayerBeta.exe from our own portable folder,
-    # Roblox still uses %LocalAppData%\Roblox\ at startup for WebView2
-    # user-data, session lock files, crash logs, and rbx-storage cache.
-    # Wiping it immediately before launch caused first-launch failures with
-    # the "missing or damaged files" popup; the second launch worked only
-    # because Roblox had recreated the directory shell while crashing. The
-    # registry + Microsoft Store uninstalls below still remove the system
-    # Roblox install so Steam/web links open ours instead.
+    # POLICY: We DO wipe %LocalAppData%\Roblox\ after a fresh bundle
+    # extraction. Operator preference is a guaranteed clean slate over
+    # the historical risk of a "missing or damaged files" popup on the
+    # very first launch (Roblox normally recreates the WebView2 / cache
+    # state on demand). purge_appdata_roblox_versions() handles
+    # junctions / directory symlinks correctly via the
+    # _is_link_or_reparse + _remove_link_or_junction helpers, so
+    # whether the folder is a real directory or a `mklink /J` to
+    # another drive, the entry is removed without following the link.
     try:
         uninstall_roblox_via_registry()
     except Exception:
@@ -2587,6 +2587,10 @@ def download_and_extract_roblox_bundle(splash, app, paths):
         pass
     try:
         purge_program_files_roblox()
+    except Exception:
+        pass
+    try:
+        purge_appdata_roblox_versions()
     except Exception:
         pass
 
@@ -3670,16 +3674,20 @@ def main():
                     #   1. Add/Remove Programs uninstaller — the official path.
                     #   2. Microsoft Store package — separate API.
                     #   3. Program Files Roblox-named folders — admin-only fallback.
+                    #   4. %LocalAppData% Roblox-named folders — guaranteed
+                    #      clean slate (operator policy). Junctions and
+                    #      directory symlinks are handled correctly via
+                    #      _is_link_or_reparse + _remove_link_or_junction:
+                    #      the link entry is removed without following it,
+                    #      so the target on another drive stays intact.
                     #
-                    # We deliberately skip wiping %LocalAppData%\Roblox\ here:
-                    # Roblox writes WebView2 user-data, session lock files,
-                    # crash logs, and rbx-storage cache there at startup, even
-                    # when launched from our portable folder. Wiping it
-                    # immediately before launch was the cause of first-launch
-                    # "missing or damaged files" errors (second launch worked
-                    # only because Roblox recreated the dir shell while
-                    # crashing). Steps 1+2 still remove the system install so
-                    # Steam/web links use ours.
+                    # Trade-off: removing %LocalAppData%\Roblox\ before launch
+                    # historically caused a one-shot "missing or damaged files"
+                    # popup on the very next start (Roblox recreates WebView2
+                    # / cache state on demand). The operator accepted that
+                    # risk in exchange for guaranteed cleanup of stale
+                    # versions, junctioned redirects, and orphaned cache.
+                    #
                     # Order matters and each call is wrapped so one failure
                     # cannot skip the next, and none can fail the launch.
                     #
@@ -3717,6 +3725,11 @@ def main():
                             log_lines.append(f"Wiped {n_pf} Program Files Roblox folders")
                         except Exception as _e:
                             log_lines.append(f"Program Files wipe skipped: {_e}")
+                        try:
+                            n_la = purge_appdata_roblox_versions()
+                            log_lines.append(f"Wiped {n_la} %LocalAppData% Roblox folders")
+                        except Exception as _e:
+                            log_lines.append(f"%LocalAppData% wipe skipped: {_e}")
                         splash.set_progress(70, "Sync complete!")
                         app.processEvents()
                 except PermissionError as e:
