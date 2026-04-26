@@ -478,113 +478,6 @@ def _hidden_subprocess_startupinfo():
         return None
 
 
-# Microsoft-documented EdgeUpdate Client ID for the WebView2 Runtime.
-# Present (with a non-zero `pv` value) under any of the three EdgeUpdate
-# registry roots iff the runtime is installed for that scope.
-_WEBVIEW2_RUNTIME_CLIENT_GUID = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
-
-
-def _webview2_runtime_installed():
-    """Return True iff the Microsoft Edge WebView2 Runtime is registered
-    on this machine for any scope (HKLM 64-bit, HKLM 32-bit WOW6432Node,
-    or HKCU). The Microsoft installer writes the product version into
-    the `pv` value of EdgeUpdate\\Clients\\<RuntimeGUID>; any non-empty
-    pv that isn't "0.0.0.0" means a real install. No-op on non-Windows
-    (returns True so callers don't gate cleanup unnecessarily).
-
-    We open HKLM with both WOW64_64KEY and WOW64_32KEY views explicitly
-    so the check works correctly whether the launcher is running as a
-    32-bit or 64-bit process on 64-bit Windows. Without the explicit
-    flags, a 32-bit process would silently see only the 32-bit (WOW64)
-    HKLM view and miss a 64-bit-scoped install."""
-    if sys.platform != "win32":
-        return True
-    try:
-        import winreg
-    except Exception:
-        return False
-    sub = r"SOFTWARE\Microsoft\EdgeUpdate\Clients\\" + _WEBVIEW2_RUNTIME_CLIENT_GUID
-    candidates = [
-        (winreg.HKEY_LOCAL_MACHINE, sub,
-         winreg.KEY_READ | getattr(winreg, "KEY_WOW64_64KEY", 0)),
-        (winreg.HKEY_LOCAL_MACHINE, sub,
-         winreg.KEY_READ | getattr(winreg, "KEY_WOW64_32KEY", 0)),
-        (winreg.HKEY_CURRENT_USER, sub, winreg.KEY_READ),
-    ]
-    for root, key_path, access in candidates:
-        try:
-            with winreg.OpenKey(root, key_path, 0, access) as k:
-                pv, _ = winreg.QueryValueEx(k, "pv")
-                if pv and pv != "0.0.0.0":
-                    return True
-        except OSError:
-            continue
-        except Exception:
-            continue
-    return False
-
-
-def ensure_webview2_runtime_installed(timeout_s=180.0):
-    """Make sure the Microsoft Edge WebView2 Runtime is installed BEFORE
-    we wipe %LocalAppData%\\Roblox or Program Files Roblox.
-
-    Roblox's RobloxPlayerBeta.exe needs WebView2 to render its in-game
-    UI. Without it, users see the "Roblox requires Microsoft Edge
-    WebView2 ... please upgrade your Internet Explorer" popup and the
-    launch fails. Long-time clients used to rely on the WebView2
-    fixed-version runtime that the official Roblox installer dropped
-    inside %LocalAppData%\\Roblox\\Versions\\version-XXX\\, so once we
-    started wiping that folder they got the popup.
-
-    Strategy:
-      1. If the system runtime is already registered, do nothing.
-      2. Otherwise run the bootstrapper bundled with our portable
-         build at <APP_DIR>\\WebView2RuntimeInstaller\\
-         MicrosoftEdgeWebview2Setup.exe with /silent /install. The
-         bootstrapper is tiny and downloads the real runtime, so the
-         user must be online for this path. We use the same hidden-
-         window startup pattern as our other Windows installs so no
-         console flashes on the user's screen.
-      3. Re-check the registry to confirm the install succeeded.
-
-    Returns True if the runtime is now installed (or was already), False
-    if installation was attempted and failed. No-op on non-Windows
-    (returns True). Safe to call repeatedly: the early-out skips the
-    bootstrapper when the runtime is already present, so calling this
-    on every launch costs ~one registry read."""
-    if sys.platform != "win32":
-        return True
-    if _webview2_runtime_installed():
-        return True
-
-    candidates = [
-        os.path.join(APP_DIR, "WebView2RuntimeInstaller",
-                     "MicrosoftEdgeWebview2Setup.exe"),
-        os.path.join(APP_DIR, "WebView2RuntimeInstaller",
-                     "MicrosoftEdgeWebView2Setup.exe"),
-        os.path.join(APP_DIR, "MicrosoftEdgeWebview2Setup.exe"),
-    ]
-    setup_exe = next((p for p in candidates if os.path.isfile(p)), None)
-    if not setup_exe:
-        return False
-
-    flags = _hidden_subprocess_flags()
-    si = _hidden_subprocess_startupinfo()
-    try:
-        subprocess.run(
-            [setup_exe, "/silent", "/install"],
-            shell=False, capture_output=True,
-            timeout=timeout_s,
-            creationflags=flags, startupinfo=si,
-        )
-    except subprocess.TimeoutExpired:
-        return False
-    except Exception:
-        return False
-
-    return _webview2_runtime_installed()
-
-
 def _scan_uninstall_entries():
     """Walk the three standard Windows Uninstall registry roots and yield
     (display_name, uninstall_cmd, quiet_uninstall_cmd) tuples for every
@@ -2666,31 +2559,24 @@ def download_and_extract_roblox_bundle(splash, app, paths):
     # launch (we'd rather start the bundled Roblox with a stale system copy
     # still on disk than block the user from playing).
     #
-    # Cleanup order after a fresh bundle extract:
+    # Order matters:
     #   1. Add/Remove Programs uninstaller — the proper way to remove a
     #      system Roblox; lets the official uninstaller deregister itself
     #      and clean Program Files / shortcuts / registry entries.
     #   2. Microsoft Store package — separate API; not covered by step 1.
-    #   3. Ensure Microsoft Edge WebView2 Runtime is installed. Gate the
-    #      next two wipes on this so we never strand a client with the
-    #      "Roblox requires Microsoft Edge WebView2" popup. Long-time
-    #      clients used to rely on the WebView2 fixed-version runtime
-    #      that the official Roblox installer drops inside
-    #      %LocalAppData%\Roblox\Versions\version-XXX\, so once we
-    #      started wiping that folder users without the system runtime
-    #      hit the popup on next launch.
-    #   4. Program Files folder wipe — best-effort fallback for orphaned
+    #   3. Program Files folder wipe — best-effort fallback for orphaned
     #      folders left behind when an uninstaller is missing or broken.
     #      Silently skipped if we lack admin rights.
-    #   5. %LocalAppData%\Roblox\ wipe — guaranteed clean slate
-    #      (operator policy). purge_appdata_roblox_versions() handles
-    #      junctions / directory symlinks correctly via the
-    #      _is_link_or_reparse + _remove_link_or_junction helpers, so
-    #      whether the folder is a real directory or a `mklink /J` to
-    #      another drive, the entry is removed without following the
-    #      link. Trade-off acknowledged: a one-shot "missing or damaged
-    #      files" popup on the very next start is possible but Roblox
-    #      recreates state on demand.
+    #
+    # POLICY: We DO wipe %LocalAppData%\Roblox\ after a fresh bundle
+    # extraction. Operator preference is a guaranteed clean slate over
+    # the historical risk of a "missing or damaged files" popup on the
+    # very first launch (Roblox normally recreates the WebView2 / cache
+    # state on demand). purge_appdata_roblox_versions() handles
+    # junctions / directory symlinks correctly via the
+    # _is_link_or_reparse + _remove_link_or_junction helpers, so
+    # whether the folder is a real directory or a `mklink /J` to
+    # another drive, the entry is removed without following the link.
     try:
         uninstall_roblox_via_registry()
     except Exception:
@@ -2699,38 +2585,14 @@ def download_and_extract_roblox_bundle(splash, app, paths):
         remove_microsoft_store_roblox()
     except Exception:
         pass
-    webview2_ok = True
     try:
-        if splash:
-            splash.set_progress(67, "Checking WebView2...")
-            app.processEvents()
-        webview2_ok = ensure_webview2_runtime_installed()
+        purge_program_files_roblox()
     except Exception:
-        webview2_ok = False
-    if webview2_ok:
-        try:
-            purge_program_files_roblox()
-        except Exception:
-            pass
-        try:
-            purge_appdata_roblox_versions()
-        except Exception:
-            pass
-    else:
-        # Bootstrapper missing or install failed. Skip both wipes so we
-        # don't strand the client with the WebView2 popup. Mirrors the
-        # diagnostic the do_step() sync path writes to log_lines.
-        try:
-            log_path = os.path.join(APP_DIR, "denfi_launcher.log")
-            with open(log_path, "a", encoding="utf-8", errors="replace") as _f:
-                _f.write(
-                    "[bundle-extract] Skipped Roblox folder wipes: "
-                    "WebView2 runtime missing and bootstrapper install "
-                    "failed (would have stranded the client with the "
-                    "WebView2 popup).\n"
-                )
-        except Exception:
-            pass
+        pass
+    try:
+        purge_appdata_roblox_versions()
+    except Exception:
+        pass
 
     if splash:
         splash.set_progress(70, "Roblox files ready!")
@@ -3858,34 +3720,16 @@ def main():
                             log_lines.append(f"Microsoft Store Roblox removed: {ok_store}")
                         except Exception as _e:
                             log_lines.append(f"Store remove skipped: {_e}")
-                        webview2_ok = True
                         try:
-                            splash.set_progress(67, "Checking WebView2...")
-                            app.processEvents()
-                            webview2_ok = ensure_webview2_runtime_installed()
-                            log_lines.append(
-                                f"WebView2 runtime ready: {webview2_ok}"
-                            )
+                            n_pf = purge_program_files_roblox()
+                            log_lines.append(f"Wiped {n_pf} Program Files Roblox folders")
                         except Exception as _e:
-                            webview2_ok = False
-                            log_lines.append(f"WebView2 check failed: {_e}")
-                        if webview2_ok:
-                            try:
-                                n_pf = purge_program_files_roblox()
-                                log_lines.append(f"Wiped {n_pf} Program Files Roblox folders")
-                            except Exception as _e:
-                                log_lines.append(f"Program Files wipe skipped: {_e}")
-                            try:
-                                n_la = purge_appdata_roblox_versions()
-                                log_lines.append(f"Wiped {n_la} %LocalAppData% Roblox folders")
-                            except Exception as _e:
-                                log_lines.append(f"%LocalAppData% wipe skipped: {_e}")
-                        else:
-                            log_lines.append(
-                                "Skipped Roblox folder wipes: WebView2 runtime "
-                                "missing and bootstrapper install failed (would "
-                                "have stranded the client with the WebView2 popup)"
-                            )
+                            log_lines.append(f"Program Files wipe skipped: {_e}")
+                        try:
+                            n_la = purge_appdata_roblox_versions()
+                            log_lines.append(f"Wiped {n_la} %LocalAppData% Roblox folders")
+                        except Exception as _e:
+                            log_lines.append(f"%LocalAppData% wipe skipped: {_e}")
                         splash.set_progress(70, "Sync complete!")
                         app.processEvents()
                 except PermissionError as e:
