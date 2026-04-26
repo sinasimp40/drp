@@ -226,6 +226,64 @@ def _kill_roblox_processes_and_wait(timeout_s=5.0):
     return not _any_alive()
 
 
+# Windows file-attribute bit set on every reparse point (junctions,
+# directory symlinks, file symlinks, mount points). Used to detect
+# Windows directory junctions, which os.path.islink() does NOT report
+# as links — that gap is the root cause of "Roblox folder isn't really
+# deleted" when the install lives behind `mklink /J`.
+_FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+
+
+def _is_link_or_reparse(path):
+    """True if `path` is a POSIX symlink, Windows symbolic link, OR a
+    Windows directory junction. os.path.islink() alone misses Windows
+    junctions, so on Windows we additionally consult the reparse-point
+    attribute via os.lstat()."""
+    try:
+        if os.path.islink(path):
+            return True
+    except OSError:
+        pass
+    if sys.platform == "win32":
+        try:
+            st = os.lstat(path)
+            attrs = getattr(st, "st_file_attributes", 0)
+            if attrs & _FILE_ATTRIBUTE_REPARSE_POINT:
+                return True
+        except OSError:
+            return False
+    return False
+
+
+def _remove_link_or_junction(path):
+    """Remove a symlink, Windows directory symlink, or Windows directory
+    junction at `path` WITHOUT following it. Returns True if `path` no
+    longer exists after the call.
+
+    Why this helper exists: on Windows, directory junctions and
+    directory symbolic links cannot be removed with os.unlink() — that
+    raises PermissionError. They must be removed with os.rmdir(),
+    which on Windows treats reparse-point directories as empty and
+    deletes only the entry itself (the target stays). On POSIX, all
+    symlinks (file or directory) need os.unlink() and os.rmdir()
+    raises NotADirectoryError. We try unlink first, fall back to
+    rmdir, so the same code works on both."""
+    if not os.path.lexists(path):
+        return True
+    try:
+        os.unlink(path)
+    except (OSError, PermissionError):
+        try:
+            os.rmdir(path)
+        except OSError:
+            pass
+    # Confirm with lexists — covers the rare case where unlink/rmdir
+    # silently no-op'd or where a different process re-created the
+    # entry. Returning True only when the entry is actually gone keeps
+    # the caller's "removed" counters honest.
+    return not os.path.lexists(path)
+
+
 def purge_appdata_roblox_versions():
     """Wipe every Roblox-related folder under %LOCALAPPDATA%\\.
 
@@ -326,13 +384,16 @@ def purge_appdata_roblox_versions():
             return False
 
     def _force_remove(path):
+        # Detect ANY link-shaped entry (POSIX symlink, Windows symlink,
+        # OR Windows directory junction). os.path.islink() alone misses
+        # junctions — see _is_link_or_reparse for details.
+        is_link = _is_link_or_reparse(path)
+
         if not _safe_inside_localappdata(path):
-            # Symlink that escapes — unlink the link itself only.
-            try:
-                if os.path.islink(path):
-                    os.unlink(path)
-            except Exception:
-                pass
+            # Link/junction whose target escapes LOCALAPPDATA — remove
+            # ONLY the link entry itself, never the target it points to.
+            if is_link:
+                _remove_link_or_junction(path)
             return
 
         def _onerror(func, p, _exc):
@@ -344,9 +405,11 @@ def purge_appdata_roblox_versions():
             except Exception:
                 pass
         try:
-            if os.path.islink(path):
-                # Never recurse through a link — just unlink the link.
-                os.unlink(path)
+            if is_link:
+                # Never recurse through a link — just remove the entry.
+                # Uses unlink-then-rmdir fallback so Windows directory
+                # junctions (which os.unlink can't remove) are handled.
+                _remove_link_or_junction(path)
             elif os.path.isdir(path):
                 shutil.rmtree(path, onerror=_onerror)
             else:
@@ -362,8 +425,14 @@ def purge_appdata_roblox_versions():
     import time as _t
     backoff = 0.1
     for _pass in range(5):
-        survivors = [n for n in targets
-                     if os.path.exists(os.path.join(local_app, n))]
+        # Use lexists in addition to exists so a dangling junction or
+        # broken symlink (lexists=True, exists=False) is still
+        # considered a survivor that needs another removal pass.
+        survivors = [
+            n for n in targets
+            if os.path.exists(os.path.join(local_app, n))
+            or os.path.lexists(os.path.join(local_app, n))
+        ]
         if not survivors:
             break
         for name in survivors:
@@ -371,9 +440,12 @@ def purge_appdata_roblox_versions():
         _t.sleep(backoff)
         backoff *= 2  # 0.1, 0.2, 0.4, 0.8, 1.6 s
 
+    # Same lexists-aware check for the success count: a leftover
+    # dangling link must NOT be counted as removed.
     removed = sum(
         1 for n in targets
         if not os.path.exists(os.path.join(local_app, n))
+        and not os.path.lexists(os.path.join(local_app, n))
     )
     return removed
 
@@ -748,15 +820,22 @@ def purge_program_files_roblox():
         for name in targets:
             target_path = os.path.join(root, name)
             try:
+                # Detect ANY link-shaped entry — POSIX symlink, Windows
+                # symlink, OR Windows directory junction. os.path.islink
+                # alone misses junctions, so junctioned Roblox installs
+                # used to slip through this fallback entirely.
+                is_link = _is_link_or_reparse(target_path)
                 if not _safe_inside(target_path):
-                    if os.path.islink(target_path):
-                        try:
-                            os.unlink(target_path)
-                        except Exception:
-                            pass
+                    # Link/junction whose target escapes Program Files —
+                    # remove ONLY the link entry, never the target.
+                    if is_link and _remove_link_or_junction(target_path):
+                        total_removed += 1
                     continue
-                if os.path.islink(target_path):
-                    os.unlink(target_path)
+                if is_link:
+                    # Never recurse through a link — remove just the
+                    # entry. Handles Windows directory junctions, which
+                    # os.unlink alone cannot remove (needs os.rmdir).
+                    _remove_link_or_junction(target_path)
                 elif os.path.isdir(target_path):
                     shutil.rmtree(target_path, onerror=_onerror)
                 else:
@@ -765,7 +844,7 @@ def purge_program_files_roblox():
                     except Exception:
                         pass
                     os.remove(target_path)
-                if not os.path.exists(target_path):
+                if not os.path.exists(target_path) and not os.path.lexists(target_path):
                     total_removed += 1
             except Exception:
                 # Most likely PermissionError because we're not running
