@@ -1,0 +1,63 @@
+[telegram-backup] truststore (system CA store): active
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.80.130:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [26/Apr/2026 23:14:59] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:14:59] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [26/Apr/2026 23:15:02] "[32mPOST / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [26/Apr/2026 23:15:02] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:03] "GET /api/admin/public_base_url HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:04] "GET /roblox_bundles HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:04] "GET /api/admin/update_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:05] "GET /builds HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:05] "GET /socket.io/?EIO=4&transport=polling&t=PtC4pj9 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /api/build_status_all HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /api/launcher_info HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "POST /socket.io/?EIO=4&transport=polling&t=PtC4pmQ&sid=fJmGULMVpl7uuZcXAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /socket.io/?EIO=4&transport=polling&t=PtC4pmQ.0&sid=fJmGULMVpl7uuZcXAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /splash_preview HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "POST /socket.io/?EIO=4&transport=polling&t=PtC4pw3&sid=fJmGULMVpl7uuZcXAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:06] "GET /socket.io/?EIO=4&transport=polling&t=PtC4pw2&sid=fJmGULMVpl7uuZcXAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:07] "GET /splash_logo_file HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:07] "GET /static/inferno_bg.png HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:07] "GET /static/fonts/Roblox2017.ttf HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:11] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:16] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:21] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:26] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:31] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:36] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:41] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:46] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:51] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:15:56] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:01] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:06] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:11] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:16] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:21] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:26] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:31] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:36] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:41] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:46] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:51] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:16:56] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:01] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:06] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:11] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:16] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:21] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:26] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:31] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:36] "GET /api/ota_status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 23:17:41] "GET /api/ota_status HTTP/1.1" 200 -
