@@ -1580,6 +1580,27 @@ class SplashScreen(QSplashScreen):
         painter.drawText(num_x, row_y, num_w, row_h,
                          Qt.AlignVCenter | Qt.AlignLeft, num_text)
 
+    def _fit_text_font(self, base_font, text, max_w, min_pt=7):
+        """Return (font, elided_text) sized to fit `text` within `max_w`.
+
+        Tries the base font first. If it doesn't fit, shrinks the point
+        size one step at a time down to `min_pt`. Only when even the
+        smallest readable size can't fit does it fall back to eliding
+        with "…". This way long status messages on smaller right-column
+        widths shrink gracefully instead of being immediately truncated.
+        """
+        font = QFont(base_font)
+        start_pt = font.pointSize() if font.pointSize() > 0 else 9
+        for pt in range(start_pt, min_pt - 1, -1):
+            font.setPointSize(pt)
+            fm = QFontMetrics(font)
+            if fm.horizontalAdvance(text) <= max_w:
+                return font, text
+        # Smallest font still doesn't fit — elide at min_pt.
+        font.setPointSize(min_pt)
+        fm = QFontMetrics(font)
+        return font, fm.elidedText(text, Qt.ElideRight, max_w)
+
     def drawContents(self, painter):
         w = SPLASH_W
         h = SPLASH_H
@@ -1629,19 +1650,20 @@ class SplashScreen(QSplashScreen):
                              Qt.AlignVCenter | Qt.AlignLeft, "ERROR")
 
             err_label_w = QFontMetrics(err_label_font).horizontalAdvance("ERROR") + 12
-            err_msg_font = QFont("Segoe UI", 8)
+            err_msg_base_font = QFont("Segoe UI", 8)
             painter.setPen(QColor("#cccccc"))
-            painter.setFont(err_msg_font)
             err_first_line = (self.error_msg.split("\n") + [""])[0]
-            # Reserve space for the counter on the right and elide if the
-            # message would otherwise overflow into it.
+            # Reserve space for the counter on the right, then auto-shrink
+            # the font (down to 6pt) so longer error messages stay fully
+            # readable instead of getting cut off with "…" right away.
             err_msg_x = right_x + pad + err_label_w
             err_msg_max_w = max(20, cx_right - counter_total_w - STATUS_COUNTER_GAP - err_msg_x)
-            err_msg_elided = QFontMetrics(err_msg_font).elidedText(
-                err_first_line, Qt.ElideRight, err_msg_max_w
+            err_fit_font, err_fit_text = self._fit_text_font(
+                err_msg_base_font, err_first_line, err_msg_max_w, min_pt=6
             )
+            painter.setFont(err_fit_font)
             painter.drawText(err_msg_x, row_y, err_msg_max_w, row_h,
-                             Qt.AlignVCenter | Qt.AlignLeft, err_msg_elided)
+                             Qt.AlignVCenter | Qt.AlignLeft, err_fit_text)
             # Counter still drawn in error state so the user sees the final
             # progress value (typically 100) instead of an empty corner.
             self._draw_counter(painter, counter_font, counter_fm, suffix, suffix_w,
@@ -1656,21 +1678,23 @@ class SplashScreen(QSplashScreen):
         painter.setBrush(QColor("#ff6a00"))
         painter.drawEllipse(dot_x, dot_y, dot_d, dot_d)
 
-        # Status text — width is capped so the longest possible message
-        # ("Downloading vXXXXXXX... NNN.N/NNN.NN MB") gets elided with "…"
-        # before it can collide with the counter on the right.
+        # Status text — width is capped so it can never collide with the
+        # counter on the right. If the message doesn't fit at the normal
+        # 9pt size, the font auto-shrinks down to 7pt before falling back
+        # to "…" truncation, so long messages like
+        # "Downloading vXXXXXXX... NNN.N/NNN.NN MB" stay fully readable.
         painter.setPen(QColor("#b3b3b8"))
-        status_font = QFont("JetBrains Mono", 9)
-        if not status_font.exactMatch():
-            status_font = QFont("Consolas", 9)
-        painter.setFont(status_font)
+        status_base_font = QFont("JetBrains Mono", 9)
+        if not status_base_font.exactMatch():
+            status_base_font = QFont("Consolas", 9)
         status_x = dot_x + dot_d + 10
         status_max_w = max(20, cx_right - counter_total_w - STATUS_COUNTER_GAP - status_x)
-        status_elided = QFontMetrics(status_font).elidedText(
-            self.status_msg, Qt.ElideRight, status_max_w
+        status_fit_font, status_fit_text = self._fit_text_font(
+            status_base_font, self.status_msg, status_max_w, min_pt=7
         )
+        painter.setFont(status_fit_font)
         painter.drawText(status_x, row_y, status_max_w, row_h,
-                         Qt.AlignVCenter | Qt.AlignLeft, status_elided)
+                         Qt.AlignVCenter | Qt.AlignLeft, status_fit_text)
 
         # Counter "47 / 100" right-aligned (drawn last so it sits on top of
         # any sub-pixel anti-aliasing bleed from the status text edge).
