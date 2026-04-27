@@ -4109,6 +4109,7 @@ def trial_blocks_settings():
             default_seconds=TRIAL_COOLDOWN_DEFAULT_SECONDS,
         )
     seconds = max(0, int(seconds))
+    migrated = 0
     conn = get_db()
     try:
         conn.execute("BEGIN")
@@ -4122,9 +4123,34 @@ def trial_blocks_settings():
             " updated_at = excluded.updated_at",
             ("trial_cooldown_seconds", str(seconds), time.time()),
         )
+
+        # Migrate existing ACTIVE auto-blocks to the new cooldown so the
+        # admin doesn't have to delete-and-recreate every entry whenever
+        # they tune the cooldown. We only touch rows that were created
+        # automatically by trial issuance (created_by='auto') and that
+        # are still active (unblocks_at > now). Manual admin entries and
+        # already-expired rows are left alone. When cooldown is set to 0
+        # (auto-blocks disabled) we DO NOT delete existing blocks — the
+        # admin can clear them individually from the table if desired.
+        now_ts = time.time()
+        if seconds > 0:
+            new_reason = f"Auto-block on trial issuance ({format_duration(seconds)} cooldown)"
+            cur = conn.execute(
+                "UPDATE trial_blocks "
+                "SET unblocks_at = blocked_at + ?, reason = ? "
+                "WHERE created_by = 'auto' "
+                "  AND unblocks_at IS NOT NULL "
+                "  AND unblocks_at > ?",
+                (seconds, new_reason, now_ts),
+            )
+            migrated = cur.rowcount or 0
+
         _audit_trial_block(
             "settings",
-            details=f"trial_cooldown_seconds: {prev} → {seconds}",
+            details=(
+                f"trial_cooldown_seconds: {prev} → {seconds}"
+                + (f"; migrated {migrated} active auto-blocks" if migrated else "")
+            ),
             conn=conn,
         )
         conn.commit()
@@ -4137,9 +4163,15 @@ def trial_blocks_settings():
         try: conn.close()
         except Exception: pass
     if seconds <= 0:
-        flash("Auto-blocks disabled. Trials will no longer create cooldowns.", "success")
+        flash("Auto-blocks disabled. Trials will no longer create cooldowns. "
+              "Existing blocks were left in place — clear them individually if needed.",
+              "success")
     else:
-        flash(f"Trial cooldown set to {format_duration(seconds)}.", "success")
+        msg = f"Trial cooldown set to {format_duration(seconds)}."
+        if migrated:
+            msg += (f" Updated {migrated} existing auto-block"
+                    f"{'s' if migrated != 1 else ''} to the new cooldown.")
+        flash(msg, "success")
     return redirect(url_for("trial_blocks_page"))
 
 
