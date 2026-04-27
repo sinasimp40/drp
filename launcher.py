@@ -3517,6 +3517,25 @@ def main():
     splash.show()
     app.processEvents()
 
+    # Seed the Roblox version stamp on the splash IMMEDIATELY so the user
+    # sees something on the first paint, instead of waiting for the boot
+    # sequence to reach idx==2 and run find_system_roblox() (which can
+    # take a noticeable second walking %LOCALAPPDATA%\Roblox\Versions on
+    # slow disks). On any non-first launch we have the version cached
+    # locally — that read is essentially free. The boot sequence will
+    # later overwrite this with a fresher value if a newer system Roblox
+    # is detected.
+    try:
+        _early_paths = get_paths()
+        _early_ver = get_roblox_version(_early_paths["roblox"])
+        if _early_ver:
+            splash.roblox_version = _early_ver
+            set_current_roblox_version(_early_ver)
+            splash.repaint()
+            app.processEvents()
+    except Exception:
+        pass
+
     if not check_license_or_prompt(app, splash):
         release_singleton_mutex()
         sys.exit(0)
