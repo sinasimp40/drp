@@ -1565,6 +1565,21 @@ class SplashScreen(QSplashScreen):
     def mouseDoubleClickEvent(self, event):
         event.accept()
 
+    def _draw_counter(self, painter, counter_font, counter_fm, suffix, suffix_w,
+                       num_text, num_w, cx_right, row_y, row_h):
+        """Draw the right-aligned 'NN / 100' progress counter. Pulled out
+        so both the normal and error code paths render it identically and
+        we don't duplicate the (font + measurement + paint) sequence."""
+        painter.setFont(counter_font)
+        suffix_x = cx_right - suffix_w
+        num_x = suffix_x - num_w
+        painter.setPen(QColor("#666"))
+        painter.drawText(suffix_x, row_y, suffix_w, row_h,
+                         Qt.AlignVCenter | Qt.AlignLeft, suffix)
+        painter.setPen(QColor("#f4f4f6"))
+        painter.drawText(num_x, row_y, num_w, row_h,
+                         Qt.AlignVCenter | Qt.AlignLeft, num_text)
+
     def drawContents(self, painter):
         w = SPLASH_W
         h = SPLASH_H
@@ -1585,17 +1600,52 @@ class SplashScreen(QSplashScreen):
         # Mask the bottom row of the right column so we can repaint cleanly.
         painter.fillRect(right_x, row_y - 4, right_w, row_h + 8, QColor("#0a0a0a"))
 
+        # Counter font + measurements computed UP FRONT so we can reserve
+        # the exact horizontal space the counter ("47 / 100") will occupy
+        # and elide the status / error text to fit before that — otherwise
+        # long status messages like "Downloading Roblox... 172.0/190.52 MB"
+        # bleed straight through the counter on some monitors.
+        counter_font = QFont("JetBrains Mono", 9, QFont.Bold)
+        if not counter_font.exactMatch():
+            counter_font = QFont("Consolas", 9, QFont.Bold)
+        counter_fm = QFontMetrics(counter_font)
+        suffix = " / 100"
+        suffix_w = counter_fm.horizontalAdvance(suffix)
+        pct = max(0, min(100, int(self.progress)))
+        num_text = f"{pct:02d}"
+        num_w = counter_fm.horizontalAdvance(num_text)
+        counter_total_w = num_w + suffix_w
+        cx_right = right_x + right_w - pad
+        # Gap between the end of the status text and the start of the
+        # counter so they never visually touch even when both are at max
+        # width. 14px reads as a clear column break at the splash size.
+        STATUS_COUNTER_GAP = 14
+
         if self.is_error:
             painter.setPen(QColor(RED))
-            painter.setFont(QFont("Segoe UI", 10, QFont.Bold))
+            err_label_font = QFont("Segoe UI", 10, QFont.Bold)
+            painter.setFont(err_label_font)
             painter.drawText(right_x + pad, row_y, right_w - pad * 2, row_h,
                              Qt.AlignVCenter | Qt.AlignLeft, "ERROR")
 
+            err_label_w = QFontMetrics(err_label_font).horizontalAdvance("ERROR") + 12
+            err_msg_font = QFont("Segoe UI", 8)
             painter.setPen(QColor("#cccccc"))
-            painter.setFont(QFont("Segoe UI", 8))
+            painter.setFont(err_msg_font)
             err_first_line = (self.error_msg.split("\n") + [""])[0]
-            painter.drawText(right_x + pad + 60, row_y, right_w - pad * 2 - 60, row_h,
-                             Qt.AlignVCenter | Qt.AlignLeft, err_first_line)
+            # Reserve space for the counter on the right and elide if the
+            # message would otherwise overflow into it.
+            err_msg_x = right_x + pad + err_label_w
+            err_msg_max_w = max(20, cx_right - counter_total_w - STATUS_COUNTER_GAP - err_msg_x)
+            err_msg_elided = QFontMetrics(err_msg_font).elidedText(
+                err_first_line, Qt.ElideRight, err_msg_max_w
+            )
+            painter.drawText(err_msg_x, row_y, err_msg_max_w, row_h,
+                             Qt.AlignVCenter | Qt.AlignLeft, err_msg_elided)
+            # Counter still drawn in error state so the user sees the final
+            # progress value (typically 100) instead of an empty corner.
+            self._draw_counter(painter, counter_font, counter_fm, suffix, suffix_w,
+                               num_text, num_w, cx_right, row_y, row_h)
             return
 
         # Animated status dot (left)
@@ -1606,35 +1656,26 @@ class SplashScreen(QSplashScreen):
         painter.setBrush(QColor("#ff6a00"))
         painter.drawEllipse(dot_x, dot_y, dot_d, dot_d)
 
-        # Status text
+        # Status text — width is capped so the longest possible message
+        # ("Downloading vXXXXXXX... NNN.N/NNN.NN MB") gets elided with "…"
+        # before it can collide with the counter on the right.
         painter.setPen(QColor("#b3b3b8"))
         status_font = QFont("JetBrains Mono", 9)
         if not status_font.exactMatch():
             status_font = QFont("Consolas", 9)
         painter.setFont(status_font)
-        painter.drawText(dot_x + dot_d + 10, row_y, right_w - pad * 2 - dot_d - 10, row_h,
-                         Qt.AlignVCenter | Qt.AlignLeft, self.status_msg)
+        status_x = dot_x + dot_d + 10
+        status_max_w = max(20, cx_right - counter_total_w - STATUS_COUNTER_GAP - status_x)
+        status_elided = QFontMetrics(status_font).elidedText(
+            self.status_msg, Qt.ElideRight, status_max_w
+        )
+        painter.drawText(status_x, row_y, status_max_w, row_h,
+                         Qt.AlignVCenter | Qt.AlignLeft, status_elided)
 
-        # Counter "47 / 100" right-aligned
-        counter_font = QFont("JetBrains Mono", 9, QFont.Bold)
-        if not counter_font.exactMatch():
-            counter_font = QFont("Consolas", 9, QFont.Bold)
-        painter.setFont(counter_font)
-        pct = max(0, min(100, int(self.progress)))
-        num_text = f"{pct:02d}"
-        # number in white, " / 100" muted
-        fm = QFontMetrics(counter_font)
-        suffix = " / 100"
-        suffix_w = fm.horizontalAdvance(suffix)
-        num_w = fm.horizontalAdvance(num_text)
-        total_w = num_w + suffix_w
-        cx_right = right_x + right_w - pad
-        suffix_x = cx_right - suffix_w
-        num_x = suffix_x - num_w
-        painter.setPen(QColor("#666"))
-        painter.drawText(suffix_x, row_y, suffix_w, row_h, Qt.AlignVCenter | Qt.AlignLeft, suffix)
-        painter.setPen(QColor("#f4f4f6"))
-        painter.drawText(num_x, row_y, num_w, row_h, Qt.AlignVCenter | Qt.AlignLeft, num_text)
+        # Counter "47 / 100" right-aligned (drawn last so it sits on top of
+        # any sub-pixel anti-aliasing bleed from the status text edge).
+        self._draw_counter(painter, counter_font, counter_fm, suffix, suffix_w,
+                           num_text, num_w, cx_right, row_y, row_h)
 
         # Roblox version, drawn just above the "// LAUNCHER" notch on the
         # left orange block. Two lines: a small uppercase "ROBLOX" eyebrow
@@ -3469,6 +3510,18 @@ def main():
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"denfi.{APP_NAME}.launcher")
         except Exception:
             pass
+
+    # Make the splash render consistently across monitors with different
+    # DPI / scaling settings (125%, 150%, 4K displays, etc). Without this,
+    # Qt picks per-monitor font widths that can be wider than our layout
+    # math expects, causing the bottom status text to bleed into the
+    # "/100" counter on some user machines but not others. Both flags
+    # MUST be set before the QApplication is constructed.
+    try:
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    except Exception:
+        pass
 
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
