@@ -23,3 +23,10 @@ Pillow
 PySocks
 python-dotenv
 requests
+eventlet
+flask
+flask-socketio
+Pillow
+python-dotenv
+requests
+truststore

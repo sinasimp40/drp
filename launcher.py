@@ -285,10 +285,11 @@ def _remove_link_or_junction(path):
 
 
 def purge_appdata_roblox_versions():
-    """Wipe every Roblox-related folder under %LOCALAPPDATA%\\.
+    """Remove system Roblox state from %LOCALAPPDATA% so it can't interfere
+    with the portable player.
 
     Search semantics: walk %LOCALAPPDATA% top-level entries only (we never
-    recurse into unrelated apps) and delete any entry whose name contains
+    recurse into unrelated apps) and process any entry whose name contains
     "roblox" (case-insensitive). That catches:
       * Roblox
       * Roblox Corporation
@@ -296,10 +297,30 @@ def purge_appdata_roblox_versions():
       * RobloxLauncher
       * Anything else Roblox-branded that might land here in the future.
 
-    Why this design: a previous narrower wipe of just %LOCALAPPDATA%\\Roblox
-    left multi-instance-blocking state on some client machines because the
-    running Roblox process was holding file handles, and Roblox state
-    sometimes lives in sibling folders too. Hardening (per code review):
+    SURGICAL MODE for the main "Roblox" folder
+    -------------------------------------------
+    Wiping %LOCALAPPDATA%\\Roblox\\ entirely removes the WebView2 user-data
+    that Roblox initialised during its system install (the EBWebView sub-
+    folder and related state). When the portable player then runs and finds
+    no WebView2 user data it must reinitialise from scratch; on some systems
+    this fails with the "missing or damaged files / please uninstall and
+    reinstall" dialog on the very first launch.
+
+    To avoid that, we now apply a targeted cleanup to the main Roblox folder:
+      * Wipe  Roblox\\Versions\\          — system-version folders; keeping
+                                            these would let system Roblox
+                                            re-appear and block multi-instance.
+      * Wipe  Roblox\\rbx-storage.db      — session tokens (fresh login).
+      * SKIP  Roblox\\EBWebView*\\        — WebView2 user-data; portable
+                                            Roblox needs this intact to avoid
+                                            the one-shot "uninstall" error.
+      * Wipe  everything else inside Roblox\\ that is not WebView2-related.
+
+    Sibling folders (Roblox Corporation, RobloxStudio, etc.) are still wiped
+    in their entirety as before, since they contain no WebView2 state we
+    need to preserve.
+
+    Hardening:
       1. Kill EVERY known Roblox process image and POLL until they're
          actually gone (up to 5s) — no fixed-sleep race window.
       2. Path-boundary guard: each target is resolved with realpath() and
@@ -310,7 +331,8 @@ def purge_appdata_roblox_versions():
       3. Up to 5 delete passes with exponential backoff and a
          chmod-then-retry onerror handler for read-only files.
 
-    Returns the count of top-level Roblox-named items successfully deleted.
+    Returns the count of top-level Roblox-named items fully removed (or
+    surgically cleaned, for the main Roblox folder).
     """
     if sys.platform != "win32":
         return 0
@@ -421,15 +443,60 @@ def purge_appdata_roblox_versions():
         except Exception:
             pass
 
+    def _surgical_roblox_folder(roblox_dir):
+        """Targeted cleanup of %LOCALAPPDATA%\\Roblox\\ — wipes Versions\\ and
+        non-WebView2 state while preserving EBWebView* subfolders so the
+        portable player doesn't get a one-shot WebView2 'please uninstall'
+        error on first launch."""
+        if not os.path.isdir(roblox_dir):
+            return
+
+        # Subfolders/files we ALWAYS wipe regardless of name.
+        always_wipe = {"versions", "rbx-storage.db", "rbx-storage.db-shm",
+                       "rbx-storage.db-wal", "logs", "crashes", "crash"}
+
+        # Subfolders that contain WebView2 runtime/user-data — PRESERVE these
+        # so Roblox doesn't need to reinitialise WebView2 on first launch.
+        def _is_webview_entry(name_lower):
+            return "ebwebview" in name_lower or "webview2" in name_lower
+
+        try:
+            entries = os.listdir(roblox_dir)
+        except OSError:
+            return
+
+        for entry in entries:
+            name_lc = entry.lower()
+            if _is_webview_entry(name_lc):
+                # Preserve WebView2 user-data — this is what avoids the
+                # one-shot "uninstall" error seen by first-time clients.
+                continue
+            entry_path = os.path.join(roblox_dir, entry)
+            if name_lc in always_wipe or not _is_webview_entry(name_lc):
+                _force_remove(entry_path)
+
     # --- Step 4: up to 5 passes with exponential backoff. ---
     import time as _t
+
+    # Identify which target IS the plain "Roblox" folder (exact case-
+    # insensitive match, not a sibling like "Roblox Corporation"). That
+    # folder gets surgical treatment; everything else is fully wiped.
+    _main_roblox_name = None
+    for name in targets:
+        if name.lower() == "roblox" and os.path.isdir(os.path.join(local_app, name)):
+            _main_roblox_name = name
+            break
+
+    # Full-wipe targets: everything except the main Roblox folder.
+    full_wipe_targets = [n for n in targets if n != _main_roblox_name]
+
     backoff = 0.1
     for _pass in range(5):
         # Use lexists in addition to exists so a dangling junction or
         # broken symlink (lexists=True, exists=False) is still
         # considered a survivor that needs another removal pass.
         survivors = [
-            n for n in targets
+            n for n in full_wipe_targets
             if os.path.exists(os.path.join(local_app, n))
             or os.path.lexists(os.path.join(local_app, n))
         ]
@@ -440,13 +507,20 @@ def purge_appdata_roblox_versions():
         _t.sleep(backoff)
         backoff *= 2  # 0.1, 0.2, 0.4, 0.8, 1.6 s
 
-    # Same lexists-aware check for the success count: a leftover
-    # dangling link must NOT be counted as removed.
+    # Apply surgical cleanup to the main Roblox folder (if it exists).
+    if _main_roblox_name:
+        _surgical_roblox_folder(os.path.join(local_app, _main_roblox_name))
+
+    # Count: sibling folders fully removed + 1 if we surgically cleaned
+    # the main Roblox folder (it still exists on disk, so don't count it
+    # as "removed" — use 1 to indicate it was processed).
     removed = sum(
-        1 for n in targets
+        1 for n in full_wipe_targets
         if not os.path.exists(os.path.join(local_app, n))
         and not os.path.lexists(os.path.join(local_app, n))
     )
+    if _main_roblox_name:
+        removed += 1
     return removed
 
 
@@ -1129,6 +1203,84 @@ def ensure_windowed_mode():
         return True
     except Exception:
         return False
+
+
+def ensure_webview2(roblox_dir):
+    """Silently install the WebView2 Evergreen runtime if it is not already
+    present on the client's machine.
+
+    Roblox ships with two WebView2 options:
+      1. EBWebView/ (fixed distribution) — a self-contained runtime folder
+         placed alongside RobloxPlayerBeta.exe. If present, Roblox uses it
+         directly and no system-level install is needed.
+      2. WebView2RuntimeInstaller/MicrosoftEdgeWebview2Setup.exe — the
+         Evergreen bootstrapper. Roblox falls back to asking the user to
+         install it if option 1 is absent or broken. The dialog ("Please
+         upgrade your Internet Explorer...") confuses and blocks users.
+
+    This function runs BEFORE Roblox launches to eliminate that dialog:
+      - If EBWebView/ is present in roblox_dir, the fixed distribution is
+        intact and we exit immediately — nothing to do.
+      - If the WebView2 Evergreen runtime is already registered in the
+        Windows registry, we exit immediately — nothing to do.
+      - Otherwise, if WebView2RuntimeInstaller/MicrosoftEdgeWebview2Setup.exe
+        is present in roblox_dir, we run it with /silent /install /norestart
+        so the runtime installs in the background before Roblox starts. The
+        user never sees the browser-upgrade prompt.
+
+    Returns a short status string for logging.
+    """
+    if sys.platform != "win32":
+        return "skipped (non-windows)"
+
+    # Option 1: fixed distribution runtime exists alongside the exe.
+    ebwebview = os.path.join(roblox_dir, "EBWebView")
+    if os.path.isdir(ebwebview):
+        return "EBWebView fixed distribution present — ok"
+
+    # Option 2: check if Evergreen runtime is registered in the registry.
+    try:
+        import winreg as _winreg
+    except ImportError:
+        _winreg = None
+
+    if _winreg:
+        _WV2_GUID = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+        _reg_paths = [
+            (_winreg.HKEY_LOCAL_MACHINE,
+             r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\\" + _WV2_GUID),
+            (_winreg.HKEY_LOCAL_MACHINE,
+             r"SOFTWARE\Microsoft\EdgeUpdate\Clients\\" + _WV2_GUID),
+            (_winreg.HKEY_CURRENT_USER,
+             r"Software\Microsoft\EdgeUpdate\Clients\\" + _WV2_GUID),
+        ]
+        for hive, path in _reg_paths:
+            try:
+                key = _winreg.OpenKey(hive, path)
+                _winreg.CloseKey(key)
+                return "WebView2 Evergreen runtime already installed — ok"
+            except OSError:
+                pass
+
+    # Neither fixed distribution nor Evergreen found — try silent install.
+    installer = os.path.join(
+        roblox_dir, "WebView2RuntimeInstaller", "MicrosoftEdgeWebview2Setup.exe"
+    )
+    if not os.path.isfile(installer):
+        return "WebView2 installer not found — user may see browser-upgrade prompt"
+
+    try:
+        flags = _hidden_subprocess_flags() if sys.platform == "win32" else 0
+        si = _hidden_subprocess_startupinfo() if sys.platform == "win32" else None
+        subprocess.run(
+            [installer, "/silent", "/install", "/norestart"],
+            timeout=120,
+            creationflags=flags,
+            startupinfo=si,
+        )
+        return "WebView2 Evergreen installed silently"
+    except Exception as e:
+        return f"WebView2 silent install failed: {e}"
 
 
 def get_existing_memprof_files():
@@ -3880,6 +4032,11 @@ def main():
 
             ensure_windowed_mode()
             log_lines.append("Windowed mode settings applied")
+
+            splash.set_progress(83, "Checking WebView2...")
+            app.processEvents()
+            wv2_result = ensure_webview2(paths["roblox"])
+            log_lines.append(f"WebView2 check: {wv2_result}")
 
             splash.set_progress(85, "Launching Roblox...")
             app.processEvents()
