@@ -1,0 +1,22 @@
+[telegram-backup] truststore (system CA store): active
+[telegram-backup] scheduler started
+WARNING: Using default admin password. Set LICENSE_ADMIN_PASSWORD env var for production!
+License server starting on port 5000
+Dashboard: http://0.0.0.0:5000/
+ * Serving Flask app 'server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.70.226:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [26/Apr/2026 15:44:25] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:44:29] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [26/Apr/2026 15:44:32] "GET /splash_preview HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:44:32] "GET /splash_logo_file HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:44:32] "GET /static/fonts/Roblox2017.ttf HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:44:39] "GET /splash_preview HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:44:54] "[32mGET /api/ota_status HTTP/1.1[0m" 302 -
+127.0.0.1 - - [26/Apr/2026 15:44:55] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Apr/2026 15:45:54] "[32mGET /api/ota_status HTTP/1.1[0m" 302 -
+127.0.0.1 - - [26/Apr/2026 15:45:55] "GET / HTTP/1.1" 200 -
