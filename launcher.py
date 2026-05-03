@@ -2398,9 +2398,12 @@ def _friendly_net_error(e):
     actionable text instead of the raw Python traceback."""
     s = str(e)
     low = s.lower()
-    if "certificate_verify_failed" in low or "ssl: certificate" in low:
-        return ("Secure connection failed. Please check your PC date/time "
-                "and antivirus, then retry.")
+    if ("certificate_verify_failed" in low or "ssl: certificate" in low
+            or "not within its validity" in low or "validity period" in low
+            or "certificate expired" in low or "certificate has expired" in low):
+        return ("Secure connection failed — your PC clock may be wrong. "
+                "Please sync your date/time (Settings → Time → Sync now) "
+                "and retry. If the problem persists, check your antivirus.")
     if "ssl" in low or "handshake" in low:
         return "Secure connection error. Check your network and retry."
     return f"Server unreachable: {s[:80]}"
