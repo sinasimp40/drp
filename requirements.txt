@@ -30,3 +30,11 @@ Pillow
 python-dotenv
 requests
 truststore
+eventlet
+flask
+flask-socketio
+Pillow
+PySocks
+python-dotenv
+requests
+truststore
